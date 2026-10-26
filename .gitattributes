@@ -1,0 +1,8 @@
+# Normalize line endings: stored as LF in git, checked out natively per OS.
+* text=auto
+
+# Shell script must keep LF, otherwise it fails on the Linux CI runner.
+mvnw text eol=lf
+
+# Windows batch file must keep CRLF.
+*.cmd text eol=crlf

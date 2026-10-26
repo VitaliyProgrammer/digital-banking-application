@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: digital-banking
+
+  # Defaults after ":" are for local development only (docker-compose.yml).
+  # Any other environment passes real values via environment variables.
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:digital_bank}
+    username: ${DB_USERNAME:bank}
+    password: ${DB_PASSWORD:bank}
+
+  jpa:
+    # Do not keep a DB connection open for the whole HTTP request.
+    open-in-view: false
+    hibernate:
+      # Schema is owned by Flyway; Hibernate only checks that entities match it.
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+  threads:
+    virtual:
+      enabled: true
+
+  mvc:
+    problemdetails:
+      enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

@@ -24,9 +24,14 @@ spring:
     virtual:
       enabled: true
 
-  mvc:
-    problemdetails:
-      enabled: true
+banking:
+  security:
+    jwt:
+      issuer: digital-banking
+      # Local development only. Every other environment must set JWT_SECRET (32+ characters).
+      secret: ${JWT_SECRET:local-dev-secret-do-not-use-in-production}
+      access-token-ttl: 15m
+      refresh-token-ttl: 30d
 
 management:
   endpoints:

@@ -1,0 +1,218 @@
+package io.github.vitaliyprogrammer.banking.payment.service.impl;
+
+import io.github.vitaliyprogrammer.banking.account.dto.request.PostingRequestDto;
+import io.github.vitaliyprogrammer.banking.account.dto.response.AccountReferenceDto;
+import io.github.vitaliyprogrammer.banking.account.entity.status.AccountType;
+import io.github.vitaliyprogrammer.banking.account.entity.status.EntryDirection;
+import io.github.vitaliyprogrammer.banking.account.entity.status.TransactionType;
+import io.github.vitaliyprogrammer.banking.account.service.AccountService;
+import io.github.vitaliyprogrammer.banking.account.service.LedgerService;
+import io.github.vitaliyprogrammer.banking.payment.dto.request.TopUpRequestDto;
+import io.github.vitaliyprogrammer.banking.payment.dto.request.TransferRequestDto;
+import io.github.vitaliyprogrammer.banking.payment.dto.response.PaymentResponseDto;
+import io.github.vitaliyprogrammer.banking.payment.entity.Payment;
+import io.github.vitaliyprogrammer.banking.payment.entity.status.PaymentType;
+import io.github.vitaliyprogrammer.banking.payment.exception.CurrencyMismatchException;
+import io.github.vitaliyprogrammer.banking.payment.exception.IdempotencyKeyReusedException;
+import io.github.vitaliyprogrammer.banking.payment.exception.PaymentNotFoundException;
+import io.github.vitaliyprogrammer.banking.payment.exception.RecipientNotFoundException;
+import io.github.vitaliyprogrammer.banking.payment.exception.SameAccountTransferException;
+import io.github.vitaliyprogrammer.banking.payment.repository.PaymentRepository;
+import io.github.vitaliyprogrammer.banking.payment.service.PaymentService;
+import io.github.vitaliyprogrammer.banking.payment.service.fee.FeeCalculator;
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.time.Clock;
+import java.util.ArrayList;
+import java.util.HexFormat;
+import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Supplier;
+import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
+
+@Service
+@RequiredArgsConstructor
+public class PaymentServiceImpl implements PaymentService {
+
+    private final PaymentRepository paymentRepository;
+
+    private final AccountService accountService;
+
+    private final LedgerService ledgerService;
+
+    private final FeeCalculator feeCalculator;
+
+    private final TransactionTemplate transactionTemplate;
+
+    private final Clock clock;
+
+    @Override
+    public PaymentResponseDto topUp(UUID userId, String idempotencyKey, TopUpRequestDto request) {
+
+        String requestHash = hash(PaymentType.TOP_UP, request.accountId(), request.amount());
+
+        return executeOnce(userId, idempotencyKey, requestHash,
+                () -> createTopUp(userId, idempotencyKey, requestHash, request));
+    }
+
+    @Override
+    public PaymentResponseDto transfer(UUID userId, String idempotencyKey, TransferRequestDto request) {
+
+        String recipientNumber = normalizeAccountNumber(request.toAccountNumber());
+        String requestHash = hash(PaymentType.TRANSFER, request.fromAccountId(), recipientNumber,
+                request.amount(), request.description());
+
+        return executeOnce(userId, idempotencyKey, requestHash,
+                () -> createTransfer(userId, idempotencyKey, requestHash, recipientNumber, request));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaymentResponseDto getPayment(UUID userId, UUID paymentId) {
+
+        return paymentRepository.findByIdAndInitiatorId(paymentId, userId)
+                .map(PaymentResponseDto::from)
+                .orElseThrow(PaymentNotFoundException::new);
+    }
+
+    /**
+     * Idempotency in three cases:
+     * 1. The key was used before → return that payment (or 422 if the request differs). No money moves.
+     * 2. The key is new → run the operation in a fresh transaction. Its first write is the payment row,
+     *    so a parallel request with the same key blocks on the unique index right there, before any money moves.
+     * 3. That parallel request lost the race → its transaction is rolled back entirely; outside of it,
+     *    read the winner's payment and return it, exactly as in case 1.
+     * A programmatic transaction is needed because case 3 must read the winner after the rollback, outside of it.
+     */
+    private PaymentResponseDto executeOnce(UUID userId,
+                                           String idempotencyKey,
+                                           String requestHash,
+                                           Supplier<Payment> operation) {
+
+        Optional<Payment> existing = paymentRepository.findByInitiatorIdAndIdempotencyKey(userId, idempotencyKey);
+        if (existing.isPresent()) {
+            return replay(existing.get(), requestHash);
+        }
+
+        try {
+            Payment payment = Objects.requireNonNull(transactionTemplate.execute(status -> operation.get()));
+            return PaymentResponseDto.from(payment);
+        } catch (DataIntegrityViolationException e) {
+            Payment winner = paymentRepository.findByInitiatorIdAndIdempotencyKey(userId, idempotencyKey)
+                    .orElseThrow(() -> e);
+            return replay(winner, requestHash);
+        }
+    }
+
+    private static PaymentResponseDto replay(Payment payment, String requestHash) {
+
+        if (!payment.getRequestHash().equals(requestHash)) {
+            throw new IdempotencyKeyReusedException();
+        }
+
+        return PaymentResponseDto.from(payment);
+    }
+
+    private Payment createTopUp(UUID userId, String idempotencyKey, String requestHash, TopUpRequestDto request) {
+
+        AccountReferenceDto account = accountService.getOwnedAccountReference(userId, request.accountId());
+        BigDecimal fee = feeCalculator.calculate(PaymentType.TOP_UP, request.amount(), account.currency());
+
+        Payment payment = paymentRepository.saveAndFlush(Payment.pending(
+                userId, idempotencyKey, requestHash, PaymentType.TOP_UP,
+                null, account.id(), account.currency(), request.amount(), fee, "Top-up", clock.instant()));
+
+        UUID ledgerTransactionId = ledgerService.post(PostingRequestDto.transfer(
+                TransactionType.DEPOSIT, "Top-up",
+                ledgerService.getBankAccountId(AccountType.SETTLEMENT, account.currency()),
+                account.id(),
+                request.amount()));
+
+        payment.complete(ledgerTransactionId, clock.instant());
+
+        return payment;
+    }
+
+    /**
+     * The payer pays amount + fee, the recipient gets the amount, the bank's fee account gets the fee:
+     * three lines of one balanced ledger transaction, so they succeed or fail together.
+     */
+    private Payment createTransfer(UUID userId,
+                                   String idempotencyKey,
+                                   String requestHash,
+                                   String recipientNumber,
+                                   TransferRequestDto request) {
+
+        AccountReferenceDto from = accountService.getOwnedAccountReference(userId, request.fromAccountId());
+        AccountReferenceDto to = accountService.findClientAccountByNumber(recipientNumber)
+                .orElseThrow(RecipientNotFoundException::new);
+
+        if (from.id().equals(to.id())) {
+            throw new SameAccountTransferException();
+        }
+
+        if (from.currency() != to.currency()) {
+            throw new CurrencyMismatchException();
+        }
+
+        BigDecimal amount = request.amount();
+        BigDecimal fee = feeCalculator.calculate(PaymentType.TRANSFER, amount, from.currency());
+        String description = request.description() != null ? request.description() : "Transfer to " + to.number();
+
+        Payment payment = paymentRepository.saveAndFlush(Payment.pending(
+                userId, idempotencyKey, requestHash, PaymentType.TRANSFER,
+                from.id(), to.id(), from.currency(), amount, fee, description, clock.instant()));
+
+        List<PostingRequestDto.Line> lines = new ArrayList<>();
+        lines.add(new PostingRequestDto.Line(from.id(), EntryDirection.DEBIT, amount.add(fee)));
+        lines.add(new PostingRequestDto.Line(to.id(), EntryDirection.CREDIT, amount));
+
+        if (fee.signum() > 0) {
+            UUID feeAccountId = ledgerService.getBankAccountId(AccountType.FEE_INCOME, from.currency());
+            lines.add(new PostingRequestDto.Line(feeAccountId, EntryDirection.CREDIT, fee));
+        }
+
+        UUID ledgerTransactionId = ledgerService.post(
+                new PostingRequestDto(TransactionType.TRANSFER, description, lines));
+
+        payment.complete(ledgerTransactionId, clock.instant());
+
+        return payment;
+    }
+
+    /** "UA04 3009 9977..." copied from an app and "ua043009..." must find the same account. */
+    private static String normalizeAccountNumber(String number) {
+
+        return number.replace(" ", "").toUpperCase(Locale.ROOT);
+    }
+
+    /**
+     * Fingerprint of the request, stored with the payment. 10 and 10.00 are the same amount,
+     * so amounts are normalized before hashing.
+     */
+    private static String hash(Object... parts) {
+
+        StringBuilder canonical = new StringBuilder();
+
+        for (Object part : parts) {
+            Object value = part instanceof BigDecimal decimal ? decimal.stripTrailingZeros().toPlainString() : part;
+            canonical.append(value).append('|');
+        }
+
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(digest.digest(canonical.toString().getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 is not available", e);
+        }
+    }
+}

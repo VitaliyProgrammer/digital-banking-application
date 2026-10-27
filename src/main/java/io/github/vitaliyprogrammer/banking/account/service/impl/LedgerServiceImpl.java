@@ -10,6 +10,7 @@ import io.github.vitaliyprogrammer.banking.account.exception.AccountNotFoundExce
 import io.github.vitaliyprogrammer.banking.account.repository.AccountRepository;
 import io.github.vitaliyprogrammer.banking.account.repository.LedgerTransactionRepository;
 import io.github.vitaliyprogrammer.banking.account.service.LedgerService;
+import jakarta.persistence.EntityManager;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.util.EnumMap;
@@ -33,6 +34,8 @@ public class LedgerServiceImpl implements LedgerService {
     private final AccountRepository accountRepository;
 
     private final LedgerTransactionRepository ledgerTransactionRepository;
+
+    private final EntityManager entityManager;
 
     private final Clock clock;
 
@@ -60,6 +63,11 @@ public class LedgerServiceImpl implements LedgerService {
             throw new AccountNotFoundException();
         }
 
+        // A locking query locks the rows, but Hibernate does NOT overwrite entities that this transaction
+        // already loaded earlier (e.g. a payment validating its accounts). Their balance could be stale,
+        // so re-read every account now that its row is locked. Without this, parallel payments lose updates.
+        accounts.values().forEach(entityManager::refresh);
+
         validateBalanced(posting.lines(), accounts);
 
         LedgerTransaction transaction = LedgerTransaction.create(
@@ -76,11 +84,15 @@ public class LedgerServiceImpl implements LedgerService {
 
     @Override
     @Transactional(readOnly = true)
-    public UUID getSettlementAccountId(Currency currency) {
+    public UUID getBankAccountId(AccountType type, Currency currency) {
 
-        return accountRepository.findByTypeAndCurrency(AccountType.SETTLEMENT, currency)
+        if (type == AccountType.CLIENT) {
+            throw new IllegalArgumentException("CLIENT is not a bank account type");
+        }
+
+        return accountRepository.findByTypeAndCurrency(type, currency)
                 .map(Account::getId)
-                .orElseThrow(() -> new IllegalStateException("No settlement account for " + currency));
+                .orElseThrow(() -> new IllegalStateException("No " + type + " account for " + currency));
     }
 
     private static void validateShape(PostingRequestDto posting) {

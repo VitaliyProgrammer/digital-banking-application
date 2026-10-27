@@ -60,6 +60,12 @@
             <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
         </dependency>
 
+        <!-- @NamedInterface: which packages of a module other modules may use -->
+        <dependency>
+            <groupId>org.springframework.modulith</groupId>
+            <artifactId>spring-modulith-api</artifactId>
+        </dependency>
+
         <!-- API docs: Swagger UI at /swagger-ui.html -->
         <dependency>
             <groupId>org.springdoc</groupId>

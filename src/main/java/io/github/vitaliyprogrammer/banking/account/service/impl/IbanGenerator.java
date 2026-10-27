@@ -34,9 +34,11 @@ public class IbanGenerator {
     private static String randomDigits(int length) {
 
         StringBuilder digits = new StringBuilder(length);
+
         for (int i = 0; i < length; i++) {
             digits.append(ThreadLocalRandom.current().nextInt(10));
         }
+
         return digits.toString();
     }
 }

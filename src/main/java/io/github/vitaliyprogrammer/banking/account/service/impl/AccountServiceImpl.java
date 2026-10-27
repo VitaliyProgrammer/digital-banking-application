@@ -1,9 +1,11 @@
 package io.github.vitaliyprogrammer.banking.account.service.impl;
 
 import io.github.vitaliyprogrammer.banking.account.dto.request.OpenAccountRequestDto;
+import io.github.vitaliyprogrammer.banking.account.dto.response.AccountReferenceDto;
 import io.github.vitaliyprogrammer.banking.account.dto.response.AccountResponseDto;
 import io.github.vitaliyprogrammer.banking.account.dto.response.StatementEntryResponseDto;
 import io.github.vitaliyprogrammer.banking.account.entity.Account;
+import io.github.vitaliyprogrammer.banking.account.entity.status.AccountType;
 import io.github.vitaliyprogrammer.banking.account.exception.AccountAlreadyExistsException;
 import io.github.vitaliyprogrammer.banking.account.exception.AccountNotFoundException;
 import io.github.vitaliyprogrammer.banking.account.repository.AccountRepository;
@@ -12,6 +14,7 @@ import io.github.vitaliyprogrammer.banking.account.service.AccountService;
 import io.github.vitaliyprogrammer.banking.shared.PageResponseDto;
 import java.time.Clock;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -75,6 +78,21 @@ public class AccountServiceImpl implements AccountService {
         return PageResponseDto.from(
                 ledgerEntryRepository.findStatement(account.getId(), PageRequest.of(page, size)),
                 StatementEntryResponseDto::from);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AccountReferenceDto getOwnedAccountReference(UUID ownerId, UUID accountId) {
+
+        return AccountReferenceDto.from(findOwnedAccount(ownerId, accountId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<AccountReferenceDto> findClientAccountByNumber(String number) {
+
+        return accountRepository.findByNumberAndType(number, AccountType.CLIENT)
+                .map(AccountReferenceDto::from);
     }
 
     /** Ownership is part of the query: someone else's account is simply "not found". */

@@ -22,6 +22,8 @@ public interface AccountRepository extends JpaRepository<Account, UUID> {
 
     Optional<Account> findByTypeAndCurrency(AccountType type, Currency currency);
 
+    Optional<Account> findByNumberAndType(String number, AccountType type);
+
     /**
      * Locks all accounts of one posting in a single query, always in the same order (by id).
      * Two transfers A→B and B→A therefore lock A and B in the same sequence and cannot deadlock.

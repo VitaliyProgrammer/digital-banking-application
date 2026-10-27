@@ -3,38 +3,23 @@ package io.github.vitaliyprogrammer.banking.account;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import io.github.vitaliyprogrammer.banking.TestcontainersConfiguration;
+import io.github.vitaliyprogrammer.banking.IntegrationTest;
 import io.github.vitaliyprogrammer.banking.account.dto.request.OpenAccountRequestDto;
 import io.github.vitaliyprogrammer.banking.account.dto.request.PostingRequestDto;
+import io.github.vitaliyprogrammer.banking.account.entity.status.AccountType;
 import io.github.vitaliyprogrammer.banking.account.entity.status.Currency;
 import io.github.vitaliyprogrammer.banking.account.entity.status.TransactionType;
 import io.github.vitaliyprogrammer.banking.account.exception.InsufficientFundsException;
 import io.github.vitaliyprogrammer.banking.account.service.AccountService;
 import io.github.vitaliyprogrammer.banking.account.service.LedgerService;
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.jdbc.core.JdbcTemplate;
 
-/**
- * Proof tests for phase 1. Every test hits a real PostgreSQL with real parallel transactions,
- * and after every test the whole ledger must still reconcile.
- */
-@SpringBootTest
-@Import(TestcontainersConfiguration.class)
-class LedgerConcurrencyIntegrationTests {
+/** Proof tests for phase 1: real parallel transactions on a real PostgreSQL. */
+class LedgerConcurrencyIntegrationTests extends IntegrationTest {
 
     private static final int THREADS = 50;
 
@@ -43,9 +28,6 @@ class LedgerConcurrencyIntegrationTests {
 
     @Autowired
     private LedgerService ledgerService;
-
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
 
     @Test
     void parallelDebitsNeverOverdrawAnAccount() throws Exception {
@@ -86,33 +68,13 @@ class LedgerConcurrencyIntegrationTests {
                 .hasMessageContaining("Ledger is append-only");
     }
 
-    /**
-     * Invariants that must hold after any sequence of operations:
-     * the cached balance equals the sum of the account's entries, and money is never created or lost.
-     */
-    @AfterEach
-    void ledgerReconciles() {
-        Integer mismatchedAccounts = jdbcTemplate.queryForObject("""
-                SELECT count(*) FROM accounts a
-                WHERE a.balance <> COALESCE((
-                    SELECT sum(CASE e.direction WHEN 'CREDIT' THEN e.amount ELSE -e.amount END)
-                    FROM ledger_entries e WHERE e.account_id = a.id), 0)
-                """, Integer.class);
-        assertThat(mismatchedAccounts).as("accounts whose balance differs from their ledger entries").isZero();
-
-        List<BigDecimal> totalsByCurrency = jdbcTemplate.queryForList(
-                "SELECT sum(balance) FROM accounts GROUP BY currency", BigDecimal.class);
-        assertThat(totalsByCurrency).allSatisfy(total -> assertThat(total).isEqualByComparingTo("0"));
-    }
-
     private UUID openFundedAccount(String amount) {
-        UUID ownerId = createUser();
-        UUID accountId = accountService.open(ownerId, new OpenAccountRequestDto(Currency.UAH)).id();
+        UUID accountId = accountService.open(createUser(), new OpenAccountRequestDto(Currency.UAH)).id();
 
         BigDecimal initial = new BigDecimal(amount);
         if (initial.signum() > 0) {
             ledgerService.post(PostingRequestDto.transfer(TransactionType.DEPOSIT, "Initial deposit",
-                    ledgerService.getSettlementAccountId(Currency.UAH), accountId, initial));
+                    ledgerService.getBankAccountId(AccountType.SETTLEMENT, Currency.UAH), accountId, initial));
         }
         return accountId;
     }
@@ -127,49 +89,8 @@ class LedgerConcurrencyIntegrationTests {
         }
     }
 
-    /** Starts all tasks at the same instant (a start gate), so they really compete for the same rows. */
-    private static List<Result> runConcurrently(int count, TaskFactory factory) throws Exception {
-        CountDownLatch startGate = new CountDownLatch(1);
-        List<Future<Result>> futures = new ArrayList<>();
-
-        try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
-            for (int i = 0; i < count; i++) {
-                Callable<Result> task = factory.create(i);
-                futures.add(executor.submit(() -> {
-                    startGate.await();
-                    return task.call();
-                }));
-            }
-            startGate.countDown();
-
-            List<Result> results = new ArrayList<>();
-            for (Future<Result> future : futures) {
-                results.add(future.get(30, TimeUnit.SECONDS));
-            }
-            return results;
-        }
-    }
-
-    private BigDecimal balanceOf(UUID accountId) {
-        return jdbcTemplate.queryForObject("SELECT balance FROM accounts WHERE id = ?", BigDecimal.class, accountId);
-    }
-
-    private UUID createUser() {
-        UUID id = UUID.randomUUID();
-        jdbcTemplate.update("""
-                INSERT INTO users (id, email, password_hash, first_name, last_name, role, status, created_at)
-                VALUES (?, ?, 'not-used', 'Test', 'Client', 'CLIENT', 'ACTIVE', now())
-                """, id, "client-" + id + "@example.com");
-        return id;
-    }
-
     private enum Result {
         SUCCESS,
         INSUFFICIENT_FUNDS
-    }
-
-    @FunctionalInterface
-    private interface TaskFactory {
-        Callable<Result> create(int index);
     }
 }

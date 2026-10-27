@@ -8,7 +8,9 @@ import io.github.vitaliyprogrammer.banking.shared.PageResponseDto;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.modulith.NamedInterface;
 
+@NamedInterface("api")
 public interface AccountService {
 
     AccountResponseDto open(UUID ownerId, OpenAccountRequestDto request);

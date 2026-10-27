@@ -5,11 +5,13 @@ import io.github.vitaliyprogrammer.banking.account.entity.status.TransactionType
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.modulith.NamedInterface;
 
 /**
  * Internal command for the ledger, not an HTTP body: other modules (payments, cards) describe
  * a money movement with it. A simple transfer is two lines; a transfer with a fee would be three.
  */
+@NamedInterface("api")
 public record PostingRequestDto(
         TransactionType type,
         String description,

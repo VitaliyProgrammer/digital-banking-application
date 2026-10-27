@@ -1,5 +1,8 @@
 package io.github.vitaliyprogrammer.banking.account.entity.status;
 
+import org.springframework.modulith.NamedInterface;
+
+@NamedInterface("api")
 public enum AccountType {
 
     /** Belongs to a client. Balance can never be negative. */

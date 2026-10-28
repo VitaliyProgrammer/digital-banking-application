@@ -13,7 +13,8 @@ public class TransferFeePolicy implements FeePolicy {
 
     private static final BigDecimal RATE = new BigDecimal("0.005");
 
-    private static final Map<Currency, BigDecimal> MINIMUM_FEE = Map.of(
+    /** Shared with {@link CardTransferFeePolicy}: one place for the bank's minimum fee per currency. */
+    static final Map<Currency, BigDecimal> MINIMUM_FEE = Map.of(
             Currency.UAH, new BigDecimal("5.00"),
             Currency.USD, new BigDecimal("0.20"),
             Currency.EUR, new BigDecimal("0.20"));
@@ -26,10 +27,10 @@ public class TransferFeePolicy implements FeePolicy {
 
     /** HALF_UP, like everyday commercial rounding: 0.125 becomes 0.13. */
     @Override
-    public BigDecimal calculate(BigDecimal amount, Currency currency) {
+    public BigDecimal calculate(FeeRequest request) {
 
-        BigDecimal percentageFee = amount.multiply(RATE).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal percentageFee = request.amount().multiply(RATE).setScale(2, RoundingMode.HALF_UP);
 
-        return percentageFee.max(MINIMUM_FEE.get(currency));
+        return percentageFee.max(MINIMUM_FEE.get(request.currency()));
     }
 }

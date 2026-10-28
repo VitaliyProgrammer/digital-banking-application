@@ -95,6 +95,16 @@ public class AccountServiceImpl implements AccountService {
                 .map(AccountReferenceDto::from);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public AccountReferenceDto getAccountReference(UUID accountId) {
+
+        return accountRepository.findById(accountId)
+                .filter(account -> account.getType() == AccountType.CLIENT)
+                .map(AccountReferenceDto::from)
+                .orElseThrow(AccountNotFoundException::new);
+    }
+
     /** Ownership is part of the query: someone else's account is simply "not found". */
     private Account findOwnedAccount(UUID ownerId, UUID accountId) {
 

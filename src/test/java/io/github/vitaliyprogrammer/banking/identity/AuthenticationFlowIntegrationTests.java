@@ -75,6 +75,18 @@ class AuthenticationFlowIntegrationTests {
         refresh(rotatedRefreshToken).andExpect(status().isUnauthorized());
     }
 
+    @Test
+    void sixthLoginAttemptIsRejectedEvenWithTheRightPassword() throws Exception {
+        String email = register();
+
+        for (int attempt = 1; attempt <= 5; attempt++) {
+            login(email, "wrong-password").andExpect(status().isUnauthorized());
+        }
+
+        // Someone guessing passwords is stopped for 15 minutes, even if the next guess happens to be right.
+        login(email, PASSWORD).andExpect(status().isTooManyRequests());
+    }
+
     private String register() throws Exception {
         String email = "client-" + UUID.randomUUID() + "@example.com";
         mockMvc.perform(post("/authentication/register")

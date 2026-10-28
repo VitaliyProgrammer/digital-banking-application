@@ -6,5 +6,8 @@ public enum PaymentType {
     TOP_UP,
 
     /** Money moves from a client account to another client account in the same currency. */
-    TRANSFER
+    TRANSFER,
+
+    /** Money moves from the sender's card to a recipient's card number; the fee depends on the sender's card type. */
+    CARD_TRANSFER
 }

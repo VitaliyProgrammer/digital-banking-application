@@ -49,6 +49,10 @@ public class Payment {
 
     private UUID toAccountId;
 
+    private UUID fromCardId;
+
+    private UUID toCardId;
+
     @Enumerated(EnumType.STRING)
     private Currency currency;
 
@@ -91,6 +95,13 @@ public class Payment {
         payment.description = description;
         payment.createdAt = now;
         return payment;
+    }
+
+    /** Card-to-card transfers also remember which cards were used, for the statement and disputes. */
+    public void attachCards(UUID fromCardId, UUID toCardId) {
+
+        this.fromCardId = fromCardId;
+        this.toCardId = toCardId;
     }
 
     public void complete(UUID ledgerTransactionId, Instant now) {

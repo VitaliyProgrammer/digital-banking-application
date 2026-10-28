@@ -7,11 +7,15 @@ import io.github.vitaliyprogrammer.banking.account.entity.status.EntryDirection;
 import io.github.vitaliyprogrammer.banking.account.entity.status.TransactionType;
 import io.github.vitaliyprogrammer.banking.account.service.AccountService;
 import io.github.vitaliyprogrammer.banking.account.service.LedgerService;
+import io.github.vitaliyprogrammer.banking.card.dto.response.CardReferenceDto;
+import io.github.vitaliyprogrammer.banking.card.service.CardService;
+import io.github.vitaliyprogrammer.banking.payment.dto.request.CardTransferRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.request.TopUpRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.request.TransferRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.response.PaymentResponseDto;
 import io.github.vitaliyprogrammer.banking.payment.entity.Payment;
 import io.github.vitaliyprogrammer.banking.payment.entity.status.PaymentType;
+import io.github.vitaliyprogrammer.banking.payment.exception.CardNotUsableException;
 import io.github.vitaliyprogrammer.banking.payment.exception.CurrencyMismatchException;
 import io.github.vitaliyprogrammer.banking.payment.exception.IdempotencyKeyReusedException;
 import io.github.vitaliyprogrammer.banking.payment.exception.PaymentNotFoundException;
@@ -20,6 +24,7 @@ import io.github.vitaliyprogrammer.banking.payment.exception.SameAccountTransfer
 import io.github.vitaliyprogrammer.banking.payment.repository.PaymentRepository;
 import io.github.vitaliyprogrammer.banking.payment.service.PaymentService;
 import io.github.vitaliyprogrammer.banking.payment.service.fee.FeeCalculator;
+import io.github.vitaliyprogrammer.banking.payment.service.fee.FeeRequest;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -47,6 +52,8 @@ public class PaymentServiceImpl implements PaymentService {
 
     private final AccountService accountService;
 
+    private final CardService cardService;
+
     private final LedgerService ledgerService;
 
     private final FeeCalculator feeCalculator;
@@ -73,6 +80,17 @@ public class PaymentServiceImpl implements PaymentService {
 
         return executeOnce(userId, idempotencyKey, requestHash,
                 () -> createTransfer(userId, idempotencyKey, requestHash, recipientNumber, request));
+    }
+
+    @Override
+    public PaymentResponseDto cardTransfer(UUID userId, String idempotencyKey, CardTransferRequestDto request) {
+
+        String recipientCardNumber = normalizeCardNumber(request.toCardNumber());
+        String requestHash = hash(PaymentType.CARD_TRANSFER, request.fromCardId(), recipientCardNumber,
+                request.amount(), request.description());
+
+        return executeOnce(userId, idempotencyKey, requestHash,
+                () -> createCardTransfer(userId, idempotencyKey, requestHash, recipientCardNumber, request));
     }
 
     @Override
@@ -125,7 +143,8 @@ public class PaymentServiceImpl implements PaymentService {
     private Payment createTopUp(UUID userId, String idempotencyKey, String requestHash, TopUpRequestDto request) {
 
         AccountReferenceDto account = accountService.getOwnedAccountReference(userId, request.accountId());
-        BigDecimal fee = feeCalculator.calculate(PaymentType.TOP_UP, request.amount(), account.currency());
+        BigDecimal fee = feeCalculator.calculate(PaymentType.TOP_UP,
+                FeeRequest.withoutCard(request.amount(), account.currency()));
 
         Payment payment = paymentRepository.saveAndFlush(Payment.pending(
                 userId, idempotencyKey, requestHash, PaymentType.TOP_UP,
@@ -142,10 +161,6 @@ public class PaymentServiceImpl implements PaymentService {
         return payment;
     }
 
-    /**
-     * The payer pays amount + fee, the recipient gets the amount, the bank's fee account gets the fee:
-     * three lines of one balanced ledger transaction, so they succeed or fail together.
-     */
     private Payment createTransfer(UUID userId,
                                    String idempotencyKey,
                                    String requestHash,
@@ -156,6 +171,58 @@ public class PaymentServiceImpl implements PaymentService {
         AccountReferenceDto to = accountService.findClientAccountByNumber(recipientNumber)
                 .orElseThrow(RecipientNotFoundException::new);
 
+        requireTransferable(from, to);
+
+        BigDecimal fee = feeCalculator.calculate(PaymentType.TRANSFER,
+                FeeRequest.withoutCard(request.amount(), from.currency()));
+        String description = request.description() != null ? request.description() : "Transfer to " + to.number();
+
+        Payment payment = paymentRepository.saveAndFlush(Payment.pending(
+                userId, idempotencyKey, requestHash, PaymentType.TRANSFER,
+                from.id(), to.id(), from.currency(), request.amount(), fee, description, clock.instant()));
+
+        return moveMoney(payment, from, to);
+    }
+
+    /** Same money movement as a transfer; the difference is how both sides are found and what the fee depends on. */
+    private Payment createCardTransfer(UUID userId,
+                                       String idempotencyKey,
+                                       String requestHash,
+                                       String recipientCardNumber,
+                                       CardTransferRequestDto request) {
+
+        CardReferenceDto fromCard = cardService.getOwnedCardReference(userId, request.fromCardId());
+        if (!fromCard.usable()) {
+            throw new CardNotUsableException("Your card");
+        }
+
+        CardReferenceDto toCard = cardService.findCardByNumber(recipientCardNumber)
+                .orElseThrow(RecipientNotFoundException::new);
+        if (!toCard.usable()) {
+            throw new CardNotUsableException("Recipient's card");
+        }
+
+        AccountReferenceDto from = accountService.getOwnedAccountReference(userId, fromCard.accountId());
+        AccountReferenceDto to = accountService.getAccountReference(toCard.accountId());
+
+        requireTransferable(from, to);
+
+        BigDecimal fee = feeCalculator.calculate(PaymentType.CARD_TRANSFER,
+                new FeeRequest(request.amount(), from.currency(), fromCard.type()));
+        String description = request.description() != null
+                ? request.description()
+                : "Transfer to card *" + toCard.lastFour();
+
+        Payment payment = Payment.pending(
+                userId, idempotencyKey, requestHash, PaymentType.CARD_TRANSFER,
+                from.id(), to.id(), from.currency(), request.amount(), fee, description, clock.instant());
+        payment.attachCards(fromCard.id(), toCard.id());
+
+        return moveMoney(paymentRepository.saveAndFlush(payment), from, to);
+    }
+
+    private static void requireTransferable(AccountReferenceDto from, AccountReferenceDto to) {
+
         if (from.id().equals(to.id())) {
             throw new SameAccountTransferException();
         }
@@ -163,14 +230,16 @@ public class PaymentServiceImpl implements PaymentService {
         if (from.currency() != to.currency()) {
             throw new CurrencyMismatchException();
         }
+    }
 
-        BigDecimal amount = request.amount();
-        BigDecimal fee = feeCalculator.calculate(PaymentType.TRANSFER, amount, from.currency());
-        String description = request.description() != null ? request.description() : "Transfer to " + to.number();
+    /**
+     * The payer pays amount + fee, the recipient gets the amount, the bank's fee account gets the fee:
+     * three lines of one balanced ledger transaction, so they succeed or fail together.
+     */
+    private Payment moveMoney(Payment payment, AccountReferenceDto from, AccountReferenceDto to) {
 
-        Payment payment = paymentRepository.saveAndFlush(Payment.pending(
-                userId, idempotencyKey, requestHash, PaymentType.TRANSFER,
-                from.id(), to.id(), from.currency(), amount, fee, description, clock.instant()));
+        BigDecimal amount = payment.getAmount();
+        BigDecimal fee = payment.getFee();
 
         List<PostingRequestDto.Line> lines = new ArrayList<>();
         lines.add(new PostingRequestDto.Line(from.id(), EntryDirection.DEBIT, amount.add(fee)));
@@ -182,7 +251,7 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         UUID ledgerTransactionId = ledgerService.post(
-                new PostingRequestDto(TransactionType.TRANSFER, description, lines));
+                new PostingRequestDto(TransactionType.TRANSFER, payment.getDescription(), lines));
 
         payment.complete(ledgerTransactionId, clock.instant());
 
@@ -193,6 +262,12 @@ public class PaymentServiceImpl implements PaymentService {
     private static String normalizeAccountNumber(String number) {
 
         return number.replace(" ", "").toUpperCase(Locale.ROOT);
+    }
+
+    /** "4999 9912 3456 7890" and "4999-9912-3456-7890" are the same card. */
+    private static String normalizeCardNumber(String number) {
+
+        return number.replaceAll("[\\s-]", "");
     }
 
     /**

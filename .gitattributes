@@ -1,8 +1,7 @@
-# Normalize line endings: stored as LF in git, checked out natively per OS.
-* text=auto
+# LF everywhere: in git and in the working copy, on every OS.
+# This also overrides core.autocrlf, so Windows checkouts no longer convert files to CRLF.
+* text=auto eol=lf
 
-# Shell script must keep LF, otherwise it fails on the Linux CI runner.
-mvnw text eol=lf
-
-# Windows batch file must keep CRLF.
+# Windows batch files are the only exception: cmd.exe needs CRLF.
 *.cmd text eol=crlf
+*.bat text eol=crlf

@@ -9,5 +9,8 @@ public enum PaymentType {
     TRANSFER,
 
     /** Money moves from the sender's card to a recipient's card number; the fee depends on the sender's card type. */
-    CARD_TRANSFER
+    CARD_TRANSFER,
+
+    /** Utilities, internet or mobile top-up: money leaves the bank to an external provider, asynchronously. */
+    BILL_PAYMENT
 }

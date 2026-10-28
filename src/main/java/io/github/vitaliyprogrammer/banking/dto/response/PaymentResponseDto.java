@@ -17,10 +17,13 @@ public record PaymentResponseDto(
         UUID toAccountId,
         UUID fromCardId,
         UUID toCardId,
+        UUID providerId,
+        String providerAccountNumber,
         Currency currency,
         BigDecimal amount,
         BigDecimal fee,
         String description,
+        String failureReason,
         Instant createdAt,
         Instant completedAt
 ) {
@@ -34,10 +37,13 @@ public record PaymentResponseDto(
                 payment.getToAccountId(),
                 payment.getFromCardId(),
                 payment.getToCardId(),
+                payment.getProviderId(),
+                payment.getProviderAccountNumber(),
                 payment.getCurrency(),
                 payment.getAmount().setScale(2, RoundingMode.HALF_EVEN),
                 payment.getFee().setScale(2, RoundingMode.HALF_EVEN),
                 payment.getDescription(),
+                payment.getFailureReason(),
                 payment.getCreatedAt(),
                 payment.getCompletedAt());
     }

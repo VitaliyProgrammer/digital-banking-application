@@ -1,5 +1,6 @@
 package io.github.vitaliyprogrammer.banking.service.impl;
 
+import io.github.vitaliyprogrammer.banking.dto.request.BillPaymentRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.request.CardTransferRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.request.FeeRequest;
 import io.github.vitaliyprogrammer.banking.dto.request.PostingRequestDto;
@@ -8,7 +9,9 @@ import io.github.vitaliyprogrammer.banking.dto.request.TransferRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.response.AccountReferenceDto;
 import io.github.vitaliyprogrammer.banking.dto.response.CardReferenceDto;
 import io.github.vitaliyprogrammer.banking.dto.response.PaymentResponseDto;
+import io.github.vitaliyprogrammer.banking.dto.response.ProviderResponseDto;
 import io.github.vitaliyprogrammer.banking.entity.Payment;
+import io.github.vitaliyprogrammer.banking.entity.Provider;
 import io.github.vitaliyprogrammer.banking.entity.status.AccountType;
 import io.github.vitaliyprogrammer.banking.entity.status.EntryDirection;
 import io.github.vitaliyprogrammer.banking.entity.status.PaymentType;
@@ -17,9 +20,11 @@ import io.github.vitaliyprogrammer.banking.exception.CardNotUsableException;
 import io.github.vitaliyprogrammer.banking.exception.CurrencyMismatchException;
 import io.github.vitaliyprogrammer.banking.exception.IdempotencyKeyReusedException;
 import io.github.vitaliyprogrammer.banking.exception.PaymentNotFoundException;
+import io.github.vitaliyprogrammer.banking.exception.ProviderNotFoundException;
 import io.github.vitaliyprogrammer.banking.exception.RecipientNotFoundException;
 import io.github.vitaliyprogrammer.banking.exception.SameAccountTransferException;
 import io.github.vitaliyprogrammer.banking.repository.PaymentRepository;
+import io.github.vitaliyprogrammer.banking.repository.ProviderRepository;
 import io.github.vitaliyprogrammer.banking.service.AccountService;
 import io.github.vitaliyprogrammer.banking.service.CardService;
 import io.github.vitaliyprogrammer.banking.service.LedgerService;
@@ -48,6 +53,8 @@ import org.springframework.transaction.support.TransactionTemplate;
 public class PaymentServiceImpl implements PaymentService {
 
     private final PaymentRepository paymentRepository;
+
+    private final ProviderRepository providerRepository;
 
     private final AccountService accountService;
 
@@ -90,6 +97,26 @@ public class PaymentServiceImpl implements PaymentService {
 
         return executeOnce(userId, idempotencyKey, requestHash,
                 () -> createCardTransfer(userId, idempotencyKey, requestHash, recipientCardNumber, request));
+    }
+
+    @Override
+    public PaymentResponseDto payBill(UUID userId, String idempotencyKey, BillPaymentRequestDto request) {
+
+        String accountNumber = request.accountNumber().strip();
+        String requestHash = hash(PaymentType.BILL_PAYMENT, request.providerId(), accountNumber,
+                request.fromAccountId(), request.amount());
+
+        return executeOnce(userId, idempotencyKey, requestHash,
+                () -> createBillPayment(userId, idempotencyKey, requestHash, accountNumber, request));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProviderResponseDto> getProviders() {
+
+        return providerRepository.findAllByActiveTrueOrderByCategoryAscNameAsc().stream()
+                .map(ProviderResponseDto::from)
+                .toList();
     }
 
     @Override
@@ -218,6 +245,46 @@ public class PaymentServiceImpl implements PaymentService {
         payment.attachCards(fromCard.id(), toCard.id());
 
         return moveMoney(paymentRepository.saveAndFlush(payment), from, to);
+    }
+
+    /**
+     * Only the hold happens here, in the request's transaction: the money leaves the client's balance at once
+     * (it cannot be spent twice), but nothing has left the bank yet. The provider is called later by
+     * {@link BillPaymentProcessor}, outside of any database transaction.
+     */
+    private Payment createBillPayment(UUID userId,
+                                      String idempotencyKey,
+                                      String requestHash,
+                                      String accountNumber,
+                                      BillPaymentRequestDto request) {
+
+        Provider provider = providerRepository.findById(request.providerId())
+                .filter(Provider::isActive)
+                .orElseThrow(ProviderNotFoundException::new);
+
+        AccountReferenceDto from = accountService.getOwnedAccountReference(userId, request.fromAccountId());
+
+        if (from.currency() != provider.getCurrency()) {
+            throw new CurrencyMismatchException();
+        }
+
+        BigDecimal fee = feeCalculator.calculate(PaymentType.BILL_PAYMENT,
+                FeeRequest.withoutCard(request.amount(), from.currency()));
+        String description = provider.getName() + ", " + accountNumber;
+
+        Payment payment = paymentRepository.saveAndFlush(Payment.pendingBill(
+                userId, idempotencyKey, requestHash, from.id(), from.currency(), request.amount(), fee,
+                provider.getId(), accountNumber, description, clock.instant()));
+
+        UUID holdTransactionId = ledgerService.post(PostingRequestDto.transfer(
+                TransactionType.HOLD, description,
+                from.id(),
+                ledgerService.getBankAccountId(AccountType.HOLD, from.currency()),
+                request.amount().add(fee)));
+
+        payment.startProcessing(holdTransactionId, clock.instant());
+
+        return payment;
     }
 
     private static void requireTransferable(AccountReferenceDto from, AccountReferenceDto to) {

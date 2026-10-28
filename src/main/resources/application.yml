@@ -46,6 +46,21 @@ banking:
     cvv-key: ${CARD_CVV_KEY:M/AZdWcPUKcf4EhywxnnPaO7mDEcMsKAHSwkuph+Vak=}
     pin-key: ${CARD_PIN_KEY:xfoThHlDLMKzOEN1t9mSSfdh+8+EjhIOtGzokIsVZQM=}
 
+  providers:
+    # Locally the bank calls its own fake providers (/mock-providers) over real HTTP.
+    base-url: ${PROVIDERS_BASE_URL:http://localhost:${server.port:8080}/mock-providers}
+    connect-timeout: 2s
+    read-timeout: 3s
+    mock-enabled: ${PROVIDERS_MOCK_ENABLED:true}
+
+  bill-payments:
+    worker-enabled: true
+    processing-delay: 2s
+    reconciliation-delay: 10s
+    lease: 30s
+    batch-size: 20
+    max-delivery-attempts: 5
+
 management:
   endpoints:
     web:

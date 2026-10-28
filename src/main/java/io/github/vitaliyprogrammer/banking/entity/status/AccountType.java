@@ -9,5 +9,8 @@ public enum AccountType {
     SETTLEMENT,
 
     /** The bank's income: fees charged to clients are credited here. */
-    FEE_INCOME
+    FEE_INCOME,
+
+    /** Money in transit: held for a payment to an external provider until the provider answers. */
+    HOLD
 }

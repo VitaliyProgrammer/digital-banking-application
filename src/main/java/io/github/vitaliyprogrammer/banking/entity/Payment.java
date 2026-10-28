@@ -64,7 +64,21 @@ public class Payment {
 
     private String description;
 
+    /** The final posting: transfer, capture of a bill payment, or release of its hold. */
     private UUID ledgerTransactionId;
+
+    private UUID providerId;
+
+    private String providerAccountNumber;
+
+    private UUID holdTransactionId;
+
+    private int attempts;
+
+    /** When the worker may pick the payment up again; also a lease, so two workers never send it at once. */
+    private Instant nextAttemptAt;
+
+    private String failureReason;
 
     private Instant createdAt;
 
@@ -104,13 +118,86 @@ public class Payment {
         this.toCardId = toCardId;
     }
 
-    public void complete(UUID ledgerTransactionId, Instant now) {
-        if (status != PaymentStatus.PENDING) {
-            throw new IllegalStateException("Payment " + id + " is already " + status);
-        }
+    /** Bill payment to an external provider. It has no recipient account inside the bank. */
+    public static Payment pendingBill(UUID initiatorId,
+                                      String idempotencyKey,
+                                      String requestHash,
+                                      UUID fromAccountId,
+                                      Currency currency,
+                                      BigDecimal amount,
+                                      BigDecimal fee,
+                                      UUID providerId,
+                                      String providerAccountNumber,
+                                      String description,
+                                      Instant now) {
+        Payment payment = pending(initiatorId, idempotencyKey, requestHash, PaymentType.BILL_PAYMENT,
+                fromAccountId, null, currency, amount, fee, description, now);
+        payment.providerId = providerId;
+        payment.providerAccountNumber = providerAccountNumber;
+        return payment;
+    }
 
+    // State machine. Each transition checks where it may start from; anything else is a bug and fails loudly.
+
+    /** PENDING → PROCESSING: the money is held, the payment waits for the worker. */
+    public void startProcessing(UUID holdTransactionId, Instant now) {
+
+        requireStatus(PaymentStatus.PENDING);
+        this.status = PaymentStatus.PROCESSING;
+        this.holdTransactionId = holdTransactionId;
+        this.nextAttemptAt = now;
+    }
+
+    /** A worker took the payment: count the attempt and lease it until the given moment. */
+    public void recordAttempt(Instant leasedUntil) {
+
+        requireStatus(PaymentStatus.PROCESSING, PaymentStatus.UNKNOWN);
+        this.attempts++;
+        this.nextAttemptAt = leasedUntil;
+    }
+
+    /** PROCESSING → UNKNOWN: sent, but no answer. Reconciliation will ask the provider later. */
+    public void markUnknown(Instant checkAgainAt) {
+
+        requireStatus(PaymentStatus.PROCESSING, PaymentStatus.UNKNOWN);
+        this.status = PaymentStatus.UNKNOWN;
+        this.nextAttemptAt = checkAgainAt;
+    }
+
+    /** → COMPLETED: synchronous payments from PENDING, bill payments from PROCESSING or UNKNOWN. */
+    public void complete(UUID ledgerTransactionId, Instant now) {
+
+        requireStatus(PaymentStatus.PENDING, PaymentStatus.PROCESSING, PaymentStatus.UNKNOWN);
         this.status = PaymentStatus.COMPLETED;
         this.ledgerTransactionId = ledgerTransactionId;
         this.completedAt = now;
+        this.nextAttemptAt = null;
+    }
+
+    /** → FAILED: the hold was released, so the client has the money back. */
+    public void fail(UUID releaseTransactionId, String reason, Instant now) {
+
+        requireStatus(PaymentStatus.PROCESSING, PaymentStatus.UNKNOWN);
+        this.status = PaymentStatus.FAILED;
+        this.ledgerTransactionId = releaseTransactionId;
+        this.failureReason = reason;
+        this.completedAt = now;
+        this.nextAttemptAt = null;
+    }
+
+    public boolean isFinished() {
+
+        return status == PaymentStatus.COMPLETED || status == PaymentStatus.FAILED;
+    }
+
+    private void requireStatus(PaymentStatus... allowed) {
+
+        for (PaymentStatus candidate : allowed) {
+            if (status == candidate) {
+                return;
+            }
+        }
+
+        throw new IllegalStateException("Payment " + id + " cannot change state from " + status);
     }
 }

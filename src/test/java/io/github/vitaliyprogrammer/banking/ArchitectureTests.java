@@ -15,16 +15,20 @@ import io.github.vitaliyprogrammer.banking.repository.CardRepository;
 import io.github.vitaliyprogrammer.banking.repository.LedgerEntryRepository;
 import io.github.vitaliyprogrammer.banking.repository.LedgerTransactionRepository;
 import io.github.vitaliyprogrammer.banking.repository.PaymentRepository;
+import io.github.vitaliyprogrammer.banking.repository.ProviderRepository;
 import io.github.vitaliyprogrammer.banking.repository.RefreshTokenRepository;
 import io.github.vitaliyprogrammer.banking.repository.UserRepository;
 import io.github.vitaliyprogrammer.banking.service.impl.AccountServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.AuthenticationServiceImpl;
+import io.github.vitaliyprogrammer.banking.service.impl.BillPaymentProcessor;
 import io.github.vitaliyprogrammer.banking.service.impl.CardServiceImpl;
+import io.github.vitaliyprogrammer.banking.service.impl.HttpProviderClient;
 import io.github.vitaliyprogrammer.banking.service.impl.LedgerServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.PaymentServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.RefreshTokenServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.UserServiceImpl;
 import java.math.BigDecimal;
+import org.springframework.web.client.RestClient;
 
 /**
  * Architecture rules checked on every build. The packages are layered (controller → service → repository),
@@ -83,9 +87,15 @@ class ArchitectureTests {
             .should().onlyHaveDependentClassesThat().belongToAnyOf(CardServiceImpl.class);
 
     @ArchTest
-    static final ArchRule paymentTableBelongsToThePaymentDomain = classes()
-            .that().belongToAnyOf(PaymentRepository.class)
-            .should().onlyHaveDependentClassesThat().belongToAnyOf(PaymentServiceImpl.class);
+    static final ArchRule paymentTablesBelongToThePaymentDomain = classes()
+            .that().belongToAnyOf(PaymentRepository.class, ProviderRepository.class)
+            .should().onlyHaveDependentClassesThat().belongToAnyOf(PaymentServiceImpl.class, BillPaymentProcessor.class);
+
+    /** Only the client knows how to talk HTTP to providers; the rest of the code sees business outcomes. */
+    @ArchTest
+    static final ArchRule onlyTheProviderClientMakesHttpCalls = noClasses()
+            .that().doNotBelongToAnyOf(HttpProviderClient.class)
+            .should().dependOnClassesThat().belongToAnyOf(RestClient.class);
 
     @ArchTest
     static final ArchRule userTablesBelongToTheIdentityDomain = classes()

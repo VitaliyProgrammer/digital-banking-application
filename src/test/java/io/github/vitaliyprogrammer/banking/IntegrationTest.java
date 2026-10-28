@@ -18,13 +18,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.TestPropertySource;
 
 /**
  * Base class for integration tests on a real PostgreSQL. All subclasses share one Spring context
  * (same configuration → Spring caches and reuses it), and after every test the ledger must reconcile.
+ * The bill payment worker is off: tests that need it call {@code BillPaymentProcessor} themselves, at the moment
+ * they choose, instead of racing a background timer.
  */
 @SpringBootTest
 @Import(TestcontainersConfiguration.class)
+@TestPropertySource(properties = {
+        "banking.bill-payments.worker-enabled=false",
+        "banking.providers.mock-enabled=false"
+})
 public abstract class IntegrationTest {
 
     @Autowired

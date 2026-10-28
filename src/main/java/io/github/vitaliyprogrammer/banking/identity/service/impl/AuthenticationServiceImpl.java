@@ -9,12 +9,15 @@ import io.github.vitaliyprogrammer.banking.identity.entity.User;
 import io.github.vitaliyprogrammer.banking.identity.exception.EmailAlreadyTakenException;
 import io.github.vitaliyprogrammer.banking.identity.exception.InvalidCredentialsException;
 import io.github.vitaliyprogrammer.banking.identity.exception.InvalidRefreshTokenException;
+import io.github.vitaliyprogrammer.banking.identity.exception.TooManyLoginAttemptsException;
 import io.github.vitaliyprogrammer.banking.identity.exception.UserBlockedException;
 import io.github.vitaliyprogrammer.banking.identity.repository.UserRepository;
 import io.github.vitaliyprogrammer.banking.identity.service.AccessTokenService;
 import io.github.vitaliyprogrammer.banking.identity.service.AuthenticationService;
 import io.github.vitaliyprogrammer.banking.identity.service.RefreshTokenService;
+import io.github.vitaliyprogrammer.banking.shared.AttemptCounter;
 import java.time.Clock;
+import java.time.Duration;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
@@ -26,6 +29,12 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AuthenticationServiceImpl implements AuthenticationService {
 
+    private static final String LOGIN_ATTEMPTS_KEY_PREFIX = "login:attempts:";
+
+    private static final int MAX_LOGIN_ATTEMPTS = 5;
+
+    private static final Duration LOGIN_ATTEMPTS_WINDOW = Duration.ofMinutes(15);
+
     private final UserRepository userRepository;
 
     private final PasswordEncoder passwordEncoder;
@@ -33,6 +42,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final AccessTokenService accessTokenService;
 
     private final RefreshTokenService refreshTokenService;
+
+    private final AttemptCounter attemptCounter;
 
     private final Clock clock;
 
@@ -43,12 +54,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                                      PasswordEncoder passwordEncoder,
                                      AccessTokenService accessTokenService,
                                      RefreshTokenService refreshTokenService,
+                                     AttemptCounter attemptCounter,
                                      Clock clock) {
 
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.accessTokenService = accessTokenService;
         this.refreshTokenService = refreshTokenService;
+        this.attemptCounter = attemptCounter;
         this.clock = clock;
         this.dummyPasswordHash = passwordEncoder.encode(UUID.randomUUID().toString());
     }
@@ -79,11 +92,23 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         }
     }
 
+    /**
+     * Every attempt is counted before the password is checked, and a successful login resets the counter.
+     * Counting first matters: 100 parallel guesses get attempt numbers 1..100 atomically, so only the first 5
+     * ever reach the (expensive) password check. Checking "failures < 5" first would let all 100 through.
+     */
     @Override
     @Transactional
     public TokenResponseDto login(LoginRequestDto request) {
 
-        Optional<User> user = userRepository.findByEmail(normalizeEmail(request.email()));
+        String email = normalizeEmail(request.email());
+        String attemptsKey = LOGIN_ATTEMPTS_KEY_PREFIX + email;
+
+        if (attemptCounter.increment(attemptsKey, LOGIN_ATTEMPTS_WINDOW) > MAX_LOGIN_ATTEMPTS) {
+            throw new TooManyLoginAttemptsException();
+        }
+
+        Optional<User> user = userRepository.findByEmail(email);
 
         String passwordHash = user.map(User::getPasswordHash).orElse(dummyPasswordHash);
         boolean passwordMatches = passwordEncoder.matches(request.password(), passwordHash);
@@ -95,6 +120,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         if (user.get().isBlocked()) {
             throw new UserBlockedException();
         }
+
+        attemptCounter.reset(attemptsKey);
 
         return issueTokens(user.get());
     }

@@ -9,6 +9,11 @@ spring:
     username: ${DB_USERNAME:bank}
     password: ${DB_PASSWORD:bank}
 
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
   jpa:
     # Do not keep a DB connection open for the whole HTTP request.
     open-in-view: false
@@ -32,6 +37,14 @@ banking:
       secret: ${JWT_SECRET:local-dev-secret-do-not-use-in-production}
       access-token-ttl: 15m
       refresh-token-ttl: 30d
+
+  # Four separate 256-bit keys (Base64), one per purpose: leaking one does not compromise the others.
+  # Local development only. Every other environment must set them via environment variables.
+  card:
+    encryption-key: ${CARD_ENCRYPTION_KEY:DOIhXhXO0ORRUcBHdRSrDoVRa9YFnf27QIWHU0qSqE0=}
+    lookup-key: ${CARD_LOOKUP_KEY:ykr5RHwq1+Rl+u2I+erJISG/md3brl+iFX9CzMVslkg=}
+    cvv-key: ${CARD_CVV_KEY:M/AZdWcPUKcf4EhywxnnPaO7mDEcMsKAHSwkuph+Vak=}
+    pin-key: ${CARD_PIN_KEY:xfoThHlDLMKzOEN1t9mSSfdh+8+EjhIOtGzokIsVZQM=}
 
 management:
   endpoints:

@@ -29,6 +29,8 @@ public class SecurityConfiguration {
 
     private static final String[] PUBLIC_ENDPOINTS = {
             "/authentication/**",
+            // Fake providers exist only when banking.providers.mock-enabled=true; otherwise this path is a 404.
+            "/mock-providers/**",
             "/actuator/health",
             "/swagger-ui.html",
             "/swagger-ui/**",

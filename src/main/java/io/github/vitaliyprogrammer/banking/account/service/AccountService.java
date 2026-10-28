@@ -26,4 +26,7 @@ public interface AccountService {
 
     /** For other modules: a client account by its IBAN, e.g. the recipient of a transfer. */
     Optional<AccountReferenceDto> findClientAccountByNumber(String number);
+
+    /** For other modules: any client account by id, e.g. the account behind a recipient's card. */
+    AccountReferenceDto getAccountReference(UUID accountId);
 }

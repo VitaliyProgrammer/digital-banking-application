@@ -1,6 +1,5 @@
 package io.github.vitaliyprogrammer.banking.payment.service.fee;
 
-import io.github.vitaliyprogrammer.banking.account.entity.status.Currency;
 import io.github.vitaliyprogrammer.banking.payment.entity.status.PaymentType;
 import java.math.BigDecimal;
 import java.util.EnumMap;
@@ -34,8 +33,8 @@ public class FeeCalculator {
         }
     }
 
-    public BigDecimal calculate(PaymentType type, BigDecimal amount, Currency currency) {
+    public BigDecimal calculate(PaymentType type, FeeRequest request) {
 
-        return policies.get(type).calculate(amount, currency);
+        return policies.get(type).calculate(request);
     }
 }

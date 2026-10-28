@@ -1,6 +1,5 @@
 package io.github.vitaliyprogrammer.banking.payment.service.fee;
 
-import io.github.vitaliyprogrammer.banking.account.entity.status.Currency;
 import io.github.vitaliyprogrammer.banking.payment.entity.status.PaymentType;
 import java.math.BigDecimal;
 import org.springframework.stereotype.Component;
@@ -16,7 +15,7 @@ public class TopUpFeePolicy implements FeePolicy {
     }
 
     @Override
-    public BigDecimal calculate(BigDecimal amount, Currency currency) {
+    public BigDecimal calculate(FeeRequest request) {
 
         return BigDecimal.ZERO.setScale(2);
     }

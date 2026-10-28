@@ -1,5 +1,6 @@
 package io.github.vitaliyprogrammer.banking.payment.controller;
 
+import io.github.vitaliyprogrammer.banking.payment.dto.request.CardTransferRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.request.TopUpRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.request.TransferRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.response.PaymentResponseDto;
@@ -62,6 +63,20 @@ public class PaymentController {
                                        @Valid @RequestBody TransferRequestDto request) {
 
         return paymentService.transfer(userId, idempotencyKey, request);
+    }
+
+    @PostMapping("/card-transfers")
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Transfer from card to card",
+            description = "Sends money from your card to a 16-digit card number in the same currency. "
+                    + "Fee depends on your card: PAYROLL 0.5%, STUDENT free, VIRTUAL 1%, CREDIT 2%; "
+                    + "paid tariffs have a minimum of 5.00 UAH / 0.20 USD / 0.20 EUR")
+    public PaymentResponseDto cardTransfer(@CurrentUserId UUID userId,
+                                           @Parameter(description = IDEMPOTENCY_KEY_DESCRIPTION)
+                                           @RequestHeader(IDEMPOTENCY_KEY) @NotBlank @Size(max = 64) String idempotencyKey,
+                                           @Valid @RequestBody CardTransferRequestDto request) {
+
+        return paymentService.cardTransfer(userId, idempotencyKey, request);
     }
 
     @GetMapping("/{paymentId}")

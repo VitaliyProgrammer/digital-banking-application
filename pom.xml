@@ -79,6 +79,12 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Redis: short-lived counters with TTL (failed logins, wrong PINs) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+
         <!-- Database: PostgreSQL + Flyway migrations -->
         <dependency>
             <groupId>org.postgresql</groupId>

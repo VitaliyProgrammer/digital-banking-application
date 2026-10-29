@@ -5,6 +5,9 @@ public enum AccountType {
     /** Belongs to a client. Balance can never be negative. */
     CLIENT,
 
+    /** A client's savings jar: earns interest, and money leaves it only back to the client's own account. */
+    SAVINGS,
+
     /** The bank's mirror of the outside world: money entering the bank is debited from it, so it may go negative. */
     SETTLEMENT,
 
@@ -15,5 +18,8 @@ public enum AccountType {
     HOLD,
 
     /** The bank's side of currency exchanges: what it bought goes in, what it sold goes out. May go negative. */
-    FX_POSITION
+    FX_POSITION,
+
+    /** The bank's cost of interest paid on savings: debited on every payout, so it goes negative. */
+    INTEREST_EXPENSE
 }

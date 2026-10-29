@@ -66,6 +66,17 @@ public class Account {
         return account;
     }
 
+    public static Account openSavingsAccount(UUID ownerId, String number, Currency currency, Instant now) {
+        Account account = openClientAccount(ownerId, number, currency, now);
+        account.type = AccountType.SAVINGS;
+        return account;
+    }
+
+    /** Accounts that belong to a client: their balance is the client's money and can never go negative. */
+    public boolean isClientOwned() {
+        return type == AccountType.CLIENT || type == AccountType.SAVINGS;
+    }
+
     /** The only way to change the balance. Called by the ledger, never directly by other code. */
     public void apply(EntryDirection direction, BigDecimal amount) {
         if (status != AccountStatus.ACTIVE) {
@@ -76,7 +87,7 @@ public class Account {
                 ? balance.add(amount)
                 : balance.subtract(amount);
 
-        if (type == AccountType.CLIENT && newBalance.signum() < 0) {
+        if (isClientOwned() && newBalance.signum() < 0) {
             throw new InsufficientFundsException();
         }
         balance = newBalance;

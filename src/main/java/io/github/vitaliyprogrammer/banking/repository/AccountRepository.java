@@ -1,6 +1,7 @@
 package io.github.vitaliyprogrammer.banking.repository;
 
 import io.github.vitaliyprogrammer.banking.entity.Account;
+import io.github.vitaliyprogrammer.banking.entity.status.AccountStatus;
 import io.github.vitaliyprogrammer.banking.entity.status.AccountType;
 import io.github.vitaliyprogrammer.banking.entity.status.Currency;
 import jakarta.persistence.LockModeType;
@@ -16,13 +17,17 @@ public interface AccountRepository extends JpaRepository<Account, UUID> {
 
     List<Account> findAllByOwnerIdOrderByCreatedAt(UUID ownerId);
 
+    Optional<Account> findByIdAndOwnerIdAndType(UUID id, UUID ownerId, AccountType type);
+
     Optional<Account> findByIdAndOwnerId(UUID id, UUID ownerId);
 
-    boolean existsByOwnerIdAndCurrency(UUID ownerId, Currency currency);
+    boolean existsByOwnerIdAndCurrencyAndType(UUID ownerId, Currency currency, AccountType type);
 
     Optional<Account> findByTypeAndCurrency(AccountType type, Currency currency);
 
     Optional<Account> findByNumberAndType(String number, AccountType type);
+
+    List<Account> findAllByTypeAndStatus(AccountType type, AccountStatus status);
 
     /**
      * Locks all accounts of one posting in a single query, always in the same order (by id).

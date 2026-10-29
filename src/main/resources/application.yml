@@ -70,6 +70,7 @@ banking:
     sync-cron: "0 5 * * * *"
     default-spread-percent: 1.50
     max-manual-deviation-percent: 10.00
+    quote-ttl: 30s
 
   # First admin, created on startup. No defaults on purpose: without these variables there is no admin.
   admin:

@@ -12,5 +12,8 @@ public enum AccountType {
     FEE_INCOME,
 
     /** Money in transit: held for a payment to an external provider until the provider answers. */
-    HOLD
+    HOLD,
+
+    /** The bank's side of currency exchanges: what it bought goes in, what it sold goes out. May go negative. */
+    FX_POSITION
 }

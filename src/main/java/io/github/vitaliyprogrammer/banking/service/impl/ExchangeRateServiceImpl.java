@@ -3,6 +3,7 @@ package io.github.vitaliyprogrammer.banking.service.impl;
 import io.github.vitaliyprogrammer.banking.configuration.ExchangeRateProperties;
 import io.github.vitaliyprogrammer.banking.dto.request.SetBankRateRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.response.BankRateChangeResponseDto;
+import io.github.vitaliyprogrammer.banking.dto.response.ConversionDto;
 import io.github.vitaliyprogrammer.banking.dto.response.ExchangeRateResponseDto;
 import io.github.vitaliyprogrammer.banking.dto.response.NbuRateDto;
 import io.github.vitaliyprogrammer.banking.dto.response.OfficialRateResponseDto;
@@ -11,6 +12,7 @@ import io.github.vitaliyprogrammer.banking.dto.response.RateSyncResponseDto;
 import io.github.vitaliyprogrammer.banking.entity.BankRate;
 import io.github.vitaliyprogrammer.banking.entity.OfficialRate;
 import io.github.vitaliyprogrammer.banking.entity.status.Currency;
+import io.github.vitaliyprogrammer.banking.exception.BankRateNotSetException;
 import io.github.vitaliyprogrammer.banking.exception.InvalidBankRateException;
 import io.github.vitaliyprogrammer.banking.exception.InvalidDateRangeException;
 import io.github.vitaliyprogrammer.banking.exception.OfficialRatesUnavailableException;
@@ -59,6 +61,8 @@ public class ExchangeRateServiceImpl implements ExchangeRateService {
     private static final int MAX_HISTORY_DAYS = 366;
 
     private static final BigDecimal HUNDRED = BigDecimal.valueOf(100);
+
+    private static final int CONVERSION_SCALE = 8;
 
     private final OfficialRateRepository officialRateRepository;
 
@@ -170,6 +174,29 @@ public class ExchangeRateServiceImpl implements ExchangeRateService {
         return toRateDto(official, rate, today());
     }
 
+    /**
+     * Through UAH: the bank buys the client's currency at its buy rate and sells the other at its sell rate.
+     * Intermediate values keep 8 decimals; only the final amount is rounded, once, down to cents.
+     * Rounding at every step would lose or invent fractions of a cent on each of them.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public ConversionDto convert(Currency from, Currency to, BigDecimal amount) {
+
+        if (from == to) {
+            throw new IllegalArgumentException("Nothing to convert: both currencies are " + from);
+        }
+
+        BigDecimal inUah = from == Currency.UAH ? amount : amount.multiply(currentBankRate(from).getBuy());
+        BigDecimal exact = to == Currency.UAH
+                ? inUah
+                : inUah.divide(currentBankRate(to).getSell(), CONVERSION_SCALE, RoundingMode.FLOOR);
+
+        return new ConversionDto(
+                exact.setScale(2, RoundingMode.FLOOR),
+                exact.divide(amount, CONVERSION_SCALE, RoundingMode.FLOOR));
+    }
+
     @Override
     @Transactional(readOnly = true)
     public PageResponseDto<BankRateChangeResponseDto> getBankRateChanges(Currency currency, int page, int size) {
@@ -275,6 +302,12 @@ public class ExchangeRateServiceImpl implements ExchangeRateService {
                 bank != null ? bank.getMode() : null,
                 bank != null ? bank.getSpreadPercent() : null,
                 bank != null ? bank.getValidFrom() : null);
+    }
+
+    private BankRate currentBankRate(Currency currency) {
+
+        return bankRateRepository.findFirstByCurrencyOrderByValidFromDescIdDesc(currency)
+                .orElseThrow(() -> new BankRateNotSetException(currency.name()));
     }
 
     private static Optional<Currency> quotedCurrency(String code) {

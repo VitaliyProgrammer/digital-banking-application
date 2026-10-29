@@ -2,22 +2,27 @@ package io.github.vitaliyprogrammer.banking.service.impl;
 
 import io.github.vitaliyprogrammer.banking.dto.request.BillPaymentRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.request.CardTransferRequestDto;
+import io.github.vitaliyprogrammer.banking.dto.request.ExchangeRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.request.FeeRequest;
 import io.github.vitaliyprogrammer.banking.dto.request.PostingRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.request.TopUpRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.request.TransferRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.response.AccountReferenceDto;
 import io.github.vitaliyprogrammer.banking.dto.response.CardReferenceDto;
+import io.github.vitaliyprogrammer.banking.dto.response.ExchangeQuoteResponseDto;
 import io.github.vitaliyprogrammer.banking.dto.response.PaymentResponseDto;
 import io.github.vitaliyprogrammer.banking.dto.response.ProviderResponseDto;
 import io.github.vitaliyprogrammer.banking.entity.Payment;
 import io.github.vitaliyprogrammer.banking.entity.Provider;
 import io.github.vitaliyprogrammer.banking.entity.status.AccountType;
+import io.github.vitaliyprogrammer.banking.entity.status.Currency;
 import io.github.vitaliyprogrammer.banking.entity.status.EntryDirection;
 import io.github.vitaliyprogrammer.banking.entity.status.PaymentType;
 import io.github.vitaliyprogrammer.banking.entity.status.TransactionType;
 import io.github.vitaliyprogrammer.banking.exception.CardNotUsableException;
 import io.github.vitaliyprogrammer.banking.exception.CurrencyMismatchException;
+import io.github.vitaliyprogrammer.banking.exception.ExchangeQuoteAlreadyUsedException;
+import io.github.vitaliyprogrammer.banking.exception.ExchangeQuoteExpiredException;
 import io.github.vitaliyprogrammer.banking.exception.IdempotencyKeyReusedException;
 import io.github.vitaliyprogrammer.banking.exception.PaymentNotFoundException;
 import io.github.vitaliyprogrammer.banking.exception.ProviderNotFoundException;
@@ -27,6 +32,7 @@ import io.github.vitaliyprogrammer.banking.repository.PaymentRepository;
 import io.github.vitaliyprogrammer.banking.repository.ProviderRepository;
 import io.github.vitaliyprogrammer.banking.service.AccountService;
 import io.github.vitaliyprogrammer.banking.service.CardService;
+import io.github.vitaliyprogrammer.banking.service.ExchangeQuoteService;
 import io.github.vitaliyprogrammer.banking.service.LedgerService;
 import io.github.vitaliyprogrammer.banking.service.PaymentService;
 import java.math.BigDecimal;
@@ -59,6 +65,8 @@ public class PaymentServiceImpl implements PaymentService {
     private final AccountService accountService;
 
     private final CardService cardService;
+
+    private final ExchangeQuoteService exchangeQuoteService;
 
     private final LedgerService ledgerService;
 
@@ -108,6 +116,15 @@ public class PaymentServiceImpl implements PaymentService {
 
         return executeOnce(userId, idempotencyKey, requestHash,
                 () -> createBillPayment(userId, idempotencyKey, requestHash, accountNumber, request));
+    }
+
+    @Override
+    public PaymentResponseDto exchange(UUID userId, String idempotencyKey, ExchangeRequestDto request) {
+
+        String requestHash = hash(PaymentType.EXCHANGE, request.quoteId());
+
+        return executeOnce(userId, idempotencyKey, requestHash,
+                () -> createExchange(userId, idempotencyKey, requestHash, request.quoteId()));
     }
 
     @Override
@@ -285,6 +302,54 @@ public class PaymentServiceImpl implements PaymentService {
         payment.startProcessing(holdTransactionId, clock.instant());
 
         return payment;
+    }
+
+    /**
+     * The quote row stays locked until this transaction ends. A second request with the same quote but another
+     * idempotency key waits on that lock, then sees the payment and gets 409. The unique index on
+     * payments.quote_id is only the last line of defence. The checks order matters: "used" before "expired",
+     * so a client who already exchanged is told exactly that.
+     */
+    private Payment createExchange(UUID userId, String idempotencyKey, String requestHash, UUID quoteId) {
+
+        ExchangeQuoteResponseDto quote = exchangeQuoteService.lockForUse(userId, quoteId);
+
+        if (paymentRepository.existsByQuoteId(quote.id())) {
+            throw new ExchangeQuoteAlreadyUsedException();
+        }
+
+        if (!clock.instant().isBefore(quote.expiresAt())) {
+            throw new ExchangeQuoteExpiredException();
+        }
+
+        BigDecimal fee = feeCalculator.calculate(PaymentType.EXCHANGE,
+                FeeRequest.withoutCard(quote.sellAmount(), quote.fromCurrency()));
+        String description = "Exchange " + quote.fromCurrency() + " to " + quote.toCurrency();
+
+        Payment payment = paymentRepository.saveAndFlush(Payment.pendingExchange(
+                userId, idempotencyKey, requestHash, quote.fromAccountId(), quote.toAccountId(),
+                quote.fromCurrency(), quote.sellAmount(), fee, quote.id(), quote.buyAmount(), quote.rate(),
+                description, clock.instant()));
+
+        // Four lines, balanced per currency: the client's money goes to the bank's FX position in one currency,
+        // and comes out of the FX position in the other.
+        UUID ledgerTransactionId = ledgerService.post(new PostingRequestDto(TransactionType.EXCHANGE, description,
+                List.of(
+                        new PostingRequestDto.Line(quote.fromAccountId(), EntryDirection.DEBIT, quote.sellAmount()),
+                        new PostingRequestDto.Line(fxPosition(quote.fromCurrency()), EntryDirection.CREDIT,
+                                quote.sellAmount()),
+                        new PostingRequestDto.Line(fxPosition(quote.toCurrency()), EntryDirection.DEBIT,
+                                quote.buyAmount()),
+                        new PostingRequestDto.Line(quote.toAccountId(), EntryDirection.CREDIT, quote.buyAmount()))));
+
+        payment.complete(ledgerTransactionId, clock.instant());
+
+        return payment;
+    }
+
+    private UUID fxPosition(Currency currency) {
+
+        return ledgerService.getBankAccountId(AccountType.FX_POSITION, currency);
     }
 
     private static void requireTransferable(AccountReferenceDto from, AccountReferenceDto to) {

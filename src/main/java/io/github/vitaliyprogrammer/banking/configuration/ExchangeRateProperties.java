@@ -39,6 +39,10 @@ public record ExchangeRateProperties(
         @NotNull
         @DecimalMin("1.00")
         @DecimalMax("50.00")
-        BigDecimal maxManualDeviationPercent
+        BigDecimal maxManualDeviationPercent,
+
+        /* How long an exchange quote keeps its price. */
+        @NotNull
+        Duration quoteTtl
 ) {
 }

@@ -61,6 +61,21 @@ banking:
     batch-size: 20
     max-delivery-attempts: 5
 
+  exchange-rates:
+    nbu-url: ${NBU_RATES_URL:https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?json}
+    connect-timeout: 3s
+    read-timeout: 5s
+    sync-enabled: ${EXCHANGE_RATES_SYNC_ENABLED:true}
+    # Every hour at :05 Kyiv time. A day already stored is skipped, so extra runs only act as retries.
+    sync-cron: "0 5 * * * *"
+    default-spread-percent: 1.50
+    max-manual-deviation-percent: 10.00
+
+  # First admin, created on startup. No defaults on purpose: without these variables there is no admin.
+  admin:
+    email: ${ADMIN_EMAIL:}
+    password: ${ADMIN_PASSWORD:}
+
 management:
   endpoints:
     web:

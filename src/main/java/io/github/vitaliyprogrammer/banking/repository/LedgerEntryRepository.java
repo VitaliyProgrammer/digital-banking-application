@@ -33,4 +33,26 @@ public interface LedgerEntryRepository extends JpaRepository<LedgerEntry, UUID> 
             LIMIT 1
             """, nativeQuery = true)
     Optional<BigDecimal> findBalanceAt(UUID accountId, Instant moment);
+
+    /**
+     * Money that really came to the account from outside since a moment: top-ups and transfers from OTHER people.
+     * Moving one's own money (savings → current account, exchange, own card) is not income: a transaction that also
+     * debited an account of the same owner is left out. Otherwise a client could raise their limit by shuffling
+     * the same 1 000 ₴ back and forth.
+     */
+    @Query(value = """
+            SELECT COALESCE(SUM(e.amount), 0) FROM ledger_entries e
+            JOIN ledger_transactions t ON t.id = e.transaction_id
+            WHERE e.account_id = :accountId
+              AND e.direction = 'CREDIT'
+              AND e.created_at >= :since
+              AND t.type IN ('DEPOSIT', 'TRANSFER')
+              AND NOT EXISTS (
+                  SELECT 1 FROM ledger_entries other
+                  JOIN accounts a ON a.id = other.account_id
+                  WHERE other.transaction_id = e.transaction_id
+                    AND other.direction = 'DEBIT'
+                    AND a.owner_id = :ownerId)
+            """, nativeQuery = true)
+    BigDecimal sumIncome(UUID accountId, UUID ownerId, Instant since);
 }

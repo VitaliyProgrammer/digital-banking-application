@@ -138,6 +138,15 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Override
     @Transactional(readOnly = true)
+    public ProviderResponseDto getProvider(UUID providerId) {
+
+        return providerRepository.findById(providerId)
+                .map(ProviderResponseDto::from)
+                .orElseThrow(ProviderNotFoundException::new);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public PaymentResponseDto getPayment(UUID userId, UUID paymentId) {
 
         return paymentRepository.findByIdAndInitiatorId(paymentId, userId)
@@ -191,10 +200,10 @@ public class PaymentServiceImpl implements PaymentService {
 
         Payment payment = paymentRepository.saveAndFlush(Payment.pending(
                 userId, idempotencyKey, requestHash, PaymentType.TOP_UP,
-                null, account.id(), account.currency(), request.amount(), fee, "Top-up", clock.instant()));
+                null, account.id(), account.currency(), request.amount(), fee, "Поповнення рахунку", clock.instant()));
 
         UUID ledgerTransactionId = ledgerService.post(PostingRequestDto.transfer(
-                TransactionType.DEPOSIT, "Top-up",
+                TransactionType.DEPOSIT, "Поповнення рахунку",
                 ledgerService.getBankAccountId(AccountType.SETTLEMENT, account.currency()),
                 account.id(),
                 request.amount()));
@@ -218,7 +227,7 @@ public class PaymentServiceImpl implements PaymentService {
 
         BigDecimal fee = feeCalculator.calculate(PaymentType.TRANSFER,
                 FeeRequest.withoutCard(request.amount(), from.currency()));
-        String description = request.description() != null ? request.description() : "Transfer to " + to.number();
+        String description = request.description() != null ? request.description() : "Переказ на рахунок " + to.number();
 
         Payment payment = paymentRepository.saveAndFlush(Payment.pending(
                 userId, idempotencyKey, requestHash, PaymentType.TRANSFER,
@@ -254,7 +263,7 @@ public class PaymentServiceImpl implements PaymentService {
                 new FeeRequest(request.amount(), from.currency(), fromCard.type()));
         String description = request.description() != null
                 ? request.description()
-                : "Transfer to card *" + toCard.lastFour();
+                : "Переказ на картку *" + toCard.lastFour();
 
         Payment payment = Payment.pending(
                 userId, idempotencyKey, requestHash, PaymentType.CARD_TRANSFER,
@@ -324,7 +333,7 @@ public class PaymentServiceImpl implements PaymentService {
 
         BigDecimal fee = feeCalculator.calculate(PaymentType.EXCHANGE,
                 FeeRequest.withoutCard(quote.sellAmount(), quote.fromCurrency()));
-        String description = "Exchange " + quote.fromCurrency() + " to " + quote.toCurrency();
+        String description = "Обмін " + quote.fromCurrency() + " на " + quote.toCurrency();
 
         Payment payment = paymentRepository.saveAndFlush(Payment.pendingExchange(
                 userId, idempotencyKey, requestHash, quote.fromAccountId(), quote.toAccountId(),

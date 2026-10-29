@@ -200,6 +200,15 @@ public class CardServiceImpl implements CardService {
 
     @Override
     @Transactional(readOnly = true)
+    public CardReferenceDto getCardReference(UUID cardId) {
+
+        return cardRepository.findById(cardId)
+                .map(this::toReference)
+                .orElseThrow(CardNotFoundException::new);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Optional<CardReferenceDto> findCardByNumber(String cardNumber) {
 
         if (!CardNumberGenerator.isValid(cardNumber)) {

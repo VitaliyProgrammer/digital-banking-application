@@ -26,5 +26,8 @@ public interface PaymentService {
 
     List<ProviderResponseDto> getProviders();
 
+    /** Any provider by id, also an inactive one: an old payment still shows who was paid. */
+    ProviderResponseDto getProvider(UUID providerId);
+
     PaymentResponseDto getPayment(UUID userId, UUID paymentId);
 }

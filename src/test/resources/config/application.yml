@@ -7,3 +7,6 @@ banking:
   savings:
     # The interest jobs run only when a test calls them, for the dates it chooses.
     jobs-enabled: false
+  cashback:
+    # The payout runs only when a test calls it.
+    jobs-enabled: false

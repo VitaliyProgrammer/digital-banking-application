@@ -33,6 +33,9 @@ public interface CardService {
     /** For other modules: a card of the given owner, or 404. */
     CardReferenceDto getOwnedCardReference(UUID ownerId, UUID cardId);
 
+    /** For other modules: any card by id, e.g. the recipient's card on a receipt. */
+    CardReferenceDto getCardReference(UUID cardId);
+
     /** For other modules: any card by its 16-digit number, e.g. the recipient of a card-to-card transfer. */
     Optional<CardReferenceDto> findCardByNumber(String cardNumber);
 }

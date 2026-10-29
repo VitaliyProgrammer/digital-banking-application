@@ -19,6 +19,7 @@ import io.github.vitaliyprogrammer.banking.repository.LedgerTransactionRepositor
 import io.github.vitaliyprogrammer.banking.repository.OfficialRateRepository;
 import io.github.vitaliyprogrammer.banking.repository.PaymentRepository;
 import io.github.vitaliyprogrammer.banking.repository.ProviderRepository;
+import io.github.vitaliyprogrammer.banking.repository.ReceiptRepository;
 import io.github.vitaliyprogrammer.banking.repository.RefreshTokenRepository;
 import io.github.vitaliyprogrammer.banking.repository.UserRepository;
 import io.github.vitaliyprogrammer.banking.service.impl.AccountServiceImpl;
@@ -31,6 +32,7 @@ import io.github.vitaliyprogrammer.banking.service.impl.HttpProviderClient;
 import io.github.vitaliyprogrammer.banking.service.impl.LedgerServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.NbuRateClient;
 import io.github.vitaliyprogrammer.banking.service.impl.PaymentServiceImpl;
+import io.github.vitaliyprogrammer.banking.service.impl.ReceiptServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.RefreshTokenServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.UserServiceImpl;
 import java.math.BigDecimal;
@@ -106,6 +108,11 @@ class ArchitectureTests {
     static final ArchRule quoteTableBelongsToTheExchangeDomain = classes()
             .that().belongToAnyOf(ExchangeQuoteRepository.class)
             .should().onlyHaveDependentClassesThat().belongToAnyOf(ExchangeQuoteServiceImpl.class);
+
+    @ArchTest
+    static final ArchRule receiptTableBelongsToTheReceiptDomain = classes()
+            .that().belongToAnyOf(ReceiptRepository.class)
+            .should().onlyHaveDependentClassesThat().belongToAnyOf(ReceiptServiceImpl.class);
 
     /** Only the clients know how to talk HTTP to the outside world; the rest of the code sees business outcomes. */
     @ArchTest

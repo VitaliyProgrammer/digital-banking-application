@@ -27,6 +27,8 @@ public record PaymentResponseDto(
         BigDecimal exchangeRate,
         String description,
         String failureReason,
+        /* The final ledger transaction: what support looks up when a client asks "where is my money". */
+        UUID ledgerTransactionId,
         Instant createdAt,
         Instant completedAt
 ) {
@@ -49,6 +51,7 @@ public record PaymentResponseDto(
                 payment.getExchangeRate(),
                 payment.getDescription(),
                 payment.getFailureReason(),
+                payment.getLedgerTransactionId(),
                 payment.getCreatedAt(),
                 payment.getCompletedAt());
     }

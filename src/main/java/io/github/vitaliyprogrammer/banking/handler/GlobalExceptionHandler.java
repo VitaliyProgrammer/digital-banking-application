@@ -1,5 +1,6 @@
-package io.github.vitaliyprogrammer.banking.exception;
+package io.github.vitaliyprogrammer.banking.handler;
 
+import io.github.vitaliyprogrammer.banking.exception.ApplicationException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;

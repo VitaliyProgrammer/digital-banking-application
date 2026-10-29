@@ -11,9 +11,11 @@ import com.tngtech.archunit.lang.ArchRule;
 import io.github.vitaliyprogrammer.banking.entity.Account;
 import io.github.vitaliyprogrammer.banking.entity.status.EntryDirection;
 import io.github.vitaliyprogrammer.banking.repository.AccountRepository;
+import io.github.vitaliyprogrammer.banking.repository.BankRateRepository;
 import io.github.vitaliyprogrammer.banking.repository.CardRepository;
 import io.github.vitaliyprogrammer.banking.repository.LedgerEntryRepository;
 import io.github.vitaliyprogrammer.banking.repository.LedgerTransactionRepository;
+import io.github.vitaliyprogrammer.banking.repository.OfficialRateRepository;
 import io.github.vitaliyprogrammer.banking.repository.PaymentRepository;
 import io.github.vitaliyprogrammer.banking.repository.ProviderRepository;
 import io.github.vitaliyprogrammer.banking.repository.RefreshTokenRepository;
@@ -22,8 +24,10 @@ import io.github.vitaliyprogrammer.banking.service.impl.AccountServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.AuthenticationServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.BillPaymentProcessor;
 import io.github.vitaliyprogrammer.banking.service.impl.CardServiceImpl;
+import io.github.vitaliyprogrammer.banking.service.impl.ExchangeRateServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.HttpProviderClient;
 import io.github.vitaliyprogrammer.banking.service.impl.LedgerServiceImpl;
+import io.github.vitaliyprogrammer.banking.service.impl.NbuRateClient;
 import io.github.vitaliyprogrammer.banking.service.impl.PaymentServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.RefreshTokenServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.UserServiceImpl;
@@ -91,10 +95,15 @@ class ArchitectureTests {
             .that().belongToAnyOf(PaymentRepository.class, ProviderRepository.class)
             .should().onlyHaveDependentClassesThat().belongToAnyOf(PaymentServiceImpl.class, BillPaymentProcessor.class);
 
-    /** Only the client knows how to talk HTTP to providers; the rest of the code sees business outcomes. */
     @ArchTest
-    static final ArchRule onlyTheProviderClientMakesHttpCalls = noClasses()
-            .that().doNotBelongToAnyOf(HttpProviderClient.class)
+    static final ArchRule rateTablesBelongToTheExchangeDomain = classes()
+            .that().belongToAnyOf(OfficialRateRepository.class, BankRateRepository.class)
+            .should().onlyHaveDependentClassesThat().belongToAnyOf(ExchangeRateServiceImpl.class);
+
+    /** Only the clients know how to talk HTTP to the outside world; the rest of the code sees business outcomes. */
+    @ArchTest
+    static final ArchRule onlyTheHttpClientsMakeHttpCalls = noClasses()
+            .that().doNotBelongToAnyOf(HttpProviderClient.class, NbuRateClient.class)
             .should().dependOnClassesThat().belongToAnyOf(RestClient.class);
 
     @ArchTest

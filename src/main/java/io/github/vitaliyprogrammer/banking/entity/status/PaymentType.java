@@ -15,5 +15,11 @@ public enum PaymentType {
     BILL_PAYMENT,
 
     /** Currency exchange between two accounts of the same client, at the price of a quote. */
-    EXCHANGE
+    EXCHANGE,
+
+    /** Client's current account → the same client's savings account, same currency. */
+    SAVINGS_DEPOSIT,
+
+    /** Savings account → the same client's current account, same currency. */
+    SAVINGS_WITHDRAWAL
 }

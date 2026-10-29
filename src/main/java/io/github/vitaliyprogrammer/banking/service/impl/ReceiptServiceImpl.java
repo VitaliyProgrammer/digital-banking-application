@@ -11,6 +11,7 @@ import io.github.vitaliyprogrammer.banking.dto.response.ReceiptFileDto;
 import io.github.vitaliyprogrammer.banking.dto.response.UserResponseDto;
 import io.github.vitaliyprogrammer.banking.entity.status.Currency;
 import io.github.vitaliyprogrammer.banking.entity.status.PaymentStatus;
+import io.github.vitaliyprogrammer.banking.entity.status.PaymentType;
 import io.github.vitaliyprogrammer.banking.entity.status.ProviderCategory;
 import io.github.vitaliyprogrammer.banking.exception.ReceiptEmailFailedException;
 import io.github.vitaliyprogrammer.banking.exception.ReceiptNotAvailableException;
@@ -140,7 +141,26 @@ public class ReceiptServiceImpl implements ReceiptService {
             case CARD_TRANSFER -> cardTransfer(payer, payment, receiptNumber);
             case BILL_PAYMENT -> billPayment(payment, receiptNumber);
             case EXCHANGE -> exchange(payment, receiptNumber);
+            case SAVINGS_DEPOSIT, SAVINGS_WITHDRAWAL -> ownTransfer(payment, receiptNumber);
         };
+    }
+
+    /** Money moved between two accounts of the same client: no recipient, no sign on the amount. */
+    private ReceiptDocumentDto ownTransfer(PaymentResponseDto payment, String receiptNumber) {
+
+        AccountReferenceDto from = accountService.getAccountReference(payment.fromAccountId());
+        AccountReferenceDto to = accountService.getAccountReference(payment.toAccountId());
+        boolean deposit = payment.type() == PaymentType.SAVINGS_DEPOSIT;
+
+        List<Row> rows = new ArrayList<>();
+        rows.add(Row.of("Списано з", iban(from.number()), deposit ? "поточний рахунок" : "скарбничка"));
+        rows.add(Row.of("Зараховано на", iban(to.number()), deposit ? "скарбничка" : "поточний рахунок"));
+        rows.add(Row.of("Сума", money(payment.amount(), payment.currency())));
+        rows.add(Row.of("Комісія", money(payment.fee(), payment.currency())));
+        rows.add(dateRow(payment));
+
+        return document(receiptNumber, "Квитанція про переказ", money(payment.amount(), payment.currency()), null,
+                payment.description(), rows, payment);
     }
 
     private ReceiptDocumentDto topUp(UserResponseDto payer, PaymentResponseDto payment, String receiptNumber) {

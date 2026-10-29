@@ -5,6 +5,7 @@ import io.github.vitaliyprogrammer.banking.dto.request.CardTransferRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.request.ExchangeRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.request.FeeRequest;
 import io.github.vitaliyprogrammer.banking.dto.request.PostingRequestDto;
+import io.github.vitaliyprogrammer.banking.dto.request.SavingsTransferRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.request.TopUpRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.request.TransferRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.response.AccountReferenceDto;
@@ -125,6 +126,32 @@ public class PaymentServiceImpl implements PaymentService {
 
         return executeOnce(userId, idempotencyKey, requestHash,
                 () -> createExchange(userId, idempotencyKey, requestHash, request.quoteId()));
+    }
+
+    @Override
+    public PaymentResponseDto depositToSavings(UUID userId, String idempotencyKey, UUID savingsId,
+                                               SavingsTransferRequestDto request) {
+
+        String requestHash = hash(PaymentType.SAVINGS_DEPOSIT, savingsId, request.accountId(), request.amount());
+
+        return executeOnce(userId, idempotencyKey, requestHash, () -> createOwnTransfer(
+                userId, idempotencyKey, requestHash, PaymentType.SAVINGS_DEPOSIT,
+                accountService.getOwnedAccountReference(userId, request.accountId()),
+                accountService.getOwnedSavingsReference(userId, savingsId),
+                request.amount(), "Поповнення скарбнички"));
+    }
+
+    @Override
+    public PaymentResponseDto withdrawFromSavings(UUID userId, String idempotencyKey, UUID savingsId,
+                                                  SavingsTransferRequestDto request) {
+
+        String requestHash = hash(PaymentType.SAVINGS_WITHDRAWAL, savingsId, request.accountId(), request.amount());
+
+        return executeOnce(userId, idempotencyKey, requestHash, () -> createOwnTransfer(
+                userId, idempotencyKey, requestHash, PaymentType.SAVINGS_WITHDRAWAL,
+                accountService.getOwnedSavingsReference(userId, savingsId),
+                accountService.getOwnedAccountReference(userId, request.accountId()),
+                request.amount(), "Зняття зі скарбнички"));
     }
 
     @Override
@@ -359,6 +386,27 @@ public class PaymentServiceImpl implements PaymentService {
     private UUID fxPosition(Currency currency) {
 
         return ledgerService.getBankAccountId(AccountType.FX_POSITION, currency);
+    }
+
+    /** Between two accounts of the same client: both were already checked to belong to the user. */
+    private Payment createOwnTransfer(UUID userId,
+                                      String idempotencyKey,
+                                      String requestHash,
+                                      PaymentType type,
+                                      AccountReferenceDto from,
+                                      AccountReferenceDto to,
+                                      BigDecimal amount,
+                                      String description) {
+
+        requireTransferable(from, to);
+
+        BigDecimal fee = feeCalculator.calculate(type, FeeRequest.withoutCard(amount, from.currency()));
+
+        Payment payment = paymentRepository.saveAndFlush(Payment.pending(
+                userId, idempotencyKey, requestHash, type,
+                from.id(), to.id(), from.currency(), amount, fee, description, clock.instant()));
+
+        return moveMoney(payment, from, to);
     }
 
     private static void requireTransferable(AccountReferenceDto from, AccountReferenceDto to) {

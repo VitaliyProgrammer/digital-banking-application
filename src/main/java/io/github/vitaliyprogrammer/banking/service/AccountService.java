@@ -44,4 +44,7 @@ public interface AccountService {
 
     /** Balance at a past moment, read from the ledger; zero if the account had no entries before it. */
     BigDecimal getBalanceAt(UUID accountId, Instant moment);
+
+    /** Income of a client's account since a moment: money from outside and from other people, not their own. */
+    BigDecimal getIncome(UUID ownerId, UUID accountId, Instant since);
 }

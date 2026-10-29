@@ -15,6 +15,7 @@ import io.github.vitaliyprogrammer.banking.repository.BankRateRepository;
 import io.github.vitaliyprogrammer.banking.repository.CardRepository;
 import io.github.vitaliyprogrammer.banking.repository.CashbackAccrualRepository;
 import io.github.vitaliyprogrammer.banking.repository.CashbackPayoutRepository;
+import io.github.vitaliyprogrammer.banking.repository.CreditApplicationRepository;
 import io.github.vitaliyprogrammer.banking.repository.ExchangeQuoteRepository;
 import io.github.vitaliyprogrammer.banking.repository.InterestAccrualRepository;
 import io.github.vitaliyprogrammer.banking.repository.InterestPayoutRepository;
@@ -31,6 +32,7 @@ import io.github.vitaliyprogrammer.banking.service.impl.AuthenticationServiceImp
 import io.github.vitaliyprogrammer.banking.service.impl.BillPaymentProcessor;
 import io.github.vitaliyprogrammer.banking.service.impl.CardServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.CashbackServiceImpl;
+import io.github.vitaliyprogrammer.banking.service.impl.CreditApplicationServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.ExchangeQuoteServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.ExchangeRateServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.HttpProviderClient;
@@ -119,6 +121,11 @@ class ArchitectureTests {
     static final ArchRule interestTablesBelongToTheSavingsDomain = classes()
             .that().belongToAnyOf(InterestAccrualRepository.class, InterestPayoutRepository.class)
             .should().onlyHaveDependentClassesThat().belongToAnyOf(SavingsServiceImpl.class);
+
+    @ArchTest
+    static final ArchRule creditApplicationTableBelongsToTheCreditDomain = classes()
+            .that().belongToAnyOf(CreditApplicationRepository.class)
+            .should().onlyHaveDependentClassesThat().belongToAnyOf(CreditApplicationServiceImpl.class);
 
     @ArchTest
     static final ArchRule cashbackTablesBelongToTheCashbackDomain = classes()

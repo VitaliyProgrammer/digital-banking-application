@@ -108,6 +108,18 @@ banking:
       GAS: 1.00
       HEATING: 1.00
 
+  credit:
+    min-account-age-days: 30
+    income-window-days: 90
+    # Less than this in 90 days (about 5 000 UAH a month): no credit limit.
+    min-income: 15000.00
+    # Affordable limit = 50% of the average monthly income.
+    income-share: 0.50
+    auto-approve-up-to: 10000.00
+    # Up to 1.5 × affordable goes to a person; more is declined.
+    review-factor: 1.50
+    max-limit: 100000.00
+
   receipts:
     mail-from: ${RECEIPTS_MAIL_FROM:Digital Bank <no-reply@digital-bank.local>}
 

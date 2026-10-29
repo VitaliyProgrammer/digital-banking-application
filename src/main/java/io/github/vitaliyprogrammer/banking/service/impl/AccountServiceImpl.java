@@ -129,6 +129,13 @@ public class AccountServiceImpl implements AccountService {
         return ledgerEntryRepository.findBalanceAt(accountId, moment).orElse(BigDecimal.ZERO);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public BigDecimal getIncome(UUID ownerId, UUID accountId, Instant since) {
+
+        return ledgerEntryRepository.sumIncome(accountId, ownerId, since);
+    }
+
     /** One account of each type per currency: a current UAH account and a UAH savings jar can live side by side. */
     private AccountResponseDto openOnce(UUID ownerId, Currency currency, AccountType type, Account account) {
 

@@ -2,6 +2,7 @@ package io.github.vitaliyprogrammer.banking.service;
 
 import io.github.vitaliyprogrammer.banking.dto.request.BillPaymentRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.request.CardTransferRequestDto;
+import io.github.vitaliyprogrammer.banking.dto.request.ExchangeRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.request.TopUpRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.request.TransferRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.response.PaymentResponseDto;
@@ -19,6 +20,9 @@ public interface PaymentService {
 
     /** Holds the money and returns at once with status PROCESSING; the provider is called in the background. */
     PaymentResponseDto payBill(UUID userId, String idempotencyKey, BillPaymentRequestDto request);
+
+    /** Spends a quote: exactly the amounts and the rate the client saw, or an error if it expired or was used. */
+    PaymentResponseDto exchange(UUID userId, String idempotencyKey, ExchangeRequestDto request);
 
     List<ProviderResponseDto> getProviders();
 

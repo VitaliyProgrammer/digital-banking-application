@@ -287,7 +287,7 @@ public class PaymentServiceImpl implements PaymentService {
         requireTransferable(from, to);
 
         BigDecimal fee = feeCalculator.calculate(PaymentType.CARD_TRANSFER,
-                new FeeRequest(request.amount(), from.currency(), fromCard.type()));
+                FeeRequest.fromCard(request.amount(), from.currency(), fromCard.type()));
         String description = request.description() != null
                 ? request.description()
                 : "Переказ на картку *" + toCard.lastFour();
@@ -322,7 +322,7 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         BigDecimal fee = feeCalculator.calculate(PaymentType.BILL_PAYMENT,
-                FeeRequest.withoutCard(request.amount(), from.currency()));
+                FeeRequest.forBill(request.amount(), from.currency(), provider.getCategory()));
         String description = provider.getName() + ", " + accountNumber;
 
         Payment payment = paymentRepository.saveAndFlush(Payment.pendingBill(

@@ -85,7 +85,9 @@ class BillPaymentIntegrationTests extends IntegrationTest {
         PaymentResponseDto payment = payElectricity("300.00");
 
         assertThat(payment.status()).isEqualTo(PaymentStatus.PROCESSING);
-        assertThat(balanceOf(clientAccount)).as("held right away").isEqualByComparingTo("700.00");
+        assertThat(payment.fee()).as("0.5% utilities fee").isEqualByComparingTo("1.50");
+        // 300.00 plus the 0.5% utilities fee (1.50) are held at once; a rejection returns both.
+        assertThat(balanceOf(clientAccount)).as("held right away").isEqualByComparingTo("698.50");
 
         // Five application instances wake up at the same moment and look for work.
         runConcurrently(5, i -> () -> billPaymentProcessor.processPending());
@@ -121,7 +123,7 @@ class BillPaymentIntegrationTests extends IntegrationTest {
 
         // The dangerous moment: we do not know what happened. Not FAILED, so the money is NOT returned yet.
         assertThat(statusOf(payment.id())).isEqualTo(PaymentStatus.UNKNOWN);
-        assertThat(balanceOf(clientAccount)).isEqualByComparingTo("700.00");
+        assertThat(balanceOf(clientAccount)).isEqualByComparingTo("698.50");
 
         provider.stubFor(get(urlPathMatching("/" + PROVIDER + "/payments/.+"))
                 .willReturn(okJson("{\"status\": \"ACCEPTED\"}")));
@@ -129,7 +131,7 @@ class BillPaymentIntegrationTests extends IntegrationTest {
         billPaymentProcessor.reconcileUnknown();
 
         assertThat(statusOf(payment.id())).isEqualTo(PaymentStatus.COMPLETED);
-        assertThat(balanceOf(clientAccount)).isEqualByComparingTo("700.00");
+        assertThat(balanceOf(clientAccount)).isEqualByComparingTo("698.50");
         // Reconciliation asked; it did not pay a second time.
         provider.verify(1, postRequestedFor(urlPathEqualTo("/" + PROVIDER + "/payments")));
     }

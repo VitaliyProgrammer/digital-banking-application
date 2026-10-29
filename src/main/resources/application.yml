@@ -95,6 +95,19 @@ banking:
       USD: 2.00
       EUR: 1.50
 
+  cashback:
+    jobs-enabled: ${CASHBACK_JOBS_ENABLED:true}
+    # 1st of the month, 01:30 Kyiv time: pay the previous month.
+    payout-cron: "0 30 1 1 * *"
+    monthly-cap: 500.00
+    rates:
+      MOBILE: 5.00
+      INTERNET: 3.00
+      ELECTRICITY: 1.00
+      WATER: 1.00
+      GAS: 1.00
+      HEATING: 1.00
+
   receipts:
     mail-from: ${RECEIPTS_MAIL_FROM:Digital Bank <no-reply@digital-bank.local>}
 

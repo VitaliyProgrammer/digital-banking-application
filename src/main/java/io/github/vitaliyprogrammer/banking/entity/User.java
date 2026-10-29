@@ -56,6 +56,13 @@ public class User {
         return user;
     }
 
+    /** Only the startup bootstrap creates admins, from ADMIN_EMAIL / ADMIN_PASSWORD. */
+    public static User newAdmin(String email, String passwordHash, Instant now) {
+        User user = newClient(email, passwordHash, "Bank", "Admin", now);
+        user.role = Role.ADMIN;
+        return user;
+    }
+
     public boolean isBlocked() {
         return status == UserStatus.BLOCKED;
     }

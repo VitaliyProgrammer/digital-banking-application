@@ -77,6 +77,8 @@ class ReceiptIntegrationTests extends IntegrationTest {
     static void mailAndProvider(DynamicPropertyRegistry registry) {
         registry.add("spring.mail.host", mailpit::getHost);
         registry.add("spring.mail.port", () -> mailpit.getMappedPort(1025));
+        // A busy Docker (the full suite starts several containers) can make the first SMTP answer slow.
+        registry.add("spring.mail.properties.mail.smtp.timeout", () -> "20000");
         registry.add("banking.providers.base-url", provider::baseUrl);
     }
 

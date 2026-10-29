@@ -84,6 +84,17 @@ banking:
     max-manual-deviation-percent: 10.00
     quote-ttl: 30s
 
+  savings:
+    jobs-enabled: ${SAVINGS_JOBS_ENABLED:true}
+    # 00:10 Kyiv time: accrue the days that ended (yesterday, plus a week of catch-up).
+    accrual-cron: "0 10 0 * * *"
+    # 1st of the month, 01:00 Kyiv time: pay the previous month.
+    payout-cron: "0 0 1 1 * *"
+    annual-rates:
+      UAH: 12.00
+      USD: 2.00
+      EUR: 1.50
+
   receipts:
     mail-from: ${RECEIPTS_MAIL_FROM:Digital Bank <no-reply@digital-bank.local>}
 

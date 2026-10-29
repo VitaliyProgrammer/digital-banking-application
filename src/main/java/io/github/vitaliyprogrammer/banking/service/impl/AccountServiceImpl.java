@@ -6,13 +6,17 @@ import io.github.vitaliyprogrammer.banking.dto.response.AccountResponseDto;
 import io.github.vitaliyprogrammer.banking.dto.response.PageResponseDto;
 import io.github.vitaliyprogrammer.banking.dto.response.StatementEntryResponseDto;
 import io.github.vitaliyprogrammer.banking.entity.Account;
+import io.github.vitaliyprogrammer.banking.entity.status.AccountStatus;
 import io.github.vitaliyprogrammer.banking.entity.status.AccountType;
+import io.github.vitaliyprogrammer.banking.entity.status.Currency;
 import io.github.vitaliyprogrammer.banking.exception.AccountAlreadyExistsException;
 import io.github.vitaliyprogrammer.banking.exception.AccountNotFoundException;
 import io.github.vitaliyprogrammer.banking.repository.AccountRepository;
 import io.github.vitaliyprogrammer.banking.repository.LedgerEntryRepository;
 import io.github.vitaliyprogrammer.banking.service.AccountService;
+import java.math.BigDecimal;
 import java.time.Clock;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -38,19 +42,16 @@ public class AccountServiceImpl implements AccountService {
     @Transactional
     public AccountResponseDto open(UUID ownerId, OpenAccountRequestDto request) {
 
-        if (accountRepository.existsByOwnerIdAndCurrency(ownerId, request.currency())) {
-            throw new AccountAlreadyExistsException(request.currency());
-        }
+        return openOnce(ownerId, request.currency(), AccountType.CLIENT,
+                Account.openClientAccount(ownerId, ibanGenerator.generate(), request.currency(), clock.instant()));
+    }
 
-        Account account = Account.openClientAccount(
-                ownerId, ibanGenerator.generate(), request.currency(), clock.instant());
+    @Override
+    @Transactional
+    public AccountResponseDto openSavings(UUID ownerId, Currency currency) {
 
-        try {
-            return AccountResponseDto.from(accountRepository.saveAndFlush(account));
-        } catch (DataIntegrityViolationException e) {
-            // Two parallel requests for the same currency: the partial unique index lets only one in.
-            throw new AccountAlreadyExistsException(request.currency());
-        }
+        return openOnce(ownerId, currency, AccountType.SAVINGS,
+                Account.openSavingsAccount(ownerId, ibanGenerator.generate(), currency, clock.instant()));
     }
 
     @Override
@@ -84,7 +85,14 @@ public class AccountServiceImpl implements AccountService {
     @Transactional(readOnly = true)
     public AccountReferenceDto getOwnedAccountReference(UUID ownerId, UUID accountId) {
 
-        return AccountReferenceDto.from(findOwnedAccount(ownerId, accountId));
+        return findOwnedAccount(ownerId, accountId, AccountType.CLIENT);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AccountReferenceDto getOwnedSavingsReference(UUID ownerId, UUID accountId) {
+
+        return findOwnedAccount(ownerId, accountId, AccountType.SAVINGS);
     }
 
     @Override
@@ -100,15 +108,53 @@ public class AccountServiceImpl implements AccountService {
     public AccountReferenceDto getAccountReference(UUID accountId) {
 
         return accountRepository.findById(accountId)
-                .filter(account -> account.getType() == AccountType.CLIENT)
+                .filter(Account::isClientOwned)
                 .map(AccountReferenceDto::from)
                 .orElseThrow(AccountNotFoundException::new);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AccountReferenceDto> getActiveSavingsAccounts() {
+
+        return accountRepository.findAllByTypeAndStatus(AccountType.SAVINGS, AccountStatus.ACTIVE).stream()
+                .map(AccountReferenceDto::from)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BigDecimal getBalanceAt(UUID accountId, Instant moment) {
+
+        return ledgerEntryRepository.findBalanceAt(accountId, moment).orElse(BigDecimal.ZERO);
+    }
+
+    /** One account of each type per currency: a current UAH account and a UAH savings jar can live side by side. */
+    private AccountResponseDto openOnce(UUID ownerId, Currency currency, AccountType type, Account account) {
+
+        if (accountRepository.existsByOwnerIdAndCurrencyAndType(ownerId, currency, type)) {
+            throw new AccountAlreadyExistsException(currency);
+        }
+
+        try {
+            return AccountResponseDto.from(accountRepository.saveAndFlush(account));
+        } catch (DataIntegrityViolationException e) {
+            // Two parallel requests for the same currency: the partial unique index lets only one in.
+            throw new AccountAlreadyExistsException(currency);
+        }
     }
 
     /** Ownership is part of the query: someone else's account is simply "not found". */
     private Account findOwnedAccount(UUID ownerId, UUID accountId) {
 
         return accountRepository.findByIdAndOwnerId(accountId, ownerId)
+                .orElseThrow(AccountNotFoundException::new);
+    }
+
+    private AccountReferenceDto findOwnedAccount(UUID ownerId, UUID accountId, AccountType type) {
+
+        return accountRepository.findByIdAndOwnerIdAndType(accountId, ownerId, type)
+                .map(AccountReferenceDto::from)
                 .orElseThrow(AccountNotFoundException::new);
     }
 }

@@ -3,6 +3,7 @@ package io.github.vitaliyprogrammer.banking.service;
 import io.github.vitaliyprogrammer.banking.dto.request.BillPaymentRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.request.CardTransferRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.request.ExchangeRequestDto;
+import io.github.vitaliyprogrammer.banking.dto.request.SavingsTransferRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.request.TopUpRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.request.TransferRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.response.PaymentResponseDto;
@@ -23,6 +24,14 @@ public interface PaymentService {
 
     /** Spends a quote: exactly the amounts and the rate the client saw, or an error if it expired or was used. */
     PaymentResponseDto exchange(UUID userId, String idempotencyKey, ExchangeRequestDto request);
+
+    /** Current account → the same client's savings jar. */
+    PaymentResponseDto depositToSavings(UUID userId, String idempotencyKey, UUID savingsId,
+                                        SavingsTransferRequestDto request);
+
+    /** Savings jar → the same client's current account. The only way money leaves a jar. */
+    PaymentResponseDto withdrawFromSavings(UUID userId, String idempotencyKey, UUID savingsId,
+                                           SavingsTransferRequestDto request);
 
     List<ProviderResponseDto> getProviders();
 

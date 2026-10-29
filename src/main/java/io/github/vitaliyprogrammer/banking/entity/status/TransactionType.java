@@ -18,5 +18,8 @@ public enum TransactionType {
     RELEASE,
 
     /** Client account in one currency → FX position, FX position → client account in another: four lines. */
-    EXCHANGE
+    EXCHANGE,
+
+    /** Interest expense → savings account: the monthly interest payout. */
+    INTEREST
 }

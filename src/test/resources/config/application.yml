@@ -4,3 +4,6 @@ banking:
   exchange-rates:
     # Tests never call the real NBU: a test that needs rates calls the sync itself against WireMock.
     sync-enabled: false
+  savings:
+    # The interest jobs run only when a test calls them, for the dates it chooses.
+    jobs-enabled: false

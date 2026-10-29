@@ -14,6 +14,8 @@ import io.github.vitaliyprogrammer.banking.repository.AccountRepository;
 import io.github.vitaliyprogrammer.banking.repository.BankRateRepository;
 import io.github.vitaliyprogrammer.banking.repository.CardRepository;
 import io.github.vitaliyprogrammer.banking.repository.ExchangeQuoteRepository;
+import io.github.vitaliyprogrammer.banking.repository.InterestAccrualRepository;
+import io.github.vitaliyprogrammer.banking.repository.InterestPayoutRepository;
 import io.github.vitaliyprogrammer.banking.repository.LedgerEntryRepository;
 import io.github.vitaliyprogrammer.banking.repository.LedgerTransactionRepository;
 import io.github.vitaliyprogrammer.banking.repository.OfficialRateRepository;
@@ -34,6 +36,7 @@ import io.github.vitaliyprogrammer.banking.service.impl.NbuRateClient;
 import io.github.vitaliyprogrammer.banking.service.impl.PaymentServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.ReceiptServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.RefreshTokenServiceImpl;
+import io.github.vitaliyprogrammer.banking.service.impl.SavingsServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.UserServiceImpl;
 import java.math.BigDecimal;
 import org.springframework.web.client.RestClient;
@@ -108,6 +111,11 @@ class ArchitectureTests {
     static final ArchRule quoteTableBelongsToTheExchangeDomain = classes()
             .that().belongToAnyOf(ExchangeQuoteRepository.class)
             .should().onlyHaveDependentClassesThat().belongToAnyOf(ExchangeQuoteServiceImpl.class);
+
+    @ArchTest
+    static final ArchRule interestTablesBelongToTheSavingsDomain = classes()
+            .that().belongToAnyOf(InterestAccrualRepository.class, InterestPayoutRepository.class)
+            .should().onlyHaveDependentClassesThat().belongToAnyOf(SavingsServiceImpl.class);
 
     @ArchTest
     static final ArchRule receiptTableBelongsToTheReceiptDomain = classes()

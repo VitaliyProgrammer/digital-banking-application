@@ -10,6 +10,7 @@ import io.github.vitaliyprogrammer.banking.entity.status.AccountType;
 import io.github.vitaliyprogrammer.banking.entity.status.EntryDirection;
 import io.github.vitaliyprogrammer.banking.entity.status.PaymentStatus;
 import io.github.vitaliyprogrammer.banking.entity.status.TransactionType;
+import io.github.vitaliyprogrammer.banking.event.BillPaymentCompletedEvent;
 import io.github.vitaliyprogrammer.banking.repository.PaymentRepository;
 import io.github.vitaliyprogrammer.banking.repository.ProviderRepository;
 import io.github.vitaliyprogrammer.banking.service.LedgerService;
@@ -23,6 +24,7 @@ import java.util.Objects;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
@@ -51,6 +53,8 @@ public class BillPaymentProcessor {
     private final LedgerService ledgerService;
 
     private final TransactionTemplate transactionTemplate;
+
+    private final ApplicationEventPublisher eventPublisher;
 
     private final BillPaymentProperties properties;
 
@@ -160,6 +164,12 @@ public class BillPaymentProcessor {
 
         UUID captureId = ledgerService.post(new PostingRequestDto(TransactionType.CAPTURE, payment.getDescription(), lines));
         payment.complete(captureId, now);
+
+        // Listeners run inside this transaction (BEFORE_COMMIT): what they write commits or rolls back with the payment.
+        Provider provider = providerRepository.findById(payment.getProviderId()).orElseThrow();
+        eventPublisher.publishEvent(new BillPaymentCompletedEvent(
+                payment.getId(), payment.getInitiatorId(), payment.getFromAccountId(), provider.getCategory(),
+                payment.getCurrency(), payment.getAmount(), now));
     }
 
     /** HOLD → client account: the full held amount comes back. */

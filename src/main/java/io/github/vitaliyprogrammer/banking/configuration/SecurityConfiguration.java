@@ -1,6 +1,7 @@
 package io.github.vitaliyprogrammer.banking.configuration;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
+import io.github.vitaliyprogrammer.banking.entity.status.Role;
 import io.github.vitaliyprogrammer.banking.service.AccessTokenService;
 import java.nio.charset.StandardCharsets;
 import javax.crypto.SecretKey;
@@ -8,6 +9,7 @@ import javax.crypto.spec.SecretKeySpec;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -48,6 +50,9 @@ public class SecurityConfiguration {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+                        // Reading rates is public; changing them lives under /admin.
+                        .requestMatchers(HttpMethod.GET, "/exchange-rates/**").permitAll()
+                        .requestMatchers("/admin/**").hasRole(Role.ADMIN.name())
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));

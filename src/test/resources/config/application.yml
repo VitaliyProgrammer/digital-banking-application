@@ -1,0 +1,6 @@
+# Test-only overrides for every test context. Spring reads classpath:/config/application.yml after
+# classpath:/application.yml, so values here win while everything else still comes from the main file.
+banking:
+  exchange-rates:
+    # Tests never call the real NBU: a test that needs rates calls the sync itself against WireMock.
+    sync-enabled: false

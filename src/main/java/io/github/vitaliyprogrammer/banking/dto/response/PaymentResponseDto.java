@@ -9,6 +9,7 @@ import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.UUID;
 
+/** {@code creditedAmount} and {@code exchangeRate} are set for exchanges only: what arrived in the other currency. */
 public record PaymentResponseDto(
         UUID id,
         PaymentType type,
@@ -22,6 +23,8 @@ public record PaymentResponseDto(
         Currency currency,
         BigDecimal amount,
         BigDecimal fee,
+        BigDecimal creditedAmount,
+        BigDecimal exchangeRate,
         String description,
         String failureReason,
         Instant createdAt,
@@ -40,11 +43,17 @@ public record PaymentResponseDto(
                 payment.getProviderId(),
                 payment.getProviderAccountNumber(),
                 payment.getCurrency(),
-                payment.getAmount().setScale(2, RoundingMode.HALF_EVEN),
-                payment.getFee().setScale(2, RoundingMode.HALF_EVEN),
+                money(payment.getAmount()),
+                money(payment.getFee()),
+                money(payment.getCreditedAmount()),
+                payment.getExchangeRate(),
                 payment.getDescription(),
                 payment.getFailureReason(),
                 payment.getCreatedAt(),
                 payment.getCompletedAt());
+    }
+
+    private static BigDecimal money(BigDecimal value) {
+        return value != null ? value.setScale(2, RoundingMode.HALF_EVEN) : null;
     }
 }

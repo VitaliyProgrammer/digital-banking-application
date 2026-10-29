@@ -15,5 +15,8 @@ public enum TransactionType {
     CAPTURE,
 
     /** HOLD → client account: the provider rejected the payment, so the money comes back. */
-    RELEASE
+    RELEASE,
+
+    /** Client account in one currency → FX position, FX position → client account in another: four lines. */
+    EXCHANGE
 }

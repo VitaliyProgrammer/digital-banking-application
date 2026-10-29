@@ -16,6 +16,8 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
 
     Optional<Payment> findByIdAndInitiatorId(UUID id, UUID initiatorId);
 
+    boolean existsByQuoteId(UUID quoteId);
+
     /**
      * Due payments of one status, locked for the calling transaction. SKIP LOCKED: rows another worker is claiming
      * right now are skipped instead of waited for, so instances work in parallel. What stops a payment from being

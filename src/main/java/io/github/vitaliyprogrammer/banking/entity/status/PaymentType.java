@@ -12,5 +12,8 @@ public enum PaymentType {
     CARD_TRANSFER,
 
     /** Utilities, internet or mobile top-up: money leaves the bank to an external provider, asynchronously. */
-    BILL_PAYMENT
+    BILL_PAYMENT,
+
+    /** Currency exchange between two accounts of the same client, at the price of a quote. */
+    EXCHANGE
 }

@@ -80,6 +80,15 @@ public class Payment {
 
     private String failureReason;
 
+    /** Exchange only: the quote whose price was used, and what the client got in the other currency. */
+    private UUID quoteId;
+
+    @Column(precision = 19, scale = 4)
+    private BigDecimal creditedAmount;
+
+    @Column(precision = 19, scale = 8)
+    private BigDecimal exchangeRate;
+
     private Instant createdAt;
 
     private Instant completedAt;
@@ -134,6 +143,28 @@ public class Payment {
                 fromAccountId, null, currency, amount, fee, description, now);
         payment.providerId = providerId;
         payment.providerAccountNumber = providerAccountNumber;
+        return payment;
+    }
+
+    /** {@code amount} is what leaves in the source currency; {@code creditedAmount} is what arrives in the other. */
+    public static Payment pendingExchange(UUID initiatorId,
+                                          String idempotencyKey,
+                                          String requestHash,
+                                          UUID fromAccountId,
+                                          UUID toAccountId,
+                                          Currency currency,
+                                          BigDecimal amount,
+                                          BigDecimal fee,
+                                          UUID quoteId,
+                                          BigDecimal creditedAmount,
+                                          BigDecimal exchangeRate,
+                                          String description,
+                                          Instant now) {
+        Payment payment = pending(initiatorId, idempotencyKey, requestHash, PaymentType.EXCHANGE,
+                fromAccountId, toAccountId, currency, amount, fee, description, now);
+        payment.quoteId = quoteId;
+        payment.creditedAmount = creditedAmount;
+        payment.exchangeRate = exchangeRate;
         return payment;
     }
 

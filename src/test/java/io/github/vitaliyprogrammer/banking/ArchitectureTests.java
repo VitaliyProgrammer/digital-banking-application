@@ -13,6 +13,8 @@ import io.github.vitaliyprogrammer.banking.entity.status.EntryDirection;
 import io.github.vitaliyprogrammer.banking.repository.AccountRepository;
 import io.github.vitaliyprogrammer.banking.repository.BankRateRepository;
 import io.github.vitaliyprogrammer.banking.repository.CardRepository;
+import io.github.vitaliyprogrammer.banking.repository.CashbackAccrualRepository;
+import io.github.vitaliyprogrammer.banking.repository.CashbackPayoutRepository;
 import io.github.vitaliyprogrammer.banking.repository.ExchangeQuoteRepository;
 import io.github.vitaliyprogrammer.banking.repository.InterestAccrualRepository;
 import io.github.vitaliyprogrammer.banking.repository.InterestPayoutRepository;
@@ -28,6 +30,7 @@ import io.github.vitaliyprogrammer.banking.service.impl.AccountServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.AuthenticationServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.BillPaymentProcessor;
 import io.github.vitaliyprogrammer.banking.service.impl.CardServiceImpl;
+import io.github.vitaliyprogrammer.banking.service.impl.CashbackServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.ExchangeQuoteServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.ExchangeRateServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.HttpProviderClient;
@@ -116,6 +119,17 @@ class ArchitectureTests {
     static final ArchRule interestTablesBelongToTheSavingsDomain = classes()
             .that().belongToAnyOf(InterestAccrualRepository.class, InterestPayoutRepository.class)
             .should().onlyHaveDependentClassesThat().belongToAnyOf(SavingsServiceImpl.class);
+
+    @ArchTest
+    static final ArchRule cashbackTablesBelongToTheCashbackDomain = classes()
+            .that().belongToAnyOf(CashbackAccrualRepository.class, CashbackPayoutRepository.class)
+            .should().onlyHaveDependentClassesThat().belongToAnyOf(CashbackServiceImpl.class);
+
+    /** Payments announce what happened; they never call the cashback module directly. */
+    @ArchTest
+    static final ArchRule paymentsDoNotKnowAboutCashback = noClasses()
+            .that().belongToAnyOf(PaymentServiceImpl.class, BillPaymentProcessor.class)
+            .should().dependOnClassesThat().belongToAnyOf(CashbackServiceImpl.class);
 
     @ArchTest
     static final ArchRule receiptTableBelongsToTheReceiptDomain = classes()

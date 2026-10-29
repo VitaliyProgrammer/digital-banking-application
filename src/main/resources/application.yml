@@ -14,6 +14,18 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
 
+  # Locally: Mailpit from docker-compose.yml catches every email; see them at http://localhost:8025.
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      # Without timeouts a hanging mail server would hang the HTTP request forever.
+      mail.smtp.connectiontimeout: 3000
+      mail.smtp.timeout: 5000
+      mail.smtp.writetimeout: 5000
+
   jpa:
     # Do not keep a DB connection open for the whole HTTP request.
     open-in-view: false
@@ -72,6 +84,9 @@ banking:
     max-manual-deviation-percent: 10.00
     quote-ttl: 30s
 
+  receipts:
+    mail-from: ${RECEIPTS_MAIL_FROM:Digital Bank <no-reply@digital-bank.local>}
+
   # First admin, created on startup. No defaults on purpose: without these variables there is no admin.
   admin:
     email: ${ADMIN_EMAIL:}
@@ -82,3 +97,7 @@ management:
     web:
       exposure:
         include: health,info
+  health:
+    # A mail server that is down must not mark the whole bank as DOWN: payments still work without email.
+    mail:
+      enabled: false

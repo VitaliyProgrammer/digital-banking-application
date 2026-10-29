@@ -13,6 +13,7 @@ import io.github.vitaliyprogrammer.banking.entity.status.EntryDirection;
 import io.github.vitaliyprogrammer.banking.repository.AccountRepository;
 import io.github.vitaliyprogrammer.banking.repository.BankRateRepository;
 import io.github.vitaliyprogrammer.banking.repository.CardRepository;
+import io.github.vitaliyprogrammer.banking.repository.ExchangeQuoteRepository;
 import io.github.vitaliyprogrammer.banking.repository.LedgerEntryRepository;
 import io.github.vitaliyprogrammer.banking.repository.LedgerTransactionRepository;
 import io.github.vitaliyprogrammer.banking.repository.OfficialRateRepository;
@@ -24,6 +25,7 @@ import io.github.vitaliyprogrammer.banking.service.impl.AccountServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.AuthenticationServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.BillPaymentProcessor;
 import io.github.vitaliyprogrammer.banking.service.impl.CardServiceImpl;
+import io.github.vitaliyprogrammer.banking.service.impl.ExchangeQuoteServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.ExchangeRateServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.HttpProviderClient;
 import io.github.vitaliyprogrammer.banking.service.impl.LedgerServiceImpl;
@@ -99,6 +101,11 @@ class ArchitectureTests {
     static final ArchRule rateTablesBelongToTheExchangeDomain = classes()
             .that().belongToAnyOf(OfficialRateRepository.class, BankRateRepository.class)
             .should().onlyHaveDependentClassesThat().belongToAnyOf(ExchangeRateServiceImpl.class);
+
+    @ArchTest
+    static final ArchRule quoteTableBelongsToTheExchangeDomain = classes()
+            .that().belongToAnyOf(ExchangeQuoteRepository.class)
+            .should().onlyHaveDependentClassesThat().belongToAnyOf(ExchangeQuoteServiceImpl.class);
 
     /** Only the clients know how to talk HTTP to the outside world; the rest of the code sees business outcomes. */
     @ArchTest

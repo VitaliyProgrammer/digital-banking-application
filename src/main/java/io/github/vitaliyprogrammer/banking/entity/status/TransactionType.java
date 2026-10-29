@@ -21,5 +21,8 @@ public enum TransactionType {
     EXCHANGE,
 
     /** Interest expense → savings account: the monthly interest payout. */
-    INTEREST
+    INTEREST,
+
+    /** Cashback expense → client account: the monthly cashback payout. */
+    CASHBACK
 }

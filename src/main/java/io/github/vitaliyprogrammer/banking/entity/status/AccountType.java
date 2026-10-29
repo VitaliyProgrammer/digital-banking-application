@@ -21,5 +21,8 @@ public enum AccountType {
     FX_POSITION,
 
     /** The bank's cost of interest paid on savings: debited on every payout, so it goes negative. */
-    INTEREST_EXPENSE
+    INTEREST_EXPENSE,
+
+    /** The bank's marketing cost: cashback paid to clients is debited here, so it goes negative. */
+    CASHBACK_EXPENSE
 }

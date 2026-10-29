@@ -52,6 +52,9 @@ public class SecurityConfiguration {
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                         // Reading rates is public; changing them lives under /admin.
                         .requestMatchers(HttpMethod.GET, "/exchange-rates/**").permitAll()
+                        // Order matters: the first matching rule wins, so the narrower path comes first.
+                        .requestMatchers("/admin/credit-applications/**")
+                        .hasAnyRole(Role.ADMIN.name(), Role.SUPPORT.name())
                         .requestMatchers("/admin/**").hasRole(Role.ADMIN.name())
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth -> oauth

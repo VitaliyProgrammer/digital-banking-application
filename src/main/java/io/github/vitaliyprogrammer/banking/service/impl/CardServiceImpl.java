@@ -9,6 +9,7 @@ import io.github.vitaliyprogrammer.banking.dto.response.CardReferenceDto;
 import io.github.vitaliyprogrammer.banking.dto.response.CardResponseDto;
 import io.github.vitaliyprogrammer.banking.entity.Card;
 import io.github.vitaliyprogrammer.banking.entity.status.CardStatus;
+import io.github.vitaliyprogrammer.banking.entity.status.CardType;
 import io.github.vitaliyprogrammer.banking.exception.CardAlreadyExistsException;
 import io.github.vitaliyprogrammer.banking.exception.CardNotFoundException;
 import io.github.vitaliyprogrammer.banking.exception.CardPinLockedException;
@@ -68,10 +69,20 @@ public class CardServiceImpl implements CardService {
             throw new CardTypeNotIssuableException(request.type());
         }
 
-        AccountReferenceDto account = accountService.getOwnedAccountReference(ownerId, request.accountId());
+        return issue(ownerId, accountService.getOwnedAccountReference(ownerId, request.accountId()), request.type());
+    }
 
-        if (cardRepository.existsByAccountIdAndTypeAndStatusNot(account.id(), request.type(), CardStatus.CLOSED)) {
-            throw new CardAlreadyExistsException(request.type());
+    @Override
+    @Transactional
+    public CardResponseDto issueCreditCard(UUID ownerId) {
+
+        return issue(ownerId, accountService.getCreditAccountReference(ownerId), CardType.CREDIT);
+    }
+
+    private CardResponseDto issue(UUID ownerId, AccountReferenceDto account, CardType type) {
+
+        if (cardRepository.existsByAccountIdAndTypeAndStatusNot(account.id(), type, CardStatus.CLOSED)) {
+            throw new CardAlreadyExistsException(type);
         }
 
         String cardNumber = generateUniqueCardNumber();
@@ -80,7 +91,7 @@ public class CardServiceImpl implements CardService {
         Card card = Card.issue(
                 ownerId,
                 account.id(),
-                request.type(),
+                type,
                 cardCryptography.encryptCardNumber(cardNumber),
                 cardCryptography.cardNumberLookupHash(cardNumber),
                 cardNumber.substring(cardNumber.length() - 4),
@@ -91,7 +102,7 @@ public class CardServiceImpl implements CardService {
             return CardResponseDto.from(cardRepository.saveAndFlush(card));
         } catch (DataIntegrityViolationException e) {
             // Two parallel requests for the same card type: the partial unique index lets only one in.
-            throw new CardAlreadyExistsException(request.type());
+            throw new CardAlreadyExistsException(type);
         }
     }
 

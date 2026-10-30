@@ -52,6 +52,10 @@ public class Account {
     @Column(precision = 19, scale = 4)
     private BigDecimal balance;
 
+    /** Only on a CREDIT account: how far below zero its balance may go. */
+    @Column(precision = 19, scale = 4)
+    private BigDecimal creditLimit;
+
     private Instant createdAt;
 
     public static Account openClientAccount(UUID ownerId, String number, Currency currency, Instant now) {
@@ -72,12 +76,23 @@ public class Account {
         return account;
     }
 
-    /** Accounts that belong to a client: their balance is the client's money and can never go negative. */
-    public boolean isClientOwned() {
-        return type == AccountType.CLIENT || type == AccountType.SAVINGS;
+    /** Credit lines are in hryvnias only: the limit comes from income in hryvnias. */
+    public static Account openCreditAccount(UUID ownerId, String number, BigDecimal creditLimit, Instant now) {
+        Account account = openClientAccount(ownerId, number, Currency.UAH, now);
+        account.type = AccountType.CREDIT;
+        account.creditLimit = creditLimit;
+        return account;
     }
 
-    /** The only way to change the balance. Called by the ledger, never directly by other code. */
+    /** Accounts that belong to a client: current, savings and credit. */
+    public boolean isClientOwned() {
+        return type == AccountType.CLIENT || type == AccountType.SAVINGS || type == AccountType.CREDIT;
+    }
+
+    /**
+     * The only way to change the balance. Called by the ledger, never directly by other code, and always under the
+     * row lock: two parallel payments from one credit card cannot both slip under the limit.
+     */
     public void apply(EntryDirection direction, BigDecimal amount) {
         if (status != AccountStatus.ACTIVE) {
             throw new AccountNotActiveException(number);
@@ -87,9 +102,14 @@ public class Account {
                 ? balance.add(amount)
                 : balance.subtract(amount);
 
-        if (isClientOwned() && newBalance.signum() < 0) {
+        if (isClientOwned() && newBalance.compareTo(lowestAllowedBalance()) < 0) {
             throw new InsufficientFundsException();
         }
         balance = newBalance;
+    }
+
+    /** Zero for the client's own money; minus the limit for a credit line. */
+    private BigDecimal lowestAllowedBalance() {
+        return type == AccountType.CREDIT ? creditLimit.negate() : BigDecimal.ZERO;
     }
 }

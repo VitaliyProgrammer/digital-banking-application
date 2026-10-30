@@ -2,6 +2,7 @@ package io.github.vitaliyprogrammer.banking.service;
 
 import io.github.vitaliyprogrammer.banking.dto.request.BillPaymentRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.request.CardTransferRequestDto;
+import io.github.vitaliyprogrammer.banking.dto.request.CreditRepaymentRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.request.ExchangeRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.request.SavingsTransferRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.request.TopUpRequestDto;
@@ -32,6 +33,9 @@ public interface PaymentService {
     /** Savings jar → the same client's current account. The only way money leaves a jar. */
     PaymentResponseDto withdrawFromSavings(UUID userId, String idempotencyKey, UUID savingsId,
                                            SavingsTransferRequestDto request);
+
+    /** Current UAH account → the same client's credit line. Never more than the debt. */
+    PaymentResponseDto repayCredit(UUID userId, String idempotencyKey, CreditRepaymentRequestDto request);
 
     List<ProviderResponseDto> getProviders();
 

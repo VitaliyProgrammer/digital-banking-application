@@ -13,10 +13,13 @@ public record AccountResponseDto(
         UUID id,
         String number,
         Currency currency,
-        /* CLIENT for a current account, SAVINGS for a savings jar. */
+        /* CLIENT for a current account, SAVINGS for a savings jar, CREDIT for a credit line. */
         AccountType type,
         AccountStatus status,
+        /* Below zero on a credit line: that is the debt. */
         BigDecimal balance,
+        /* Only on a credit line, otherwise null. */
+        BigDecimal creditLimit,
         Instant createdAt
 ) {
 
@@ -29,6 +32,7 @@ public record AccountResponseDto(
                 account.getType(),
                 account.getStatus(),
                 account.getBalance().setScale(2, RoundingMode.HALF_EVEN),
+                account.getCreditLimit() != null ? account.getCreditLimit().setScale(2, RoundingMode.HALF_EVEN) : null,
                 account.getCreatedAt());
     }
 }

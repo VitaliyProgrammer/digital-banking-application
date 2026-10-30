@@ -21,5 +21,8 @@ public enum PaymentType {
     SAVINGS_DEPOSIT,
 
     /** Savings account → the same client's current account, same currency. */
-    SAVINGS_WITHDRAWAL
+    SAVINGS_WITHDRAWAL,
+
+    /** Client's current UAH account → the same client's credit account: pays the debt back. */
+    CREDIT_REPAYMENT
 }

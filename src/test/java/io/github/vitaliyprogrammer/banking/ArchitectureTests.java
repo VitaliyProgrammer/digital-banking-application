@@ -27,12 +27,15 @@ import io.github.vitaliyprogrammer.banking.repository.ProviderRepository;
 import io.github.vitaliyprogrammer.banking.repository.ReceiptRepository;
 import io.github.vitaliyprogrammer.banking.repository.RefreshTokenRepository;
 import io.github.vitaliyprogrammer.banking.repository.UserRepository;
+import io.github.vitaliyprogrammer.banking.service.AccountService;
+import io.github.vitaliyprogrammer.banking.service.CardService;
 import io.github.vitaliyprogrammer.banking.service.impl.AccountServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.AuthenticationServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.BillPaymentProcessor;
 import io.github.vitaliyprogrammer.banking.service.impl.CardServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.CashbackServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.CreditApplicationServiceImpl;
+import io.github.vitaliyprogrammer.banking.service.impl.CreditLineServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.ExchangeQuoteServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.ExchangeRateServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.HttpProviderClient;
@@ -44,6 +47,7 @@ import io.github.vitaliyprogrammer.banking.service.impl.RefreshTokenServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.SavingsServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.UserServiceImpl;
 import java.math.BigDecimal;
+import java.util.UUID;
 import org.springframework.web.client.RestClient;
 
 /**
@@ -131,6 +135,13 @@ class ArchitectureTests {
     static final ArchRule cashbackTablesBelongToTheCashbackDomain = classes()
             .that().belongToAnyOf(CashbackAccrualRepository.class, CashbackPayoutRepository.class)
             .should().onlyHaveDependentClassesThat().belongToAnyOf(CashbackServiceImpl.class);
+
+    /** A credit line is lent money: it exists only because an application was approved, never on a plain request. */
+    @ArchTest
+    static final ArchRule onlyTheCreditModuleOpensCreditLines = noClasses()
+            .that().doNotBelongToAnyOf(CreditLineServiceImpl.class)
+            .should().callMethod(AccountService.class, "openCreditAccount", UUID.class, BigDecimal.class)
+            .orShould().callMethod(CardService.class, "issueCreditCard", UUID.class);
 
     /** Payments announce what happened; they never call the cashback module directly. */
     @ArchTest

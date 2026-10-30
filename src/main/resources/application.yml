@@ -48,6 +48,15 @@ spring:
     password: ${RABBITMQ_PASSWORD:guest}
     # The relay waits for the broker's ack before it marks an event published.
     publisher-confirm-type: simple
+    listener:
+      simple:
+        # A message that failed every retry is rejected without requeue, so its queue dead-letters it.
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 1s
+          multiplier: 2
 
 banking:
   security:
@@ -147,6 +156,17 @@ banking:
     # While the broker is down: 2 s, 4 s, 8 s... but never more than this between two attempts.
     max-backoff: 5m
     exchange: banking.events
+
+  notifications:
+    queue: banking.notifications
+    dead-letter-queue: banking.notifications.dlq
+    listener-enabled: ${NOTIFICATIONS_LISTENER_ENABLED:true}
+    mailer-enabled: ${NOTIFICATIONS_MAILER_ENABLED:true}
+    mailer-delay: 10s
+    mailer-batch-size: 20
+    max-email-attempts: 6
+    max-email-backoff: 10m
+    mail-from: ${NOTIFICATIONS_MAIL_FROM:Digital Bank <no-reply@digital-bank.local>}
 
   receipts:
     mail-from: ${RECEIPTS_MAIL_FROM:Digital Bank <no-reply@digital-bank.local>}

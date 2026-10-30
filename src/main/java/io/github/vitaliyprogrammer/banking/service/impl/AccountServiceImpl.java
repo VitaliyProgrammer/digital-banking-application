@@ -159,6 +159,15 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<AccountReferenceDto> getActiveCreditAccounts() {
+
+        return accountRepository.findAllByTypeAndStatus(AccountType.CREDIT, AccountStatus.ACTIVE).stream()
+                .map(AccountReferenceDto::from)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public BigDecimal getBalanceAt(UUID accountId, Instant moment) {
 
         return ledgerEntryRepository.findBalanceAt(accountId, moment).orElse(BigDecimal.ZERO);
@@ -176,6 +185,13 @@ public class AccountServiceImpl implements AccountService {
     public BigDecimal getCreditedSince(UUID accountId, Instant since) {
 
         return ledgerEntryRepository.sumCreditedSince(accountId, since);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BigDecimal getCreditedBetween(UUID accountId, Instant from, Instant to) {
+
+        return ledgerEntryRepository.sumCreditedBetween(accountId, from, to);
     }
 
     private Account findCreditAccount(UUID ownerId) {

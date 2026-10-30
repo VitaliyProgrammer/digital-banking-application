@@ -3,6 +3,7 @@ package io.github.vitaliyprogrammer.banking.controller;
 import io.github.vitaliyprogrammer.banking.configuration.OpenApiConfiguration;
 import io.github.vitaliyprogrammer.banking.dto.request.CreditRepaymentRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.response.CreditLineResponseDto;
+import io.github.vitaliyprogrammer.banking.dto.response.CreditStatementResponseDto;
 import io.github.vitaliyprogrammer.banking.dto.response.PaymentResponseDto;
 import io.github.vitaliyprogrammer.banking.security.CurrentUserId;
 import io.github.vitaliyprogrammer.banking.service.CreditLineService;
@@ -14,6 +15,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import java.util.List;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -46,6 +48,16 @@ public class CreditLineController {
     public CreditLineResponseDto getCreditLine(@CurrentUserId UUID userId) {
 
         return creditLineService.getCreditLine(userId);
+    }
+
+    @GetMapping("/statements")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Get my credit statements",
+            description = "One per month, newest first: the debt at the end of the month, the minimum payment, "
+                    + "the due date and, after it, what was repaid and charged")
+    public List<CreditStatementResponseDto> getStatements(@CurrentUserId UUID userId) {
+
+        return creditLineService.getStatements(userId);
     }
 
     @PostMapping("/repayments")

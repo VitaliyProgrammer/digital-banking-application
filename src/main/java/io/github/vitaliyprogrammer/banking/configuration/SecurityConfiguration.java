@@ -53,7 +53,7 @@ public class SecurityConfiguration {
                         // Reading rates is public; changing them lives under /admin.
                         .requestMatchers(HttpMethod.GET, "/exchange-rates/**").permitAll()
                         // Order matters: the first matching rule wins, so the narrower path comes first.
-                        .requestMatchers("/admin/credit-applications/**")
+                        .requestMatchers("/admin/credit-applications/**", "/admin/support/**")
                         .hasAnyRole(Role.ADMIN.name(), Role.SUPPORT.name())
                         .requestMatchers("/admin/**").hasRole(Role.ADMIN.name())
                         .anyRequest().authenticated())

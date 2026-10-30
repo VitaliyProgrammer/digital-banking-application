@@ -6,10 +6,11 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.springframework.context.annotation.Bean;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.testcontainers.rabbitmq.RabbitMQContainer;
 import org.testcontainers.utility.DockerImageName;
 
 /**
- * Real PostgreSQL and Redis for integration tests. {@code @ServiceConnection} wires each container's
+ * Real PostgreSQL, Redis and RabbitMQ for integration tests. {@code @ServiceConnection} wires each container's
  * address and credentials into Spring, so no test properties are needed.
  */
 @TestConfiguration(proxyBeanMethods = false)
@@ -33,6 +34,13 @@ public class TestcontainersConfiguration {
     GenericContainer<?> redisContainer() {
         return new GenericContainer<>(DockerImageName.parse("redis:8-alpine"))
                 .withExposedPorts(6379)
+                .withStartupTimeout(STARTUP_TIMEOUT);
+    }
+
+    @Bean
+    @ServiceConnection
+    RabbitMQContainer rabbitContainer() {
+        return new RabbitMQContainer(DockerImageName.parse("rabbitmq:4.1-alpine"))
                 .withStartupTimeout(STARTUP_TIMEOUT);
     }
 }

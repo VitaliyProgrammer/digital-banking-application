@@ -23,6 +23,7 @@ import io.github.vitaliyprogrammer.banking.repository.InterestAccrualRepository;
 import io.github.vitaliyprogrammer.banking.repository.InterestPayoutRepository;
 import io.github.vitaliyprogrammer.banking.repository.LedgerEntryRepository;
 import io.github.vitaliyprogrammer.banking.repository.LedgerTransactionRepository;
+import io.github.vitaliyprogrammer.banking.repository.NotificationRepository;
 import io.github.vitaliyprogrammer.banking.repository.OfficialRateRepository;
 import io.github.vitaliyprogrammer.banking.repository.OutboxEventRepository;
 import io.github.vitaliyprogrammer.banking.repository.PaymentRepository;
@@ -44,6 +45,7 @@ import io.github.vitaliyprogrammer.banking.service.impl.ExchangeRateServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.HttpProviderClient;
 import io.github.vitaliyprogrammer.banking.service.impl.LedgerServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.NbuRateClient;
+import io.github.vitaliyprogrammer.banking.service.impl.NotificationServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.OutboxRelay;
 import io.github.vitaliyprogrammer.banking.service.impl.OutboxServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.PaymentServiceImpl;
@@ -170,6 +172,11 @@ class ArchitectureTests {
     static final ArchRule outboxTableBelongsToTheOutbox = classes()
             .that().belongToAnyOf(OutboxEventRepository.class)
             .should().onlyHaveDependentClassesThat().belongToAnyOf(OutboxServiceImpl.class, OutboxRelay.class);
+
+    @ArchTest
+    static final ArchRule notificationTableBelongsToNotifications = classes()
+            .that().belongToAnyOf(NotificationRepository.class)
+            .should().onlyHaveDependentClassesThat().belongToAnyOf(NotificationServiceImpl.class);
 
     /**
      * Nobody publishes to the broker directly: a direct send next to a database change is exactly the

@@ -16,3 +16,14 @@ banking:
   outbox:
     # Events are published only when a test runs the relay.
     relay-enabled: false
+  notifications:
+    # A test starts the consumer only when it needs it, and sends due emails itself.
+    listener-enabled: false
+    mailer-enabled: false
+
+spring:
+  mail:
+    # No mail server in most test contexts: port 1 refuses at once instead of waiting for a timeout.
+    # Tests that need real mail (receipts) point this at their own Mailpit container.
+    host: localhost
+    port: 1

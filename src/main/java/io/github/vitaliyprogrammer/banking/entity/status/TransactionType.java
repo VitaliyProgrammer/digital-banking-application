@@ -24,5 +24,17 @@ public enum TransactionType {
     INTEREST,
 
     /** Cashback expense → client account: the monthly cashback payout. */
-    CASHBACK
+    CASHBACK,
+
+    /** Credit account → interest income (+ fee income for a late fee): charges for an unpaid statement. */
+    CREDIT_CHARGES;
+
+    /**
+     * Spending stops at the credit limit, but the bank's charges do not: interest on a used-up credit line
+     * still has to be charged, so it may take the debt past the limit.
+     */
+    public boolean mayExceedCreditLimit() {
+
+        return this == CREDIT_CHARGES;
+    }
 }

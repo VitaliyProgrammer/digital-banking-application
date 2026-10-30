@@ -4,6 +4,7 @@ import io.github.vitaliyprogrammer.banking.entity.status.AccountStatus;
 import io.github.vitaliyprogrammer.banking.entity.status.AccountType;
 import io.github.vitaliyprogrammer.banking.entity.status.Currency;
 import io.github.vitaliyprogrammer.banking.entity.status.EntryDirection;
+import io.github.vitaliyprogrammer.banking.entity.status.TransactionType;
 import io.github.vitaliyprogrammer.banking.exception.AccountNotActiveException;
 import io.github.vitaliyprogrammer.banking.exception.InsufficientFundsException;
 import jakarta.persistence.Column;
@@ -92,8 +93,9 @@ public class Account {
     /**
      * The only way to change the balance. Called by the ledger, never directly by other code, and always under the
      * row lock: two parallel payments from one credit card cannot both slip under the limit.
+     * The transaction type matters only on a credit line: the bank's charges may go past its limit, spending may not.
      */
-    public void apply(EntryDirection direction, BigDecimal amount) {
+    public void apply(TransactionType transactionType, EntryDirection direction, BigDecimal amount) {
         if (status != AccountStatus.ACTIVE) {
             throw new AccountNotActiveException(number);
         }
@@ -102,14 +104,17 @@ public class Account {
                 ? balance.add(amount)
                 : balance.subtract(amount);
 
-        if (isClientOwned() && newBalance.compareTo(lowestAllowedBalance()) < 0) {
+        if (direction == EntryDirection.DEBIT && isClientOwned() && !mayGoTo(newBalance, transactionType)) {
             throw new InsufficientFundsException();
         }
         balance = newBalance;
     }
 
-    /** Zero for the client's own money; minus the limit for a credit line. */
-    private BigDecimal lowestAllowedBalance() {
-        return type == AccountType.CREDIT ? creditLimit.negate() : BigDecimal.ZERO;
+    /** Zero for the client's own money; minus the limit for a credit line, or no floor for the bank's charges. */
+    private boolean mayGoTo(BigDecimal newBalance, TransactionType transactionType) {
+        if (type != AccountType.CREDIT) {
+            return newBalance.signum() >= 0;
+        }
+        return transactionType.mayExceedCreditLimit() || newBalance.compareTo(creditLimit.negate()) >= 0;
     }
 }

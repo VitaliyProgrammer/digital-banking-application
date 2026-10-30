@@ -141,7 +141,7 @@ public class ReceiptServiceImpl implements ReceiptService {
             case CARD_TRANSFER -> cardTransfer(payer, payment, receiptNumber);
             case BILL_PAYMENT -> billPayment(payment, receiptNumber);
             case EXCHANGE -> exchange(payment, receiptNumber);
-            case SAVINGS_DEPOSIT, SAVINGS_WITHDRAWAL -> ownTransfer(payment, receiptNumber);
+            case SAVINGS_DEPOSIT, SAVINGS_WITHDRAWAL, CREDIT_REPAYMENT -> ownTransfer(payment, receiptNumber);
         };
     }
 
@@ -150,11 +150,16 @@ public class ReceiptServiceImpl implements ReceiptService {
 
         AccountReferenceDto from = accountService.getAccountReference(payment.fromAccountId());
         AccountReferenceDto to = accountService.getAccountReference(payment.toAccountId());
-        boolean deposit = payment.type() == PaymentType.SAVINGS_DEPOSIT;
+        String fromKind = payment.type() == PaymentType.SAVINGS_WITHDRAWAL ? "скарбничка" : "поточний рахунок";
+        String toKind = switch (payment.type()) {
+            case SAVINGS_DEPOSIT -> "скарбничка";
+            case CREDIT_REPAYMENT -> "кредитний рахунок";
+            default -> "поточний рахунок";
+        };
 
         List<Row> rows = new ArrayList<>();
-        rows.add(Row.of("Списано з", iban(from.number()), deposit ? "поточний рахунок" : "скарбничка"));
-        rows.add(Row.of("Зараховано на", iban(to.number()), deposit ? "скарбничка" : "поточний рахунок"));
+        rows.add(Row.of("Списано з", iban(from.number()), fromKind));
+        rows.add(Row.of("Зараховано на", iban(to.number()), toKind));
         rows.add(Row.of("Сума", money(payment.amount(), payment.currency())));
         rows.add(Row.of("Комісія", money(payment.fee(), payment.currency())));
         rows.add(dateRow(payment));

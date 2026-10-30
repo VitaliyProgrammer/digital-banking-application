@@ -2,6 +2,7 @@ package io.github.vitaliyprogrammer.banking.service.impl;
 
 import io.github.vitaliyprogrammer.banking.dto.request.BillPaymentRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.request.CardTransferRequestDto;
+import io.github.vitaliyprogrammer.banking.dto.request.CreditRepaymentRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.request.ExchangeRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.request.FeeRequest;
 import io.github.vitaliyprogrammer.banking.dto.request.PostingRequestDto;
@@ -28,6 +29,7 @@ import io.github.vitaliyprogrammer.banking.exception.IdempotencyKeyReusedExcepti
 import io.github.vitaliyprogrammer.banking.exception.PaymentNotFoundException;
 import io.github.vitaliyprogrammer.banking.exception.ProviderNotFoundException;
 import io.github.vitaliyprogrammer.banking.exception.RecipientNotFoundException;
+import io.github.vitaliyprogrammer.banking.exception.RepaymentExceedsDebtException;
 import io.github.vitaliyprogrammer.banking.exception.SameAccountTransferException;
 import io.github.vitaliyprogrammer.banking.repository.PaymentRepository;
 import io.github.vitaliyprogrammer.banking.repository.ProviderRepository;
@@ -152,6 +154,15 @@ public class PaymentServiceImpl implements PaymentService {
                 accountService.getOwnedSavingsReference(userId, savingsId),
                 accountService.getOwnedAccountReference(userId, request.accountId()),
                 request.amount(), "Зняття зі скарбнички"));
+    }
+
+    @Override
+    public PaymentResponseDto repayCredit(UUID userId, String idempotencyKey, CreditRepaymentRequestDto request) {
+
+        String requestHash = hash(PaymentType.CREDIT_REPAYMENT, request.fromAccountId(), request.amount());
+
+        return executeOnce(userId, idempotencyKey, requestHash,
+                () -> createCreditRepayment(userId, idempotencyKey, requestHash, request));
     }
 
     @Override
@@ -281,7 +292,7 @@ public class PaymentServiceImpl implements PaymentService {
             throw new CardNotUsableException("Recipient's card");
         }
 
-        AccountReferenceDto from = accountService.getOwnedAccountReference(userId, fromCard.accountId());
+        AccountReferenceDto from = accountService.getOwnedSpendingAccountReference(userId, fromCard.accountId());
         AccountReferenceDto to = accountService.getAccountReference(toCard.accountId());
 
         requireTransferable(from, to);
@@ -315,7 +326,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .filter(Provider::isActive)
                 .orElseThrow(ProviderNotFoundException::new);
 
-        AccountReferenceDto from = accountService.getOwnedAccountReference(userId, request.fromAccountId());
+        AccountReferenceDto from = accountService.getOwnedSpendingAccountReference(userId, request.fromAccountId());
 
         if (from.currency() != provider.getCurrency()) {
             throw new CurrencyMismatchException();
@@ -407,6 +418,27 @@ public class PaymentServiceImpl implements PaymentService {
                 from.id(), to.id(), from.currency(), amount, fee, description, clock.instant()));
 
         return moveMoney(payment, from, to);
+    }
+
+    /**
+     * The debt is read without a lock, so two parallel repayments could together pay a little more than it.
+     * That is harmless: the extra is the client's own money on the credit line, spent first next time.
+     * The check exists to catch a typo (10 000 instead of 1 000), not to guard money.
+     */
+    private Payment createCreditRepayment(UUID userId,
+                                          String idempotencyKey,
+                                          String requestHash,
+                                          CreditRepaymentRequestDto request) {
+
+        AccountReferenceDto from = accountService.getOwnedAccountReference(userId, request.fromAccountId());
+        BigDecimal debt = accountService.getCreditAccount(userId).balance().negate().max(BigDecimal.ZERO);
+
+        if (request.amount().compareTo(debt) > 0) {
+            throw new RepaymentExceedsDebtException(debt);
+        }
+
+        return createOwnTransfer(userId, idempotencyKey, requestHash, PaymentType.CREDIT_REPAYMENT,
+                from, accountService.getCreditAccountReference(userId), request.amount(), "Погашення кредиту");
     }
 
     private static void requireTransferable(AccountReferenceDto from, AccountReferenceDto to) {

@@ -21,6 +21,8 @@ import io.github.vitaliyprogrammer.banking.entity.status.Currency;
 import io.github.vitaliyprogrammer.banking.entity.status.EntryDirection;
 import io.github.vitaliyprogrammer.banking.entity.status.PaymentType;
 import io.github.vitaliyprogrammer.banking.entity.status.TransactionType;
+import io.github.vitaliyprogrammer.banking.event.OutboxEventType;
+import io.github.vitaliyprogrammer.banking.event.PaymentMessage;
 import io.github.vitaliyprogrammer.banking.exception.CardNotUsableException;
 import io.github.vitaliyprogrammer.banking.exception.CurrencyMismatchException;
 import io.github.vitaliyprogrammer.banking.exception.ExchangeQuoteAlreadyUsedException;
@@ -37,6 +39,7 @@ import io.github.vitaliyprogrammer.banking.service.AccountService;
 import io.github.vitaliyprogrammer.banking.service.CardService;
 import io.github.vitaliyprogrammer.banking.service.ExchangeQuoteService;
 import io.github.vitaliyprogrammer.banking.service.LedgerService;
+import io.github.vitaliyprogrammer.banking.service.OutboxService;
 import io.github.vitaliyprogrammer.banking.service.PaymentService;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -74,6 +77,8 @@ public class PaymentServiceImpl implements PaymentService {
     private final LedgerService ledgerService;
 
     private final FeeCalculator feeCalculator;
+
+    private final OutboxService outboxService;
 
     private final TransactionTemplate transactionTemplate;
 
@@ -212,7 +217,15 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         try {
-            Payment payment = Objects.requireNonNull(transactionTemplate.execute(status -> operation.get()));
+            Payment payment = Objects.requireNonNull(transactionTemplate.execute(status -> {
+                Payment created = operation.get();
+                // Same transaction as the money: the event exists if and only if the payment committed.
+                // A bill payment is still PROCESSING here; its event comes when the provider answers.
+                if (created.isFinished()) {
+                    outboxService.record(OutboxEventType.PAYMENT_COMPLETED, created.getId(), PaymentMessage.from(created));
+                }
+                return created;
+            }));
             return PaymentResponseDto.from(payment);
         } catch (DataIntegrityViolationException e) {
             Payment winner = paymentRepository.findByInitiatorIdAndIdempotencyKey(userId, idempotencyKey)

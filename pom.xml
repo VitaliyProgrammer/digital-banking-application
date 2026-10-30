@@ -69,6 +69,12 @@
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
 
+        <!-- RabbitMQ: events leave the bank through the transactional outbox -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
+        </dependency>
+
         <!-- Receipts: PDF drawn with PDFBox, sent by email (Mailpit locally) -->
         <dependency>
             <groupId>org.apache.pdfbox</groupId>
@@ -119,6 +125,11 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers-junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-rabbitmq</artifactId>
             <scope>test</scope>
         </dependency>
         <!-- Fake HTTP providers in tests: slow answers, timeouts, rejections, request counting -->

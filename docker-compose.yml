@@ -26,6 +26,18 @@ services:
       timeout: 5s
       retries: 10
 
+  # Message broker for the bank's events. Management UI: http://localhost:15672 (guest / guest).
+  rabbitmq:
+    image: rabbitmq:4.1-management-alpine
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
   # Fake mail server: catches every email the bank sends. Web UI with the received emails: http://localhost:8025
   mailpit:
     image: axllent/mailpit:v1.31.6

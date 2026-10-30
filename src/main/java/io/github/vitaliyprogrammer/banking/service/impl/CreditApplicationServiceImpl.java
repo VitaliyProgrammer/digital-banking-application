@@ -11,6 +11,8 @@ import io.github.vitaliyprogrammer.banking.entity.CreditApplication;
 import io.github.vitaliyprogrammer.banking.entity.status.AccountType;
 import io.github.vitaliyprogrammer.banking.entity.status.CreditApplicationStatus;
 import io.github.vitaliyprogrammer.banking.entity.status.Currency;
+import io.github.vitaliyprogrammer.banking.event.CreditDecisionMessage;
+import io.github.vitaliyprogrammer.banking.event.OutboxEventType;
 import io.github.vitaliyprogrammer.banking.exception.CreditApplicationAlreadyDecidedException;
 import io.github.vitaliyprogrammer.banking.exception.CreditApplicationExistsException;
 import io.github.vitaliyprogrammer.banking.exception.CreditApplicationNotFoundException;
@@ -21,6 +23,7 @@ import io.github.vitaliyprogrammer.banking.repository.CreditApplicationRepositor
 import io.github.vitaliyprogrammer.banking.service.AccountService;
 import io.github.vitaliyprogrammer.banking.service.CreditApplicationService;
 import io.github.vitaliyprogrammer.banking.service.CreditLineService;
+import io.github.vitaliyprogrammer.banking.service.OutboxService;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Duration;
@@ -53,6 +56,8 @@ public class CreditApplicationServiceImpl implements CreditApplicationService {
 
     /** Same transaction as the decision: an approved limit without a credit line (or the reverse) cannot exist. */
     private final CreditLineService creditLineService;
+
+    private final OutboxService outboxService;
 
     private final CreditScoring creditScoring;
 
@@ -94,6 +99,9 @@ public class CreditApplicationServiceImpl implements CreditApplicationService {
         if (application.getStatus() == CreditApplicationStatus.APPROVED) {
             creditLineService.open(userId, application.getApprovedLimit());
         }
+        if (!application.isUnderReview()) {
+            announceDecision(application);
+        }
 
         return CreditApplicationResponseDto.from(application);
     }
@@ -131,6 +139,7 @@ public class CreditApplicationServiceImpl implements CreditApplicationService {
         CreditApplication application = lockForDecision(reviewerId, applicationId);
         application.approve(reviewerId, request.approvedLimit(), request.comment().strip(), clock.instant());
         creditLineService.open(application.getUserId(), request.approvedLimit());
+        announceDecision(application);
 
         log.info("Credit application {} approved by {} for {}", applicationId, reviewerId, request.approvedLimit());
         return CreditApplicationResponseDto.from(application);
@@ -142,9 +151,17 @@ public class CreditApplicationServiceImpl implements CreditApplicationService {
 
         CreditApplication application = lockForDecision(reviewerId, applicationId);
         application.decline(reviewerId, request.comment().strip(), clock.instant());
+        announceDecision(application);
 
         log.info("Credit application {} declined by {}", applicationId, reviewerId);
         return CreditApplicationResponseDto.from(application);
+    }
+
+    /** The client learns the answer from a notification, not by polling GET /credit-applications. */
+    private void announceDecision(CreditApplication application) {
+
+        outboxService.record(OutboxEventType.CREDIT_APPLICATION_DECIDED, application.getId(),
+                CreditDecisionMessage.from(application));
     }
 
     /**

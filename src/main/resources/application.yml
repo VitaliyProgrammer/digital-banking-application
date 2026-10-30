@@ -41,6 +41,14 @@ spring:
     virtual:
       enabled: true
 
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    # The relay waits for the broker's ack before it marks an event published.
+    publisher-confirm-type: simple
+
 banking:
   security:
     jwt:
@@ -131,6 +139,15 @@ banking:
     minimum-payment-floor: 100.00
     late-fee: 100.00
 
+  outbox:
+    relay-enabled: ${OUTBOX_RELAY_ENABLED:true}
+    relay-delay: 1s
+    batch-size: 50
+    confirm-timeout: 5s
+    # While the broker is down: 2 s, 4 s, 8 s... but never more than this between two attempts.
+    max-backoff: 5m
+    exchange: banking.events
+
   receipts:
     mail-from: ${RECEIPTS_MAIL_FROM:Digital Bank <no-reply@digital-bank.local>}
 
@@ -147,4 +164,7 @@ management:
   health:
     # A mail server that is down must not mark the whole bank as DOWN: payments still work without email.
     mail:
+      enabled: false
+    # The same for RabbitMQ: events wait in the outbox while it is down, and payments go on.
+    rabbit:
       enabled: false

@@ -14,6 +14,9 @@ public interface CardService {
 
     CardResponseDto issue(UUID ownerId, IssueCardRequestDto request);
 
+    /** For the credit module only: a CREDIT card on the owner's credit line, issued when the limit is approved. */
+    CardResponseDto issueCreditCard(UUID ownerId);
+
     List<CardResponseDto> getCards(UUID ownerId);
 
     CardResponseDto getCard(UUID ownerId, UUID cardId);

@@ -20,6 +20,7 @@ import io.github.vitaliyprogrammer.banking.exception.OwnCreditApplicationExcepti
 import io.github.vitaliyprogrammer.banking.repository.CreditApplicationRepository;
 import io.github.vitaliyprogrammer.banking.service.AccountService;
 import io.github.vitaliyprogrammer.banking.service.CreditApplicationService;
+import io.github.vitaliyprogrammer.banking.service.CreditLineService;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Duration;
@@ -50,6 +51,9 @@ public class CreditApplicationServiceImpl implements CreditApplicationService {
 
     private final AccountService accountService;
 
+    /** Same transaction as the decision: an approved limit without a credit line (or the reverse) cannot exist. */
+    private final CreditLineService creditLineService;
+
     private final CreditScoring creditScoring;
 
     private final CreditProperties properties;
@@ -78,13 +82,20 @@ public class CreditApplicationServiceImpl implements CreditApplicationService {
         log.info("Credit application of {}: {} for {} (affordable {})",
                 userId, result.status(), request.requestedLimit(), result.affordableLimit());
 
+        CreditApplication application;
         try {
-            return CreditApplicationResponseDto.from(creditApplicationRepository.saveAndFlush(
-                    CreditApplication.scored(userId, request.requestedLimit(), result, now)));
+            application = creditApplicationRepository.saveAndFlush(
+                    CreditApplication.scored(userId, request.requestedLimit(), result, now));
         } catch (DataIntegrityViolationException e) {
             // Two parallel submissions both passed the check above; the partial unique index lets one in.
             throw new CreditApplicationExistsException();
         }
+
+        if (application.getStatus() == CreditApplicationStatus.APPROVED) {
+            creditLineService.open(userId, application.getApprovedLimit());
+        }
+
+        return CreditApplicationResponseDto.from(application);
     }
 
     @Override
@@ -119,6 +130,7 @@ public class CreditApplicationServiceImpl implements CreditApplicationService {
 
         CreditApplication application = lockForDecision(reviewerId, applicationId);
         application.approve(reviewerId, request.approvedLimit(), request.comment().strip(), clock.instant());
+        creditLineService.open(application.getUserId(), request.approvedLimit());
 
         log.info("Credit application {} approved by {} for {}", applicationId, reviewerId, request.approvedLimit());
         return CreditApplicationResponseDto.from(application);

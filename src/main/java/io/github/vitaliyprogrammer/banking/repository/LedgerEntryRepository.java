@@ -55,4 +55,10 @@ public interface LedgerEntryRepository extends JpaRepository<LedgerEntry, UUID> 
                     AND a.owner_id = :ownerId)
             """, nativeQuery = true)
     BigDecimal sumIncome(UUID accountId, UUID ownerId, Instant since);
+
+    @Query(value = """
+            SELECT COALESCE(SUM(amount), 0) FROM ledger_entries
+            WHERE account_id = :accountId AND direction = 'CREDIT' AND created_at >= :since
+            """, nativeQuery = true)
+    BigDecimal sumCreditedSince(UUID accountId, Instant since);
 }

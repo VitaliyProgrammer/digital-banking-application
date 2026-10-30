@@ -1,0 +1,11 @@
+package io.github.vitaliyprogrammer.banking.exception;
+
+import org.springframework.http.HttpStatus;
+
+/** The client has no credit line: no application was approved yet. */
+public class CreditLineNotFoundException extends ApplicationException {
+
+    public CreditLineNotFoundException() {
+        super(HttpStatus.NOT_FOUND, "You have no credit line");
+    }
+}

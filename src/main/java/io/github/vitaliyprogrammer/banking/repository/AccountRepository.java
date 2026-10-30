@@ -19,7 +19,12 @@ public interface AccountRepository extends JpaRepository<Account, UUID> {
 
     Optional<Account> findByIdAndOwnerIdAndType(UUID id, UUID ownerId, AccountType type);
 
+    Optional<Account> findByIdAndOwnerIdAndTypeIn(UUID id, UUID ownerId, Collection<AccountType> types);
+
     Optional<Account> findByIdAndOwnerId(UUID id, UUID ownerId);
+
+    /** For CREDIT: at most one per owner (partial unique index). */
+    Optional<Account> findByOwnerIdAndType(UUID ownerId, AccountType type);
 
     boolean existsByOwnerIdAndCurrencyAndType(UUID ownerId, Currency currency, AccountType type);
 

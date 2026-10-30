@@ -11,6 +11,7 @@ import io.github.vitaliyprogrammer.banking.entity.status.AccountType;
 import io.github.vitaliyprogrammer.banking.entity.status.Currency;
 import io.github.vitaliyprogrammer.banking.exception.AccountAlreadyExistsException;
 import io.github.vitaliyprogrammer.banking.exception.AccountNotFoundException;
+import io.github.vitaliyprogrammer.banking.exception.CreditLineNotFoundException;
 import io.github.vitaliyprogrammer.banking.repository.AccountRepository;
 import io.github.vitaliyprogrammer.banking.repository.LedgerEntryRepository;
 import io.github.vitaliyprogrammer.banking.service.AccountService;
@@ -29,6 +30,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 public class AccountServiceImpl implements AccountService {
+
+    /** Where a card payment or a bill may take money from: the client's own money, or the bank's credit. */
+    private static final List<AccountType> SPENDING_TYPES = List.of(AccountType.CLIENT, AccountType.CREDIT);
 
     private final AccountRepository accountRepository;
 
@@ -52,6 +56,14 @@ public class AccountServiceImpl implements AccountService {
 
         return openOnce(ownerId, currency, AccountType.SAVINGS,
                 Account.openSavingsAccount(ownerId, ibanGenerator.generate(), currency, clock.instant()));
+    }
+
+    @Override
+    @Transactional
+    public AccountResponseDto openCreditAccount(UUID ownerId, BigDecimal creditLimit) {
+
+        return openOnce(ownerId, Currency.UAH, AccountType.CREDIT,
+                Account.openCreditAccount(ownerId, ibanGenerator.generate(), creditLimit, clock.instant()));
     }
 
     @Override
@@ -90,9 +102,32 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     @Transactional(readOnly = true)
+    public AccountReferenceDto getOwnedSpendingAccountReference(UUID ownerId, UUID accountId) {
+
+        return accountRepository.findByIdAndOwnerIdAndTypeIn(accountId, ownerId, SPENDING_TYPES)
+                .map(AccountReferenceDto::from)
+                .orElseThrow(AccountNotFoundException::new);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public AccountReferenceDto getOwnedSavingsReference(UUID ownerId, UUID accountId) {
 
         return findOwnedAccount(ownerId, accountId, AccountType.SAVINGS);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AccountReferenceDto getCreditAccountReference(UUID ownerId) {
+
+        return AccountReferenceDto.from(findCreditAccount(ownerId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AccountResponseDto getCreditAccount(UUID ownerId) {
+
+        return AccountResponseDto.from(findCreditAccount(ownerId));
     }
 
     @Override
@@ -134,6 +169,19 @@ public class AccountServiceImpl implements AccountService {
     public BigDecimal getIncome(UUID ownerId, UUID accountId, Instant since) {
 
         return ledgerEntryRepository.sumIncome(accountId, ownerId, since);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BigDecimal getCreditedSince(UUID accountId, Instant since) {
+
+        return ledgerEntryRepository.sumCreditedSince(accountId, since);
+    }
+
+    private Account findCreditAccount(UUID ownerId) {
+
+        return accountRepository.findByOwnerIdAndType(ownerId, AccountType.CREDIT)
+                .orElseThrow(CreditLineNotFoundException::new);
     }
 
     /** One account of each type per currency: a current UAH account and a UAH savings jar can live side by side. */

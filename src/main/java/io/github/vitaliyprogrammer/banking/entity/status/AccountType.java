@@ -8,6 +8,9 @@ public enum AccountType {
     /** A client's savings jar: earns interest, and money leaves it only back to the client's own account. */
     SAVINGS,
 
+    /** A client's credit line, UAH only: may go below zero down to its credit limit. A negative balance is debt. */
+    CREDIT,
+
     /** The bank's mirror of the outside world: money entering the bank is debited from it, so it may go negative. */
     SETTLEMENT,
 

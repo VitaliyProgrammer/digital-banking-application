@@ -1,5 +1,8 @@
 package io.github.vitaliyprogrammer.banking.event;
 
+import java.util.Arrays;
+import java.util.Optional;
+
 /**
  * Every event the bank announces to the outside world. The routing key is a dotted name, so a consumer can bind
  * to exactly what it needs: "payment.*" for all payments, "credit.#" for everything about credit.
@@ -25,5 +28,10 @@ public enum OutboxEventType {
 
     public String routingKey() {
         return routingKey;
+    }
+
+    /** For consumers: the routing key a message arrived with, or empty for an event this code does not know. */
+    public static Optional<OutboxEventType> fromRoutingKey(String routingKey) {
+        return Arrays.stream(values()).filter(type -> type.routingKey.equals(routingKey)).findFirst();
     }
 }

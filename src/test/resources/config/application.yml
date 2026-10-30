@@ -10,3 +10,6 @@ banking:
   cashback:
     # The payout runs only when a test calls it.
     jobs-enabled: false
+  credit-line:
+    # The month is closed only when a test calls it, for the day it chooses.
+    jobs-enabled: false

@@ -75,7 +75,7 @@ public class LedgerServiceImpl implements LedgerService {
 
         for (PostingRequestDto.Line line : posting.lines()) {
             Account account = accounts.get(line.accountId());
-            account.apply(line.direction(), line.amount());
+            account.apply(posting.type(), line.direction(), line.amount());
             transaction.addEntry(account.getId(), line.direction(), line.amount(), account.getBalance());
         }
 

@@ -27,5 +27,8 @@ public enum AccountType {
     INTEREST_EXPENSE,
 
     /** The bank's marketing cost: cashback paid to clients is debited here, so it goes negative. */
-    CASHBACK_EXPENSE
+    CASHBACK_EXPENSE,
+
+    /** The bank's income from credit lines: interest charged on unpaid statements is credited here. */
+    INTEREST_INCOME
 }

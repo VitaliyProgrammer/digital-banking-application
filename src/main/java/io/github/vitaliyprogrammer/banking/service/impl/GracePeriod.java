@@ -1,5 +1,6 @@
 package io.github.vitaliyprogrammer.banking.service.impl;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.ZoneId;
@@ -28,5 +29,23 @@ public final class GracePeriod {
     public static ZonedDateTime lastStatementClosedAt(LocalDate today) {
 
         return today.withDayOfMonth(1).atStartOfDay(KYIV);
+    }
+
+    /** The statement of October closes at midnight on 1 November. */
+    public static Instant statementClosedAt(YearMonth period) {
+
+        return period.plusMonths(1).atDay(1).atStartOfDay(KYIV).toInstant();
+    }
+
+    /** The statement of October is due by 30 November... */
+    public static LocalDate statementDueDate(YearMonth period) {
+
+        return period.plusMonths(1).atEndOfMonth();
+    }
+
+    /** ...that is, repayments made before midnight on 1 December count. */
+    public static Instant statementDueAt(YearMonth period) {
+
+        return period.plusMonths(2).atDay(1).atStartOfDay(KYIV).toInstant();
     }
 }

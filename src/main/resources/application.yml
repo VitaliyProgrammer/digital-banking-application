@@ -120,6 +120,17 @@ banking:
     review-factor: 1.50
     max-limit: 100000.00
 
+  credit-line:
+    jobs-enabled: ${CREDIT_LINE_JOBS_ENABLED:true}
+    # 1st of the month, 02:00 Kyiv time: settle the statements that fell due, close last month.
+    statement-cron: "0 0 2 1 * *"
+    # After the interest-free period: 2.5% a month on what is left unpaid.
+    monthly-interest-rate: 2.50
+    # Minimum payment: 5% of the statement, at least 100 UAH.
+    minimum-payment-percent: 5.00
+    minimum-payment-floor: 100.00
+    late-fee: 100.00
+
   receipts:
     mail-from: ${RECEIPTS_MAIL_FROM:Digital Bank <no-reply@digital-bank.local>}
 

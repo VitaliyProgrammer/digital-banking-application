@@ -57,6 +57,9 @@ public interface AccountService {
     /** For the interest job: every active savings account of every client. */
     List<AccountReferenceDto> getActiveSavingsAccounts();
 
+    /** For the statement job: every active credit line of every client. */
+    List<AccountReferenceDto> getActiveCreditAccounts();
+
     /** Balance at a past moment, read from the ledger; zero if the account had no entries before it. */
     BigDecimal getBalanceAt(UUID accountId, Instant moment);
 
@@ -65,4 +68,7 @@ public interface AccountService {
 
     /** Everything credited to an account since a moment, e.g. what was paid back to a credit line. */
     BigDecimal getCreditedSince(UUID accountId, Instant since);
+
+    /** Everything credited to an account in [from, to), e.g. what was repaid towards a statement before its due date. */
+    BigDecimal getCreditedBetween(UUID accountId, Instant from, Instant to);
 }

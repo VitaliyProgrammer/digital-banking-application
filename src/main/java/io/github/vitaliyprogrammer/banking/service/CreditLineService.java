@@ -1,8 +1,10 @@
 package io.github.vitaliyprogrammer.banking.service;
 
 import io.github.vitaliyprogrammer.banking.dto.response.CreditLineResponseDto;
+import io.github.vitaliyprogrammer.banking.dto.response.CreditStatementResponseDto;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 public interface CreditLineService {
@@ -18,4 +20,14 @@ public interface CreditLineService {
      * A job checking a due date (and a test) asks for a day other than today.
      */
     CreditLineResponseDto getCreditLine(UUID ownerId, LocalDate today);
+
+    /** Every closed month of the client's credit line, newest first. */
+    List<CreditStatementResponseDto> getStatements(UUID ownerId);
+
+    /**
+     * The monthly job, for the given Kyiv day (normally the 1st): settles every statement whose due date has passed,
+     * charging interest and late fees, then closes last month. Safe to run again: nothing happens twice.
+     * Returns the number of statements closed.
+     */
+    int closeMonth(LocalDate today);
 }

@@ -10,12 +10,14 @@ import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
 import io.github.vitaliyprogrammer.banking.entity.Account;
 import io.github.vitaliyprogrammer.banking.entity.status.EntryDirection;
+import io.github.vitaliyprogrammer.banking.entity.status.TransactionType;
 import io.github.vitaliyprogrammer.banking.repository.AccountRepository;
 import io.github.vitaliyprogrammer.banking.repository.BankRateRepository;
 import io.github.vitaliyprogrammer.banking.repository.CardRepository;
 import io.github.vitaliyprogrammer.banking.repository.CashbackAccrualRepository;
 import io.github.vitaliyprogrammer.banking.repository.CashbackPayoutRepository;
 import io.github.vitaliyprogrammer.banking.repository.CreditApplicationRepository;
+import io.github.vitaliyprogrammer.banking.repository.CreditStatementRepository;
 import io.github.vitaliyprogrammer.banking.repository.ExchangeQuoteRepository;
 import io.github.vitaliyprogrammer.banking.repository.InterestAccrualRepository;
 import io.github.vitaliyprogrammer.banking.repository.InterestPayoutRepository;
@@ -88,7 +90,7 @@ class ArchitectureTests {
     @ArchTest
     static final ArchRule onlyTheLedgerChangesBalances = noClasses()
             .that().doNotBelongToAnyOf(LedgerServiceImpl.class)
-            .should().callMethod(Account.class, "apply", EntryDirection.class, BigDecimal.class)
+            .should().callMethod(Account.class, "apply", TransactionType.class, EntryDirection.class, BigDecimal.class)
             .because("money moves only through LedgerService.post(), which locks the accounts and writes the journal");
 
     // Each domain owns its repositories. Other domains use its service interface, e.g. payments call
@@ -135,6 +137,11 @@ class ArchitectureTests {
     static final ArchRule cashbackTablesBelongToTheCashbackDomain = classes()
             .that().belongToAnyOf(CashbackAccrualRepository.class, CashbackPayoutRepository.class)
             .should().onlyHaveDependentClassesThat().belongToAnyOf(CashbackServiceImpl.class);
+
+    @ArchTest
+    static final ArchRule creditStatementTableBelongsToTheCreditDomain = classes()
+            .that().belongToAnyOf(CreditStatementRepository.class)
+            .should().onlyHaveDependentClassesThat().belongToAnyOf(CreditLineServiceImpl.class);
 
     /** A credit line is lent money: it exists only because an application was approved, never on a plain request. */
     @ArchTest

@@ -11,11 +11,14 @@ import io.github.vitaliyprogrammer.banking.entity.status.AccountType;
 import io.github.vitaliyprogrammer.banking.entity.status.Currency;
 import io.github.vitaliyprogrammer.banking.entity.status.EntryDirection;
 import io.github.vitaliyprogrammer.banking.entity.status.TransactionType;
+import io.github.vitaliyprogrammer.banking.event.CreditStatementMessage;
+import io.github.vitaliyprogrammer.banking.event.OutboxEventType;
 import io.github.vitaliyprogrammer.banking.repository.CreditStatementRepository;
 import io.github.vitaliyprogrammer.banking.service.AccountService;
 import io.github.vitaliyprogrammer.banking.service.CardService;
 import io.github.vitaliyprogrammer.banking.service.CreditLineService;
 import io.github.vitaliyprogrammer.banking.service.LedgerService;
+import io.github.vitaliyprogrammer.banking.service.OutboxService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Clock;
@@ -49,6 +52,8 @@ public class CreditLineServiceImpl implements CreditLineService {
     private final CreditStatementRepository creditStatementRepository;
 
     private final CreditTerms creditTerms;
+
+    private final OutboxService outboxService;
 
     private final TransactionTemplate transactionTemplate;
 
@@ -153,6 +158,8 @@ public class CreditLineServiceImpl implements CreditLineService {
                     : null;
 
             statement.settle(repaid, settlement, ledgerTransactionId, clock.instant());
+            outboxService.record(OutboxEventType.CREDIT_STATEMENT_SETTLED, statement.getId(),
+                    CreditStatementMessage.from(statement, account.ownerId()));
             log.info("Credit statement {} of {}: {}, repaid {}, interest {}, late fee {}", statement.getPeriod(),
                     account.id(), settlement.status(), repaid, settlement.interest(), settlement.lateFee());
         }

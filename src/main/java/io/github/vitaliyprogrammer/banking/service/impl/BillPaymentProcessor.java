@@ -11,9 +11,12 @@ import io.github.vitaliyprogrammer.banking.entity.status.EntryDirection;
 import io.github.vitaliyprogrammer.banking.entity.status.PaymentStatus;
 import io.github.vitaliyprogrammer.banking.entity.status.TransactionType;
 import io.github.vitaliyprogrammer.banking.event.BillPaymentCompletedEvent;
+import io.github.vitaliyprogrammer.banking.event.OutboxEventType;
+import io.github.vitaliyprogrammer.banking.event.PaymentMessage;
 import io.github.vitaliyprogrammer.banking.repository.PaymentRepository;
 import io.github.vitaliyprogrammer.banking.repository.ProviderRepository;
 import io.github.vitaliyprogrammer.banking.service.LedgerService;
+import io.github.vitaliyprogrammer.banking.service.OutboxService;
 import io.github.vitaliyprogrammer.banking.service.ProviderClient;
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -55,6 +58,8 @@ public class BillPaymentProcessor {
     private final TransactionTemplate transactionTemplate;
 
     private final ApplicationEventPublisher eventPublisher;
+
+    private final OutboxService outboxService;
 
     private final BillPaymentProperties properties;
 
@@ -170,6 +175,7 @@ public class BillPaymentProcessor {
         eventPublisher.publishEvent(new BillPaymentCompletedEvent(
                 payment.getId(), payment.getInitiatorId(), payment.getFromAccountId(), provider.getCategory(),
                 payment.getCurrency(), payment.getAmount(), now));
+        outboxService.record(OutboxEventType.PAYMENT_COMPLETED, payment.getId(), PaymentMessage.from(payment));
     }
 
     /** HOLD → client account: the full held amount comes back. */
@@ -182,6 +188,7 @@ public class BillPaymentProcessor {
                 payment.getAmount().add(payment.getFee())));
 
         payment.fail(releaseId, reason, now);
+        outboxService.record(OutboxEventType.PAYMENT_FAILED, payment.getId(), PaymentMessage.from(payment));
     }
 
     private static String rejectionReason(ProviderCallResult result) {

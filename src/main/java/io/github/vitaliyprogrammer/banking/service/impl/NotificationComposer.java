@@ -6,6 +6,7 @@ import io.github.vitaliyprogrammer.banking.entity.status.PaymentType;
 import io.github.vitaliyprogrammer.banking.event.CreditDecisionMessage;
 import io.github.vitaliyprogrammer.banking.event.CreditStatementMessage;
 import io.github.vitaliyprogrammer.banking.event.PaymentMessage;
+import io.github.vitaliyprogrammer.banking.event.SupportTicketMessage;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.format.DateTimeFormatter;
@@ -73,6 +74,19 @@ public final class NotificationComposer {
                             + money(statement.lateFee(), Currency.UAH) + " штрафу.", true);
             case OPEN -> throw new IllegalArgumentException("Not settled: " + statement.status());
         };
+    }
+
+    /** The client is waiting for an answer: worth an email. */
+    public static NotificationDraftDto supportReplied(SupportTicketMessage ticket) {
+
+        return new NotificationDraftDto(ticket.userId(), "Відповідь служби підтримки",
+                "На ваше звернення «" + ticket.subject() + "» є нова відповідь.", true);
+    }
+
+    public static NotificationDraftDto supportResolved(SupportTicketMessage ticket) {
+
+        return new NotificationDraftDto(ticket.userId(), "Звернення вирішено",
+                "Звернення «" + ticket.subject() + "» закрито. Якщо питання лишилось, створіть нове.", false);
     }
 
     private static String titleOf(PaymentType type) {

@@ -33,12 +33,13 @@ public class NotificationConfiguration {
         return QueueBuilder.durable(properties.deadLetterQueue()).build();
     }
 
-    /** Every payment event and everything about credit. */
+    /** Every payment event, everything about credit and support answers. */
     @Bean
     Declarables notificationsBindings(Queue notificationsQueue, TopicExchange bankingEventsExchange) {
 
         return new Declarables(
                 BindingBuilder.bind(notificationsQueue).to(bankingEventsExchange).with("payment.*"),
-                BindingBuilder.bind(notificationsQueue).to(bankingEventsExchange).with("credit.#"));
+                BindingBuilder.bind(notificationsQueue).to(bankingEventsExchange).with("credit.#"),
+                BindingBuilder.bind(notificationsQueue).to(bankingEventsExchange).with("support.#"));
     }
 }

@@ -10,6 +10,7 @@ import io.github.vitaliyprogrammer.banking.event.CreditDecisionMessage;
 import io.github.vitaliyprogrammer.banking.event.CreditStatementMessage;
 import io.github.vitaliyprogrammer.banking.event.OutboxEventType;
 import io.github.vitaliyprogrammer.banking.event.PaymentMessage;
+import io.github.vitaliyprogrammer.banking.event.SupportTicketMessage;
 import io.github.vitaliyprogrammer.banking.exception.NotificationNotFoundException;
 import io.github.vitaliyprogrammer.banking.repository.NotificationRepository;
 import io.github.vitaliyprogrammer.banking.service.NotificationService;
@@ -65,6 +66,9 @@ public class NotificationServiceImpl implements NotificationService {
                     read(payload, CreditDecisionMessage.class));
             case CREDIT_STATEMENT_SETTLED -> NotificationComposer.statementSettled(
                     read(payload, CreditStatementMessage.class));
+            case SUPPORT_TICKET_REPLIED -> NotificationComposer.supportReplied(read(payload, SupportTicketMessage.class));
+            case SUPPORT_TICKET_RESOLVED -> NotificationComposer.supportResolved(
+                    read(payload, SupportTicketMessage.class));
         };
 
         Instant now = clock.instant();

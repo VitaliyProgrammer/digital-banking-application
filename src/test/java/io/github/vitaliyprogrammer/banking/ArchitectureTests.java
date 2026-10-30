@@ -30,6 +30,8 @@ import io.github.vitaliyprogrammer.banking.repository.PaymentRepository;
 import io.github.vitaliyprogrammer.banking.repository.ProviderRepository;
 import io.github.vitaliyprogrammer.banking.repository.ReceiptRepository;
 import io.github.vitaliyprogrammer.banking.repository.RefreshTokenRepository;
+import io.github.vitaliyprogrammer.banking.repository.SupportTicketRepository;
+import io.github.vitaliyprogrammer.banking.repository.TicketMessageRepository;
 import io.github.vitaliyprogrammer.banking.repository.UserRepository;
 import io.github.vitaliyprogrammer.banking.service.AccountService;
 import io.github.vitaliyprogrammer.banking.service.CardService;
@@ -52,6 +54,7 @@ import io.github.vitaliyprogrammer.banking.service.impl.PaymentServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.ReceiptServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.RefreshTokenServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.SavingsServiceImpl;
+import io.github.vitaliyprogrammer.banking.service.impl.SupportTicketServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.UserServiceImpl;
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -172,6 +175,11 @@ class ArchitectureTests {
     static final ArchRule outboxTableBelongsToTheOutbox = classes()
             .that().belongToAnyOf(OutboxEventRepository.class)
             .should().onlyHaveDependentClassesThat().belongToAnyOf(OutboxServiceImpl.class, OutboxRelay.class);
+
+    @ArchTest
+    static final ArchRule ticketTablesBelongToSupport = classes()
+            .that().belongToAnyOf(SupportTicketRepository.class, TicketMessageRepository.class)
+            .should().onlyHaveDependentClassesThat().belongToAnyOf(SupportTicketServiceImpl.class);
 
     @ArchTest
     static final ArchRule notificationTableBelongsToNotifications = classes()

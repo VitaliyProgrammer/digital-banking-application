@@ -18,7 +18,12 @@ public enum OutboxEventType {
     CREDIT_APPLICATION_DECIDED("credit.application.decided"),
 
     /** A statement after its due date: PAID, MINIMUM_PAID or OVERDUE, with what was charged. */
-    CREDIT_STATEMENT_SETTLED("credit.statement.settled");
+    CREDIT_STATEMENT_SETTLED("credit.statement.settled"),
+
+    /** Support answered the client's ticket. */
+    SUPPORT_TICKET_REPLIED("support.ticket.replied"),
+
+    SUPPORT_TICKET_RESOLVED("support.ticket.resolved");
 
     private final String routingKey;
 

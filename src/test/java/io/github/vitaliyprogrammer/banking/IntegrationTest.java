@@ -1,7 +1,9 @@
 package io.github.vitaliyprogrammer.banking;
 
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.github.tomakehurst.wiremock.WireMockServer;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,28 +16,73 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.IntFunction;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
 
 /**
- * Base class for integration tests on a real PostgreSQL. All subclasses share one Spring context
- * (same configuration → Spring caches and reuses it), and after every test the ledger must reconcile.
+ * Base class for integration tests on a real PostgreSQL. All subclasses share ONE Spring context: Spring caches
+ * a context by its configuration, so anything a subclass adds (its own properties, MockMvc, its own WireMock port,
+ * its own mail server) would start another whole application. That is why MockMvc and the fake outside world
+ * (WireMock for HTTP, {@link FakeMailServer} for email) live here, for everyone.
+ * After every test the ledger must reconcile.
  * The bill payment worker is off: tests that need it call {@code BillPaymentProcessor} themselves, at the moment
  * they choose, instead of racing a background timer.
  */
 @SpringBootTest
+@AutoConfigureMockMvc
 @Import(TestcontainersConfiguration.class)
 @TestPropertySource(properties = {
         "banking.bill-payments.worker-enabled=false",
-        "banking.providers.mock-enabled=false"
+        "banking.providers.mock-enabled=false",
+        // Short enough to keep the timeout tests fast, long enough for the first (cold) request to WireMock.
+        "banking.providers.read-timeout=1500ms"
 })
 public abstract class IntegrationTest {
 
+    /** Where the fake NBU answers on {@link #wireMock}. */
+    protected static final String NBU_PATH = "/NBUStatService/v1/statdirectory/exchange";
+
+    /**
+     * The outside world (bill providers, the NBU) as one HTTP server for the whole test run. Started once and never
+     * restarted, so its port, and with it the context's properties, is the same for every test class.
+     * Stubs are cleared before each test.
+     */
+    protected static final WireMockServer wireMock = startWireMock();
+
+    /** The bank's SMTP server for the whole run. It accepts every email unless a test says otherwise. */
+    protected static final FakeMailServer mailServer = new FakeMailServer().start();
+
     @Autowired
     protected JdbcTemplate jdbcTemplate;
+
+    @DynamicPropertySource
+    static void outsideWorld(DynamicPropertyRegistry registry) {
+        registry.add("banking.providers.base-url", wireMock::baseUrl);
+        registry.add("banking.exchange-rates.nbu-url", () -> wireMock.baseUrl() + NBU_PATH + "?json");
+        registry.add("spring.mail.host", mailServer::host);
+        registry.add("spring.mail.port", mailServer::smtpPort);
+        // A busy Docker can make the first SMTP answer slow.
+        registry.add("spring.mail.properties.mail.smtp.timeout", () -> "20000");
+    }
+
+    @BeforeEach
+    void forgetOtherTestsSetup() {
+        wireMock.resetAll();
+        mailServer.acceptEverything();
+    }
+
+    private static WireMockServer startWireMock() {
+        WireMockServer server = new WireMockServer(wireMockConfig().dynamicPort());
+        server.start();
+        return server;
+    }
 
     /**
      * Invariants that must hold after any sequence of operations:

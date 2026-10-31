@@ -3,11 +3,9 @@ package io.github.vitaliyprogrammer.banking.receipt;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
-import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.jayway.jsonpath.JsonPath;
 import io.github.vitaliyprogrammer.banking.IntegrationTest;
 import io.github.vitaliyprogrammer.banking.dto.request.BillPaymentRequestDto;
@@ -33,10 +31,6 @@ import io.github.vitaliyprogrammer.banking.service.UserService;
 import io.github.vitaliyprogrammer.banking.service.impl.BillPaymentProcessor;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -46,41 +40,16 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
  * Proof tests for phase 6. Every kind of completed payment gets a readable PDF with the same number on every
  * download, nobody gets a receipt for someone else's or an unfinished payment, and the email really arrives
  * (Mailpit, a real SMTP server in a container). Rendered receipts are saved to target/receipts for a visual check.
  */
-@Testcontainers
 class ReceiptIntegrationTests extends IntegrationTest {
 
     private static final String RECEIPT_NUMBER = "R-\\d{4}-\\d{8}";
-
-    @Container
-    static GenericContainer<?> mailpit = new GenericContainer<>("axllent/mailpit:v1.31.6")
-            .withExposedPorts(1025, 8025);
-
-    @RegisterExtension
-    static WireMockExtension provider = WireMockExtension.newInstance()
-            .options(wireMockConfig().dynamicPort())
-            .build();
-
-    @DynamicPropertySource
-    static void mailAndProvider(DynamicPropertyRegistry registry) {
-        registry.add("spring.mail.host", mailpit::getHost);
-        registry.add("spring.mail.port", () -> mailpit.getMappedPort(1025));
-        // A busy Docker (the full suite starts several containers) can make the first SMTP answer slow.
-        registry.add("spring.mail.properties.mail.smtp.timeout", () -> "20000");
-        registry.add("banking.providers.base-url", provider::baseUrl);
-    }
 
     @Autowired
     private ReceiptService receiptService;
@@ -141,7 +110,7 @@ class ReceiptIntegrationTests extends IntegrationTest {
 
     @Test
     void everyKindOfPaymentGetsItsOwnReceipt() throws IOException {
-        provider.stubFor(post(urlPathMatching("/.+/payments")).willReturn(okJson("{\"status\": \"ACCEPTED\"}")));
+        wireMock.stubFor(post(urlPathMatching("/.+/payments")).willReturn(okJson("{\"status\": \"ACCEPTED\"}")));
         PaymentResponseDto bill = payBill("city-power", "4410012345", "1250.40");
         PaymentResponseDto mobile = payBill("mobile-one", "+380671234567", "200.00");
         billPaymentProcessor.processPending();
@@ -170,15 +139,14 @@ class ReceiptIntegrationTests extends IntegrationTest {
     }
 
     @Test
-    void emailedReceiptArrivesWithThePdfAttached() throws Exception {
+    void emailedReceiptArrivesWithThePdfAttached() {
         PaymentResponseDto payment = transferToAnotherClient("50.00");
         String email = userService.getById(clientId).email();
 
         receiptService.emailReceipt(clientId, payment.id());
 
-        String messages = HttpClient.newHttpClient().send(HttpRequest.newBuilder(URI.create(
-                        "http://" + mailpit.getHost() + ":" + mailpit.getMappedPort(8025) + "/api/v1/messages"))
-                .build(), HttpResponse.BodyHandlers.ofString()).body();
+        // The mail server is shared by the whole run, so look only at this client's emails.
+        String messages = mailServer.messages();
         List<Integer> attachments = JsonPath.read(messages,
                 "$.messages[?(@.To[0].Address == '" + email + "')].Attachments");
         List<String> subjects = JsonPath.read(messages, "$.messages[?(@.To[0].Address == '" + email + "')].Subject");

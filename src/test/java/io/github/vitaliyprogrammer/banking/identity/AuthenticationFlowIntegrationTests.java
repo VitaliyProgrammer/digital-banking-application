@@ -7,13 +7,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.jayway.jsonpath.JsonPath;
-import io.github.vitaliyprogrammer.banking.TestcontainersConfiguration;
+import io.github.vitaliyprogrammer.banking.IntegrationTest;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -22,10 +19,7 @@ import org.springframework.test.web.servlet.ResultActions;
  * Proof tests for phase 0.2: the full auth flow works end to end on a real database,
  * and a stolen refresh token cannot be replayed.
  */
-@SpringBootTest
-@AutoConfigureMockMvc
-@Import(TestcontainersConfiguration.class)
-class AuthenticationFlowIntegrationTests {
+class AuthenticationFlowIntegrationTests extends IntegrationTest {
 
     private static final String PASSWORD = "correct-horse-battery";
 

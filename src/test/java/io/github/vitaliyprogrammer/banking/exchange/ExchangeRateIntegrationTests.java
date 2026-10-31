@@ -4,7 +4,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.nullValue;
@@ -12,7 +11,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import io.github.vitaliyprogrammer.banking.IntegrationTest;
 import io.github.vitaliyprogrammer.banking.entity.status.Role;
 import io.github.vitaliyprogrammer.banking.exception.OfficialRatesUnavailableException;
@@ -26,12 +24,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -40,22 +34,9 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
  * Proof tests for phase 5.1. The NBU is a WireMock server that can answer, repeat itself or be down.
  * The rates table always shows something sensible, and only an admin can change the bank's rates.
  */
-@AutoConfigureMockMvc
 class ExchangeRateIntegrationTests extends IntegrationTest {
 
-    private static final String NBU_PATH = "/NBUStatService/v1/statdirectory/exchange";
-
     private static final ZoneId KYIV = ZoneId.of("Europe/Kyiv");
-
-    @RegisterExtension
-    static WireMockExtension nbu = WireMockExtension.newInstance()
-            .options(wireMockConfig().dynamicPort())
-            .build();
-
-    @DynamicPropertySource
-    static void pointBankToFakeNbu(DynamicPropertyRegistry registry) {
-        registry.add("banking.exchange-rates.nbu-url", () -> nbu.baseUrl() + NBU_PATH + "?json");
-    }
 
     @Autowired
     private MockMvc mockMvc;
@@ -105,7 +86,7 @@ class ExchangeRateIntegrationTests extends IntegrationTest {
         nbuAnswers(today.minusDays(1), "41.0000", "48.0000");
         exchangeRateService.syncOfficialRates();
 
-        nbu.stubFor(get(urlPathEqualTo(NBU_PATH)).willReturn(aResponse().withStatus(503)));
+        wireMock.stubFor(get(urlPathEqualTo(NBU_PATH)).willReturn(aResponse().withStatus(503)));
         assertThatThrownBy(() -> exchangeRateService.syncOfficialRates())
                 .isInstanceOf(OfficialRatesUnavailableException.class);
 
@@ -204,7 +185,7 @@ class ExchangeRateIntegrationTests extends IntegrationTest {
 
     private void nbuAnswers(LocalDate date, String usd, String eur) {
         String nbuDate = date.format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
-        nbu.stubFor(get(urlPathEqualTo(NBU_PATH)).willReturn(okJson("""
+        wireMock.stubFor(get(urlPathEqualTo(NBU_PATH)).willReturn(okJson("""
                 [
                   {"r030": 840, "txt": "US Dollar", "rate": %s, "cc": "USD", "exchangedate": "%s"},
                   {"r030": 978, "txt": "Euro", "rate": %s, "cc": "EUR", "exchangedate": "%s"},

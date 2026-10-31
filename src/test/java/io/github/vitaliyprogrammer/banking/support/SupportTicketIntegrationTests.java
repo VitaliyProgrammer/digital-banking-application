@@ -27,7 +27,6 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
@@ -35,7 +34,6 @@ import org.springframework.test.web.servlet.MockMvc;
  * taking it at once wins; only that employee answers, resolves and sees the client's accounts;
  * a staff answer becomes an event for the client's notification; clients see only their own tickets.
  */
-@AutoConfigureMockMvc
 class SupportTicketIntegrationTests extends IntegrationTest {
 
     @Autowired

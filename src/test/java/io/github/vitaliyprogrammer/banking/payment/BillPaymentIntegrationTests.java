@@ -7,10 +7,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
-import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import io.github.vitaliyprogrammer.banking.IntegrationTest;
 import io.github.vitaliyprogrammer.banking.dto.request.BillPaymentRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.request.OpenAccountRequestDto;
@@ -27,10 +25,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * Proof tests for phase 4. The provider is a real HTTP server (WireMock) that can be slow, refuse or accept.
@@ -40,18 +35,6 @@ import org.springframework.test.context.DynamicPropertySource;
 class BillPaymentIntegrationTests extends IntegrationTest {
 
     private static final String PROVIDER = "city-power";
-
-    @RegisterExtension
-    static WireMockExtension provider = WireMockExtension.newInstance()
-            .options(wireMockConfig().dynamicPort())
-            .build();
-
-    @DynamicPropertySource
-    static void pointBankToFakeProvider(DynamicPropertyRegistry registry) {
-        registry.add("banking.providers.base-url", provider::baseUrl);
-        // Short enough to keep the suite fast, long enough for the first (cold) request to WireMock.
-        registry.add("banking.providers.read-timeout", () -> "1500ms");
-    }
 
     @Autowired
     private PaymentService paymentService;
@@ -78,7 +61,7 @@ class BillPaymentIntegrationTests extends IntegrationTest {
 
     @Test
     void acceptedPaymentIsSentOnceEvenWithFiveWorkers() throws Exception {
-        provider.stubFor(post(urlPathEqualTo("/" + PROVIDER + "/payments"))
+        wireMock.stubFor(post(urlPathEqualTo("/" + PROVIDER + "/payments"))
                 .willReturn(okJson("{\"status\": \"ACCEPTED\"}").withFixedDelay(200)));
 
         BigDecimal inTransitBefore = balanceOf(holdAccount());
@@ -92,7 +75,7 @@ class BillPaymentIntegrationTests extends IntegrationTest {
         // Five application instances wake up at the same moment and look for work.
         runConcurrently(5, i -> () -> billPaymentProcessor.processPending());
 
-        provider.verify(1, postRequestedFor(urlPathEqualTo("/" + PROVIDER + "/payments")));
+        wireMock.verify(1, postRequestedFor(urlPathEqualTo("/" + PROVIDER + "/payments")));
         assertThat(statusOf(payment.id())).isEqualTo(PaymentStatus.COMPLETED);
         // The HOLD account is shared by all tests, so compare with its balance before this payment.
         assertThat(balanceOf(holdAccount())).as("nothing left in transit").isEqualByComparingTo(inTransitBefore);
@@ -100,7 +83,7 @@ class BillPaymentIntegrationTests extends IntegrationTest {
 
     @Test
     void rejectedPaymentReturnsTheMoney() {
-        provider.stubFor(post(urlPathEqualTo("/" + PROVIDER + "/payments"))
+        wireMock.stubFor(post(urlPathEqualTo("/" + PROVIDER + "/payments"))
                 .willReturn(okJson("{\"status\": \"REJECTED\", \"reason\": \"Unknown personal account\"}")));
 
         PaymentResponseDto payment = payElectricity("300.00");
@@ -115,7 +98,7 @@ class BillPaymentIntegrationTests extends IntegrationTest {
     @Test
     void timeoutBecomesUnknownAndReconciliationFinishesTheJob() {
         // The provider takes the money, but answers after our 1.5 s timeout.
-        provider.stubFor(post(urlPathEqualTo("/" + PROVIDER + "/payments"))
+        wireMock.stubFor(post(urlPathEqualTo("/" + PROVIDER + "/payments"))
                 .willReturn(okJson("{\"status\": \"ACCEPTED\"}").withFixedDelay(4_000)));
 
         PaymentResponseDto payment = payElectricity("300.00");
@@ -125,7 +108,7 @@ class BillPaymentIntegrationTests extends IntegrationTest {
         assertThat(statusOf(payment.id())).isEqualTo(PaymentStatus.UNKNOWN);
         assertThat(balanceOf(clientAccount)).isEqualByComparingTo("698.50");
 
-        provider.stubFor(get(urlPathMatching("/" + PROVIDER + "/payments/.+"))
+        wireMock.stubFor(get(urlPathMatching("/" + PROVIDER + "/payments/.+"))
                 .willReturn(okJson("{\"status\": \"ACCEPTED\"}")));
         makeDueNow(payment.id());
         billPaymentProcessor.reconcileUnknown();
@@ -133,19 +116,19 @@ class BillPaymentIntegrationTests extends IntegrationTest {
         assertThat(statusOf(payment.id())).isEqualTo(PaymentStatus.COMPLETED);
         assertThat(balanceOf(clientAccount)).isEqualByComparingTo("698.50");
         // Reconciliation asked; it did not pay a second time.
-        provider.verify(1, postRequestedFor(urlPathEqualTo("/" + PROVIDER + "/payments")));
+        wireMock.verify(1, postRequestedFor(urlPathEqualTo("/" + PROVIDER + "/payments")));
     }
 
     @Test
     void unknownPaymentThatTheProviderNeverGotIsReturned() {
-        provider.stubFor(post(urlPathEqualTo("/" + PROVIDER + "/payments"))
+        wireMock.stubFor(post(urlPathEqualTo("/" + PROVIDER + "/payments"))
                 .willReturn(aResponse().withStatus(503)));
 
         PaymentResponseDto payment = payElectricity("300.00");
         billPaymentProcessor.processPending();
         assertThat(statusOf(payment.id())).isEqualTo(PaymentStatus.UNKNOWN);
 
-        provider.stubFor(get(urlPathMatching("/" + PROVIDER + "/payments/.+"))
+        wireMock.stubFor(get(urlPathMatching("/" + PROVIDER + "/payments/.+"))
                 .willReturn(aResponse().withStatus(404)));
         makeDueNow(payment.id());
         billPaymentProcessor.reconcileUnknown();

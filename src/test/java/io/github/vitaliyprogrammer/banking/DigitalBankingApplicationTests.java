@@ -5,16 +5,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.jdbc.core.JdbcTemplate;
 
-@SpringBootTest
-@Import(TestcontainersConfiguration.class)
-class DigitalBankingApplicationTests {
-
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
+/** Smoke test: the application starts on the real stack and every migration has run. */
+class DigitalBankingApplicationTests extends IntegrationTest {
 
     @Autowired
     private Flyway flyway;

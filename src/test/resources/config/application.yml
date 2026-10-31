@@ -23,7 +23,7 @@ banking:
 
 spring:
   mail:
-    # No mail server in most test contexts: port 1 refuses at once instead of waiting for a timeout.
-    # Tests that need real mail (receipts) point this at their own Mailpit container.
+    # Integration tests point this at the shared FakeMailServer (see IntegrationTest). Anything else that starts
+    # the application gets port 1, which refuses at once instead of waiting for a timeout.
     host: localhost
     port: 1

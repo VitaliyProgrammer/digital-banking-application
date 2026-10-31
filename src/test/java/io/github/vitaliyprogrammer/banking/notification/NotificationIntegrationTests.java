@@ -111,7 +111,8 @@ class NotificationIntegrationTests extends IntegrationTest {
                 WHERE email_status = 'PENDING' AND source_event_id <> ?
                 """, eventId);
 
-        // The test mail server is "down" (port 1): the email waits, with a growing delay.
+        // The mail server is in trouble and refuses everything: the email waits, with a growing delay.
+        mailServer.refuseEverything();
         notificationService.sendDueEmails();
         Map<String, Object> afterFirstFailure = emailStateOf(eventId);
         assertThat(afterFirstFailure.get("email_status")).isEqualTo("PENDING");

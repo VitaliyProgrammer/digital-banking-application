@@ -3,10 +3,8 @@ package io.github.vitaliyprogrammer.banking.cashback;
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
-import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import io.github.vitaliyprogrammer.banking.IntegrationTest;
 import io.github.vitaliyprogrammer.banking.dto.request.BillPaymentRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.request.OpenAccountRequestDto;
@@ -23,10 +21,7 @@ import java.time.ZoneId;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 
 /**
  * Proof tests for phase 7.2. Cashback is earned only for bill payments that really completed, never above
@@ -34,16 +29,6 @@ import org.springframework.test.context.DynamicPropertySource;
  * Rates in the configuration: mobile 5%, internet 3%, utilities 1%; cap 500 UAH a month.
  */
 class CashbackIntegrationTests extends IntegrationTest {
-
-    @RegisterExtension
-    static WireMockExtension provider = WireMockExtension.newInstance()
-            .options(wireMockConfig().dynamicPort())
-            .build();
-
-    @DynamicPropertySource
-    static void pointBankToFakeProvider(DynamicPropertyRegistry registry) {
-        registry.add("banking.providers.base-url", provider::baseUrl);
-    }
 
     @Autowired
     private CashbackService cashbackService;
@@ -93,7 +78,7 @@ class CashbackIntegrationTests extends IntegrationTest {
         for (int i = 0; i < 4; i++) {
             payBill("mobile-one", "+38067000000" + i, "3000.00");
         }
-        provider.stubFor(post(urlPathMatching("/.+/payments")).willReturn(okJson("{\"status\": \"ACCEPTED\"}")));
+        wireMock.stubFor(post(urlPathMatching("/.+/payments")).willReturn(okJson("{\"status\": \"ACCEPTED\"}")));
 
         runConcurrently(4, i -> () -> billPaymentProcessor.processPending());
 
@@ -121,7 +106,7 @@ class CashbackIntegrationTests extends IntegrationTest {
     }
 
     private void acceptAndProcess() {
-        provider.stubFor(post(urlPathMatching("/.+/payments")).willReturn(okJson("{\"status\": \"ACCEPTED\"}")));
+        wireMock.stubFor(post(urlPathMatching("/.+/payments")).willReturn(okJson("{\"status\": \"ACCEPTED\"}")));
         billPaymentProcessor.processPending();
     }
 }

@@ -1,0 +1,64 @@
+# 🏦 Try the bank without building anything. Needs only Docker.
+#
+#   curl -O https://raw.githubusercontent.com/VitaliyProgrammer/digital-banking-application/main/docker-compose.demo.yml
+#   docker compose -f docker-compose.demo.yml up -d
+#
+# Then: http://localhost:8080/swagger-ui.html (API), http://localhost:8025 (emails the bank sends).
+# Demo admin: admin@bank.local / demo-admin-password. Stop with: docker compose -f docker-compose.demo.yml down
+#
+# Self-contained on purpose: no files from the repository are needed, the bank comes as a published image.
+# Its own project name: it never mixes with the development compose file of the same folder.
+name: digital-bank-demo
+
+services:
+
+  app:
+    image: ghcr.io/vitaliyprogrammer/digital-banking-application:latest
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      mailpit: { condition: service_started }
+    environment:
+      DB_HOST: postgres
+      REDIS_HOST: redis
+      RABBITMQ_HOST: rabbitmq
+      MAIL_HOST: mailpit
+      # A demo admin, so the staff side (credit queue, rates, audit) can be tried at once. Demo only.
+      ADMIN_EMAIL: admin@bank.local
+      ADMIN_PASSWORD: demo-admin-password
+    ports:
+      - "8080:8080"
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: digital_bank
+      POSTGRES_USER: bank
+      POSTGRES_PASSWORD: bank
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bank -d digital_bank"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:8-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:4.1-alpine
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:v1.31.6
+    ports:
+      - "8025:8025"

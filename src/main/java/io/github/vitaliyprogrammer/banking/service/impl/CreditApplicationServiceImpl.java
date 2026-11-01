@@ -65,6 +65,8 @@ public class CreditApplicationServiceImpl implements CreditApplicationService {
 
     private final AuditService auditService;
 
+    private final BusinessMetrics businessMetrics;
+
     private final CreditScoring creditScoring;
 
     private final CreditProperties properties;
@@ -108,6 +110,7 @@ public class CreditApplicationServiceImpl implements CreditApplicationService {
         if (!application.isUnderReview()) {
             announceDecision(application);
         }
+        businessMetrics.creditApplicationScored(application.getStatus());
 
         return CreditApplicationResponseDto.from(application);
     }
@@ -175,6 +178,7 @@ public class CreditApplicationServiceImpl implements CreditApplicationService {
 
         outboxService.record(OutboxEventType.CREDIT_APPLICATION_DECIDED, application.getId(),
                 CreditDecisionMessage.from(application));
+        businessMetrics.creditDecided(application.getStatus(), application.getDecisionSource());
     }
 
     /**

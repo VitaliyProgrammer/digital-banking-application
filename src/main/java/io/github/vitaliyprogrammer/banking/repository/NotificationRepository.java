@@ -1,6 +1,7 @@
 package io.github.vitaliyprogrammer.banking.repository;
 
 import io.github.vitaliyprogrammer.banking.entity.Notification;
+import io.github.vitaliyprogrammer.banking.entity.status.EmailStatus;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -47,4 +48,6 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
             FOR UPDATE SKIP LOCKED
             """, nativeQuery = true)
     List<Notification> lockDueEmails(Instant now, int limit);
+
+    long countByEmailStatus(EmailStatus emailStatus);
 }

@@ -1,0 +1,12 @@
+# Prometheus pulls ("scrapes") metrics from the bank every few seconds and keeps them as time series.
+global:
+  # Often enough to watch a load test live; a production setup would use 15-30 s.
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name: digital-banking
+    metrics_path: /actuator/prometheus
+    static_configs:
+      # The management port, reachable only inside the compose network.
+      - targets: ["app:8081"]

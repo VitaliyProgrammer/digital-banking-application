@@ -33,7 +33,10 @@ public class SecurityConfiguration {
             "/authentication/**",
             // Fake providers exist only when banking.providers.mock-enabled=true; otherwise this path is a 404.
             "/mock-providers/**",
+            // Actuator lives on the management port (8081), which is never published outside the network,
+            // and those paths do not exist on the API port at all. Prometheus scrapes without a token.
             "/actuator/health",
+            "/actuator/prometheus",
             "/swagger-ui.html",
             "/swagger-ui/**",
             "/v3/api-docs/**"

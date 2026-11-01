@@ -177,10 +177,22 @@ banking:
     password: ${ADMIN_PASSWORD:}
 
 management:
+  # Health and metrics on their own port, which is never published to the outside: only Docker's healthcheck
+  # and Prometheus (inside the same network) reach it. The public API on 8080 shows none of it.
+  server:
+    port: ${MANAGEMENT_PORT:8081}
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,prometheus
+  metrics:
+    tags:
+      # Every metric says which application it came from, so one Prometheus can watch several services.
+      application: ${spring.application.name}
+    distribution:
+      # Buckets instead of a bare average: Prometheus can then compute p95 / p99 of request time.
+      percentiles-histogram:
+        http.server.requests: true
   health:
     # A mail server that is down must not mark the whole bank as DOWN: payments still work without email.
     mail:

@@ -145,7 +145,15 @@ All it needs is [**Docker**](https://www.docker.com/products/docker-desktop/).
 The bank comes as a ready image, [`ghcr.io/vitaliyprogrammer/digital-banking-application`](https://github.com/VitaliyProgrammer/digital-banking-application/pkgs/container/digital-banking-application). Nothing to build, no Java to install:
 
 ```bash
+# 📥 Cloned the repository? From its folder:
+docker compose -f docker-compose.demo.yml up -d
+
+# 🍎 macOS / 🐧 Linux / Git Bash, without cloning:
 curl -O https://raw.githubusercontent.com/VitaliyProgrammer/digital-banking-application/main/docker-compose.demo.yml
+docker compose -f docker-compose.demo.yml up -d
+
+# 🪟 Windows PowerShell, without cloning (plain "curl" there is another command):
+curl.exe -O https://raw.githubusercontent.com/VitaliyProgrammer/digital-banking-application/main/docker-compose.demo.yml
 docker compose -f docker-compose.demo.yml up -d
 ```
 

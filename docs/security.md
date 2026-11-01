@@ -86,9 +86,9 @@ The API is on port **8080**. Health and metrics are on the management port **808
 
 | What | File |
 |---|---|
-| Filter chain, roles | [`SecurityConfiguration`](../src/main/java/io/github/vitaliyprogrammer/banking/configuration/SecurityConfiguration.java) |
-| Login, attempt limit | [`AuthenticationServiceImpl`](../src/main/java/io/github/vitaliyprogrammer/banking/service/impl/AuthenticationServiceImpl.java) |
-| Refresh rotation and reuse detection | [`RefreshTokenServiceImpl`](../src/main/java/io/github/vitaliyprogrammer/banking/service/impl/RefreshTokenServiceImpl.java) |
-| Audit | [`AuditServiceImpl`](../src/main/java/io/github/vitaliyprogrammer/banking/service/impl/AuditServiceImpl.java) |
-| Card cryptography | [`CardCryptography`](../src/main/java/io/github/vitaliyprogrammer/banking/service/impl/CardCryptography.java) |
+| Filter chain, roles | [`SecurityConfiguration`](../src/main/java/io/github/vitaliyprogrammer/banking/common/configuration/SecurityConfiguration.java) |
+| Login, attempt limit | [`AuthenticationServiceImpl`](../src/main/java/io/github/vitaliyprogrammer/banking/identity/service/impl/AuthenticationServiceImpl.java) |
+| Refresh rotation and reuse detection | [`RefreshTokenServiceImpl`](../src/main/java/io/github/vitaliyprogrammer/banking/identity/service/impl/RefreshTokenServiceImpl.java) |
+| Audit | [`AuditServiceImpl`](../src/main/java/io/github/vitaliyprogrammer/banking/audit/service/impl/AuditServiceImpl.java) |
+| Card cryptography | [`CardCryptography`](../src/main/java/io/github/vitaliyprogrammer/banking/card/service/impl/CardCryptography.java) |
 | Tests | [`identity/`](../src/test/java/io/github/vitaliyprogrammer/banking/identity), [`card/`](../src/test/java/io/github/vitaliyprogrammer/banking/card), [`audit/`](../src/test/java/io/github/vitaliyprogrammer/banking/audit) |

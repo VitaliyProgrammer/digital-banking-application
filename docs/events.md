@@ -100,8 +100,8 @@ All four are on the [Grafana dashboard](operations.md#-metrics-and-the-dashboard
 
 | What | File |
 |---|---|
-| Writing an event | [`OutboxServiceImpl`](../src/main/java/io/github/vitaliyprogrammer/banking/service/impl/OutboxServiceImpl.java) |
-| Publishing | [`OutboxRelay`](../src/main/java/io/github/vitaliyprogrammer/banking/service/impl/OutboxRelay.java), [`OutboxBackoff`](../src/main/java/io/github/vitaliyprogrammer/banking/service/impl/OutboxBackoff.java) |
-| Consuming | [`NotificationListener`](../src/main/java/io/github/vitaliyprogrammer/banking/service/impl/NotificationListener.java), [`NotificationServiceImpl`](../src/main/java/io/github/vitaliyprogrammer/banking/service/impl/NotificationServiceImpl.java) |
-| Texts and the "worth an email" rule | [`NotificationComposer`](../src/main/java/io/github/vitaliyprogrammer/banking/service/impl/NotificationComposer.java) |
+| Writing an event | [`OutboxServiceImpl`](../src/main/java/io/github/vitaliyprogrammer/banking/outbox/service/impl/OutboxServiceImpl.java) |
+| Publishing | [`OutboxRelay`](../src/main/java/io/github/vitaliyprogrammer/banking/outbox/service/impl/OutboxRelay.java), [`RetryBackoff`](../src/main/java/io/github/vitaliyprogrammer/banking/common/retry/RetryBackoff.java) |
+| Consuming | [`NotificationListener`](../src/main/java/io/github/vitaliyprogrammer/banking/notification/service/impl/NotificationListener.java), [`NotificationServiceImpl`](../src/main/java/io/github/vitaliyprogrammer/banking/notification/service/impl/NotificationServiceImpl.java) |
+| Texts and the "worth an email" rule | [`NotificationComposer`](../src/main/java/io/github/vitaliyprogrammer/banking/notification/service/impl/NotificationComposer.java) |
 | Tests | [`outbox/`](../src/test/java/io/github/vitaliyprogrammer/banking/outbox), [`notification/`](../src/test/java/io/github/vitaliyprogrammer/banking/notification) |

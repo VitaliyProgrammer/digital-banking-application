@@ -105,8 +105,8 @@ The fix used by real ledgers ([`V22`](../src/main/resources/db/migration/V22__sh
 
 | What | File |
 |---|---|
-| Posting, locking, balancing | [`LedgerServiceImpl`](../src/main/java/io/github/vitaliyprogrammer/banking/service/impl/LedgerServiceImpl.java) |
-| Balance rules per account type | [`Account`](../src/main/java/io/github/vitaliyprogrammer/banking/entity/Account.java) |
+| Posting, locking, balancing | [`LedgerServiceImpl`](../src/main/java/io/github/vitaliyprogrammer/banking/account/service/impl/LedgerServiceImpl.java) |
+| Balance rules per account type | [`Account`](../src/main/java/io/github/vitaliyprogrammer/banking/account/entity/Account.java) |
 | Tables, checks, append-only trigger | [`V3`](../src/main/resources/db/migration/V3__create_accounts.sql), [`V4`](../src/main/resources/db/migration/V4__create_ledger.sql) |
 | Reconciliation after every test | [`IntegrationTest`](../src/test/java/io/github/vitaliyprogrammer/banking/IntegrationTest.java) |
 | Parallel debits never overdraw, opposite transfers never deadlock, history cannot be changed | [`LedgerConcurrencyIntegrationTests`](../src/test/java/io/github/vitaliyprogrammer/banking/account/LedgerConcurrencyIntegrationTests.java) |

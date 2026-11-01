@@ -14,7 +14,7 @@
 
 ![Tests](https://img.shields.io/badge/tests-123%20passing-success)
 ![Testcontainers](https://img.shields.io/badge/integration%20tests-Testcontainers-291A3D)
-![ArchUnit](https://img.shields.io/badge/architecture%20rules-23%20ArchUnit-blueviolet)
+![ArchUnit](https://img.shields.io/badge/architecture%20rules-24%20ArchUnit-blueviolet)
 ![k6](https://img.shields.io/badge/load%20tested-k6-7D64FF?logo=k6&logoColor=white)
 ![Prometheus](https://img.shields.io/badge/metrics-Prometheus%20%2B%20Grafana-E6522C?logo=prometheus&logoColor=white)
 
@@ -77,7 +77,41 @@ flowchart LR
     grafana[📊 Grafana] --> prom
 ```
 
-**Layers:** controller → service (interfaces) → service.impl → repository. **Domains own their tables:** another domain goes through its service interface, never its repository. Both rules are enforced on every build by [ArchUnit](src/test/java/io/github/vitaliyprogrammer/banking/ArchitectureTests.java).
+### 📁 Package by feature
+
+The code is organised **by domain first**: everything about credit lives in `credit/`, everything about payments in `payment/`. Inside, every domain has the same layers, so finding a class is the same in every one of them:
+
+```
+io.github.vitaliyprogrammer.banking
+├── account/          accounts, the double-entry ledger, IBANs
+├── identity/         users, login, JWT and refresh tokens, roles
+├── payment/          top-ups, transfers, card transfers, bill payments
+│   └── service/impl/fee/      one fee policy per payment type
+├── card/             cards, encrypted numbers, PINs
+├── exchange/         NBU rates, the bank's rates, quotes
+├── receipt/ · savings/ · cashback/
+├── credit/           applications and scoring, the credit line, statements
+├── notification/     the event consumer, in-app and email notifications
+├── outbox/           the transactional outbox and its relay to RabbitMQ
+├── support/ · audit/
+└── common/           what every domain shares: configuration, error handling, security, retries, metrics
+
+credit/                         (every domain looks like this; a layer it does not need is simply absent)
+├── configuration/              @Configuration and @ConfigurationProperties
+├── controller/                 REST endpoints
+├── dto/request/  dto/response/ what goes over HTTP
+├── entity/  entity/status/     JPA entities and their enums
+├── event/                      messages this domain publishes
+├── exception/                  its business errors
+├── repository/                 Spring Data repositories: its own tables only
+└── service/  service/impl/     interfaces, and their implementations
+```
+
+| Rule | Enforced by |
+|---|---|
+| Inside a domain: controller → service → repository, never backwards | [ArchUnit](src/test/java/io/github/vitaliyprogrammer/banking/ArchitectureTests.java) `layersDependOnlyDownwards` |
+| A domain's tables are used only by that domain's services | one ownership rule per repository |
+| Domains meet only at service interfaces and DTOs, never at each other's `service/impl` | `domainsDoNotReachIntoEachOthersImplementation` |
 
 ## 🚀 Quick start
 

@@ -2,8 +2,8 @@ package io.github.vitaliyprogrammer.banking;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
-import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices;
 import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
+import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices;
 
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
@@ -100,6 +100,16 @@ class ArchitectureTests {
             .that().resideInAPackage(ROOT + ".*.service")
             .should().beInterfaces()
             .because("implementations live in service.impl");
+
+    /**
+     * Dependencies between domains go one way only: common ← account ← card / payment ← savings / credit / cashback /
+     * receipt ← notification. A cycle (payment needs credit, credit needs payment) would make the two one module in
+     * disguise: neither could be understood, tested, changed or split out without the other.
+     */
+    @ArchTest
+    static final ArchRule domainsDependOnEachOtherWithoutCycles = slices()
+            .matching(ROOT + ".(*)..")
+            .should().beFreeOfCycles();
 
     /**
      * Domains meet only at their service interfaces and DTOs. If credit could reach into payment's implementation,

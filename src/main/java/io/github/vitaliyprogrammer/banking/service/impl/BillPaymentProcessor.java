@@ -61,6 +61,8 @@ public class BillPaymentProcessor {
 
     private final OutboxService outboxService;
 
+    private final BusinessMetrics businessMetrics;
+
     private final BillPaymentProperties properties;
 
     private final Clock clock;
@@ -176,6 +178,7 @@ public class BillPaymentProcessor {
                 payment.getId(), payment.getInitiatorId(), payment.getFromAccountId(), provider.getCategory(),
                 payment.getCurrency(), payment.getAmount(), now));
         outboxService.record(OutboxEventType.PAYMENT_COMPLETED, payment.getId(), PaymentMessage.from(payment));
+        businessMetrics.paymentCompleted(payment.getType());
     }
 
     /** HOLD → client account: the full held amount comes back. */
@@ -189,6 +192,7 @@ public class BillPaymentProcessor {
 
         payment.fail(releaseId, reason, now);
         outboxService.record(OutboxEventType.PAYMENT_FAILED, payment.getId(), PaymentMessage.from(payment));
+        businessMetrics.paymentFailed(payment.getType());
     }
 
     private static String rejectionReason(ProviderCallResult result) {

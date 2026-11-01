@@ -80,6 +80,8 @@ public class PaymentServiceImpl implements PaymentService {
 
     private final OutboxService outboxService;
 
+    private final BusinessMetrics businessMetrics;
+
     private final TransactionTemplate transactionTemplate;
 
     private final Clock clock;
@@ -223,6 +225,7 @@ public class PaymentServiceImpl implements PaymentService {
                 // A bill payment is still PROCESSING here; its event comes when the provider answers.
                 if (created.isFinished()) {
                     outboxService.record(OutboxEventType.PAYMENT_COMPLETED, created.getId(), PaymentMessage.from(created));
+                    businessMetrics.paymentCompleted(created.getType());
                 }
                 return created;
             }));

@@ -32,6 +32,10 @@ services:
     profiles: [app]
     image: prom/prometheus:v3.5.0
     depends_on: [app]
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      # Lets k6 push its own metrics (VUs, its view of latency) next to the bank's.
+      - --web.enable-remote-write-receiver
     volumes:
       - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     ports:
@@ -97,5 +101,25 @@ services:
       - "${MAIL_PORT:-1025}:1025"
       - "8025:8025"
 
+  # Load tests, on demand (the bank must be up with --profile app):
+  #   docker compose --profile load run --rm k6 run /scripts/smoke.js
+  #   docker compose --profile load run --rm k6 run --summary-export=/results/load.json /scripts/load.js
+  k6:
+    profiles: [load]
+    image: grafana/k6:1.1.0
+    environment:
+      BASE_URL: http://app:8080
+      K6_PROMETHEUS_RW_SERVER_URL: http://prometheus:9090/api/v1/write
+      # Percentiles of k6's own measurements, not only averages.
+      K6_PROMETHEUS_RW_TREND_STATS: "p(95),p(99),avg,max"
+      # Set here, not in the command, so it stays on when "run" gets another script.
+      K6_OUT: experimental-prometheus-rw
+    command: ["run", "/scripts/smoke.js"]
+    volumes:
+      - ./load-tests:/scripts:ro
+      # Summaries of the runs (--summary-export=/results/...), kept out of git.
+      - ./load-tests/results:/results
+
 volumes:
   postgres-data:
+

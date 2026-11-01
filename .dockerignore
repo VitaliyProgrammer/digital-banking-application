@@ -1,0 +1,13 @@
+# Only what the build needs goes into the build context: smaller, faster, and no secrets by accident.
+target/
+.git/
+.github/
+.idea/
+*.iml
+.vscode/
+.env
+*.log
+docs/
+load-tests/
+monitoring/
+README.md

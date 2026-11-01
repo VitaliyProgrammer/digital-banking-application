@@ -2,62 +2,64 @@ package io.github.vitaliyprogrammer.banking;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices;
 import static com.tngtech.archunit.library.Architectures.layeredArchitecture;
 
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
-import io.github.vitaliyprogrammer.banking.entity.Account;
-import io.github.vitaliyprogrammer.banking.entity.status.EntryDirection;
-import io.github.vitaliyprogrammer.banking.entity.status.TransactionType;
-import io.github.vitaliyprogrammer.banking.repository.AccountRepository;
-import io.github.vitaliyprogrammer.banking.repository.AuditEntryRepository;
-import io.github.vitaliyprogrammer.banking.repository.BankRateRepository;
-import io.github.vitaliyprogrammer.banking.repository.CardRepository;
-import io.github.vitaliyprogrammer.banking.repository.CashbackAccrualRepository;
-import io.github.vitaliyprogrammer.banking.repository.CashbackPayoutRepository;
-import io.github.vitaliyprogrammer.banking.repository.CreditApplicationRepository;
-import io.github.vitaliyprogrammer.banking.repository.CreditStatementRepository;
-import io.github.vitaliyprogrammer.banking.repository.ExchangeQuoteRepository;
-import io.github.vitaliyprogrammer.banking.repository.InterestAccrualRepository;
-import io.github.vitaliyprogrammer.banking.repository.InterestPayoutRepository;
-import io.github.vitaliyprogrammer.banking.repository.LedgerEntryRepository;
-import io.github.vitaliyprogrammer.banking.repository.LedgerTransactionRepository;
-import io.github.vitaliyprogrammer.banking.repository.NotificationRepository;
-import io.github.vitaliyprogrammer.banking.repository.OfficialRateRepository;
-import io.github.vitaliyprogrammer.banking.repository.OutboxEventRepository;
-import io.github.vitaliyprogrammer.banking.repository.PaymentRepository;
-import io.github.vitaliyprogrammer.banking.repository.ProviderRepository;
-import io.github.vitaliyprogrammer.banking.repository.ReceiptRepository;
-import io.github.vitaliyprogrammer.banking.repository.RefreshTokenRepository;
-import io.github.vitaliyprogrammer.banking.repository.SupportTicketRepository;
-import io.github.vitaliyprogrammer.banking.repository.TicketMessageRepository;
-import io.github.vitaliyprogrammer.banking.repository.UserRepository;
-import io.github.vitaliyprogrammer.banking.service.AccountService;
-import io.github.vitaliyprogrammer.banking.service.CardService;
-import io.github.vitaliyprogrammer.banking.service.impl.AccountServiceImpl;
-import io.github.vitaliyprogrammer.banking.service.impl.AuditServiceImpl;
-import io.github.vitaliyprogrammer.banking.service.impl.AuthenticationServiceImpl;
-import io.github.vitaliyprogrammer.banking.service.impl.BillPaymentProcessor;
-import io.github.vitaliyprogrammer.banking.service.impl.CardServiceImpl;
-import io.github.vitaliyprogrammer.banking.service.impl.CashbackServiceImpl;
-import io.github.vitaliyprogrammer.banking.service.impl.CreditApplicationServiceImpl;
-import io.github.vitaliyprogrammer.banking.service.impl.CreditLineServiceImpl;
-import io.github.vitaliyprogrammer.banking.service.impl.ExchangeQuoteServiceImpl;
-import io.github.vitaliyprogrammer.banking.service.impl.ExchangeRateServiceImpl;
-import io.github.vitaliyprogrammer.banking.service.impl.HttpProviderClient;
-import io.github.vitaliyprogrammer.banking.service.impl.LedgerServiceImpl;
-import io.github.vitaliyprogrammer.banking.service.impl.NbuRateClient;
-import io.github.vitaliyprogrammer.banking.service.impl.NotificationServiceImpl;
-import io.github.vitaliyprogrammer.banking.service.impl.OutboxRelay;
-import io.github.vitaliyprogrammer.banking.service.impl.OutboxServiceImpl;
-import io.github.vitaliyprogrammer.banking.service.impl.PaymentServiceImpl;
-import io.github.vitaliyprogrammer.banking.service.impl.ReceiptServiceImpl;
-import io.github.vitaliyprogrammer.banking.service.impl.RefreshTokenServiceImpl;
-import io.github.vitaliyprogrammer.banking.service.impl.SavingsServiceImpl;
-import io.github.vitaliyprogrammer.banking.service.impl.SupportTicketServiceImpl;
-import io.github.vitaliyprogrammer.banking.service.impl.UserServiceImpl;
+import io.github.vitaliyprogrammer.banking.account.entity.Account;
+import io.github.vitaliyprogrammer.banking.account.entity.status.EntryDirection;
+import io.github.vitaliyprogrammer.banking.account.entity.status.TransactionType;
+import io.github.vitaliyprogrammer.banking.account.repository.AccountRepository;
+import io.github.vitaliyprogrammer.banking.account.repository.LedgerEntryRepository;
+import io.github.vitaliyprogrammer.banking.account.repository.LedgerTransactionRepository;
+import io.github.vitaliyprogrammer.banking.account.service.AccountService;
+import io.github.vitaliyprogrammer.banking.account.service.impl.AccountServiceImpl;
+import io.github.vitaliyprogrammer.banking.account.service.impl.LedgerServiceImpl;
+import io.github.vitaliyprogrammer.banking.audit.repository.AuditEntryRepository;
+import io.github.vitaliyprogrammer.banking.audit.service.impl.AuditServiceImpl;
+import io.github.vitaliyprogrammer.banking.card.repository.CardRepository;
+import io.github.vitaliyprogrammer.banking.card.service.CardService;
+import io.github.vitaliyprogrammer.banking.card.service.impl.CardServiceImpl;
+import io.github.vitaliyprogrammer.banking.cashback.repository.CashbackAccrualRepository;
+import io.github.vitaliyprogrammer.banking.cashback.repository.CashbackPayoutRepository;
+import io.github.vitaliyprogrammer.banking.cashback.service.impl.CashbackServiceImpl;
+import io.github.vitaliyprogrammer.banking.credit.repository.CreditApplicationRepository;
+import io.github.vitaliyprogrammer.banking.credit.repository.CreditStatementRepository;
+import io.github.vitaliyprogrammer.banking.credit.service.impl.CreditApplicationServiceImpl;
+import io.github.vitaliyprogrammer.banking.credit.service.impl.CreditLineServiceImpl;
+import io.github.vitaliyprogrammer.banking.exchange.repository.BankRateRepository;
+import io.github.vitaliyprogrammer.banking.exchange.repository.ExchangeQuoteRepository;
+import io.github.vitaliyprogrammer.banking.exchange.repository.OfficialRateRepository;
+import io.github.vitaliyprogrammer.banking.exchange.service.impl.ExchangeQuoteServiceImpl;
+import io.github.vitaliyprogrammer.banking.exchange.service.impl.ExchangeRateServiceImpl;
+import io.github.vitaliyprogrammer.banking.exchange.service.impl.NbuRateClient;
+import io.github.vitaliyprogrammer.banking.identity.repository.RefreshTokenRepository;
+import io.github.vitaliyprogrammer.banking.identity.repository.UserRepository;
+import io.github.vitaliyprogrammer.banking.identity.service.impl.AuthenticationServiceImpl;
+import io.github.vitaliyprogrammer.banking.identity.service.impl.RefreshTokenServiceImpl;
+import io.github.vitaliyprogrammer.banking.identity.service.impl.UserServiceImpl;
+import io.github.vitaliyprogrammer.banking.notification.repository.NotificationRepository;
+import io.github.vitaliyprogrammer.banking.notification.service.impl.NotificationServiceImpl;
+import io.github.vitaliyprogrammer.banking.outbox.repository.OutboxEventRepository;
+import io.github.vitaliyprogrammer.banking.outbox.service.impl.OutboxRelay;
+import io.github.vitaliyprogrammer.banking.outbox.service.impl.OutboxServiceImpl;
+import io.github.vitaliyprogrammer.banking.payment.repository.PaymentRepository;
+import io.github.vitaliyprogrammer.banking.payment.repository.ProviderRepository;
+import io.github.vitaliyprogrammer.banking.payment.service.impl.BillPaymentProcessor;
+import io.github.vitaliyprogrammer.banking.payment.service.impl.HttpProviderClient;
+import io.github.vitaliyprogrammer.banking.payment.service.impl.PaymentServiceImpl;
+import io.github.vitaliyprogrammer.banking.receipt.repository.ReceiptRepository;
+import io.github.vitaliyprogrammer.banking.receipt.service.impl.ReceiptServiceImpl;
+import io.github.vitaliyprogrammer.banking.savings.repository.InterestAccrualRepository;
+import io.github.vitaliyprogrammer.banking.savings.repository.InterestPayoutRepository;
+import io.github.vitaliyprogrammer.banking.savings.service.impl.SavingsServiceImpl;
+import io.github.vitaliyprogrammer.banking.support.repository.SupportTicketRepository;
+import io.github.vitaliyprogrammer.banking.support.repository.TicketMessageRepository;
+import io.github.vitaliyprogrammer.banking.support.service.impl.SupportTicketServiceImpl;
+import jakarta.persistence.Entity;
 import java.math.BigDecimal;
 import java.util.UUID;
 import org.springframework.amqp.core.AmqpTemplate;
@@ -65,8 +67,9 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.web.client.RestClient;
 
 /**
- * Architecture rules checked on every build. The packages are layered (controller → service → repository),
- * and on top of that each domain owns its tables: another domain must go through that domain's service interface.
+ * Architecture rules checked on every build. The code is packaged by domain (account, payment, credit...), and each
+ * domain is layered inside (controller → service → repository). On top of that each domain owns its tables, and
+ * domains talk to each other only through service interfaces, never through another domain's implementation.
  * A rule that is broken fails the build with the exact class and line.
  */
 @AnalyzeClasses(packages = "io.github.vitaliyprogrammer.banking", importOptions = ImportOption.DoNotIncludeTests.class)
@@ -74,29 +77,38 @@ class ArchitectureTests {
 
     private static final String ROOT = "io.github.vitaliyprogrammer.banking";
 
-    /** Controller → Service → Repository: never backwards and never skipping the service layer. */
+    /** Controller → Service → Repository, inside every domain: never backwards and never skipping the service layer. */
     @ArchTest
     static final ArchRule layersDependOnlyDownwards = layeredArchitecture()
             .consideringOnlyDependenciesInLayers()
-            .layer("Controller").definedBy(ROOT + ".controller..")
-            .layer("Service").definedBy(ROOT + ".service..")
-            .layer("Repository").definedBy(ROOT + ".repository..")
-            .layer("Configuration").definedBy(ROOT + ".configuration..")
+            .layer("Controller").definedBy(ROOT + ".*.controller..")
+            .layer("Service").definedBy(ROOT + ".*.service..")
+            .layer("Repository").definedBy(ROOT + ".*.repository..")
+            .layer("Configuration").definedBy(ROOT + ".*.configuration..")
             .whereLayer("Controller").mayNotBeAccessedByAnyLayer()
             .whereLayer("Service").mayOnlyBeAccessedByLayers("Controller", "Configuration")
             .whereLayer("Repository").mayOnlyBeAccessedByLayers("Service");
 
     @ArchTest
     static final ArchRule controllersNeverExposeEntities = noClasses()
-            .that().resideInAPackage(ROOT + ".controller..")
-            .should().dependOnClassesThat().resideInAPackage(ROOT + ".entity")
+            .that().resideInAPackage(ROOT + ".*.controller..")
+            .should().dependOnClassesThat().areAnnotatedWith(Entity.class)
             .because("controllers return DTOs; an entity in a response would leak internals like a password hash");
 
     @ArchTest
     static final ArchRule servicePackageHoldsOnlyInterfaces = classes()
-            .that().resideInAPackage(ROOT + ".service")
+            .that().resideInAPackage(ROOT + ".*.service")
             .should().beInterfaces()
             .because("implementations live in service.impl");
+
+    /**
+     * Domains meet only at their service interfaces and DTOs. If credit could reach into payment's implementation,
+     * the two would quietly grow into one, and no module could be changed, tested or split out on its own.
+     */
+    @ArchTest
+    static final ArchRule domainsDoNotReachIntoEachOthersImplementation = slices()
+            .matching(ROOT + ".(*).service.impl..")
+            .should().notDependOnEachOther();
 
     /** The money rule: a balance changes only together with a ledger entry, under the ledger's row lock. */
     @ArchTest

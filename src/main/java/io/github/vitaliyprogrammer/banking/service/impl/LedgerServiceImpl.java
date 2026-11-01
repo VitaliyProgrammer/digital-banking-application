@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +40,8 @@ public class LedgerServiceImpl implements LedgerService {
     private final EntityManager entityManager;
 
     private final Clock clock;
+
+    private final Map<BankAccountKey, List<UUID>> bankAccountShards = new ConcurrentHashMap<>();
 
     /**
      * 1. Validate the shape of the posting (programming errors → IllegalArgumentException → 500).
@@ -82,17 +86,38 @@ public class LedgerServiceImpl implements LedgerService {
         return ledgerTransactionRepository.save(transaction).getId();
     }
 
+    /**
+     * A random shard of the bank's account. Hot accounts (fee income, settlement, hold) have 16 shards, so parallel
+     * payments lock different rows instead of queuing behind one; the others have just one. Deadlocks stay impossible:
+     * post() still locks all accounts of a posting in the order of their ids.
+     * The ids are read once and kept: bank accounts are created only by migrations and never change at runtime.
+     */
     @Override
-    @Transactional(readOnly = true)
     public UUID getBankAccountId(AccountType type, Currency currency) {
 
-        if (type == AccountType.CLIENT) {
-            throw new IllegalArgumentException("CLIENT is not a bank account type");
+        if (type == AccountType.CLIENT || type == AccountType.SAVINGS || type == AccountType.CREDIT) {
+            throw new IllegalArgumentException(type + " is not a bank account type");
         }
 
-        return accountRepository.findByTypeAndCurrency(type, currency)
+        List<UUID> shards = bankAccountShards.computeIfAbsent(new BankAccountKey(type, currency), this::loadShards);
+
+        return shards.get(ThreadLocalRandom.current().nextInt(shards.size()));
+    }
+
+    /** Throws for a missing account, so nothing empty is ever cached. */
+    private List<UUID> loadShards(BankAccountKey key) {
+
+        List<UUID> ids = accountRepository.findAllByTypeAndCurrency(key.type(), key.currency()).stream()
                 .map(Account::getId)
-                .orElseThrow(() -> new IllegalStateException("No " + type + " account for " + currency));
+                .toList();
+
+        if (ids.isEmpty()) {
+            throw new IllegalStateException("No " + key.type() + " account for " + key.currency());
+        }
+        return ids;
+    }
+
+    private record BankAccountKey(AccountType type, Currency currency) {
     }
 
     private static void validateShape(PostingRequestDto posting) {

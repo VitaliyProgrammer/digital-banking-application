@@ -2,10 +2,10 @@ package io.github.vitaliyprogrammer.banking.credit.controller;
 
 import io.github.vitaliyprogrammer.banking.common.configuration.OpenApiConfiguration;
 import io.github.vitaliyprogrammer.banking.common.security.CurrentUserId;
-import io.github.vitaliyprogrammer.banking.credit.dto.request.CreditRepaymentRequestDto;
 import io.github.vitaliyprogrammer.banking.credit.dto.response.CreditLineResponseDto;
 import io.github.vitaliyprogrammer.banking.credit.dto.response.CreditStatementResponseDto;
 import io.github.vitaliyprogrammer.banking.credit.service.CreditLineService;
+import io.github.vitaliyprogrammer.banking.payment.dto.request.CreditRepaymentRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.response.PaymentResponseDto;
 import io.github.vitaliyprogrammer.banking.payment.service.PaymentService;
 import io.swagger.v3.oas.annotations.Operation;

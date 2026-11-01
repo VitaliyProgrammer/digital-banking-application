@@ -20,9 +20,9 @@ import io.github.vitaliyprogrammer.banking.credit.exception.OwnCreditApplication
 import io.github.vitaliyprogrammer.banking.credit.service.CreditApplicationService;
 import io.github.vitaliyprogrammer.banking.identity.repository.UserRepository;
 import io.github.vitaliyprogrammer.banking.identity.service.AccessTokenService;
+import io.github.vitaliyprogrammer.banking.payment.dto.request.SavingsTransferRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.request.TopUpRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.service.PaymentService;
-import io.github.vitaliyprogrammer.banking.savings.dto.request.SavingsTransferRequestDto;
 import io.github.vitaliyprogrammer.banking.savings.service.SavingsService;
 import java.math.BigDecimal;
 import java.util.UUID;

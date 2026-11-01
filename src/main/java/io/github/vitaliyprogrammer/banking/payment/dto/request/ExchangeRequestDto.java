@@ -1,4 +1,4 @@
-package io.github.vitaliyprogrammer.banking.exchange.dto.request;
+package io.github.vitaliyprogrammer.banking.payment.dto.request;
 
 import jakarta.validation.constraints.NotNull;
 import java.util.UUID;

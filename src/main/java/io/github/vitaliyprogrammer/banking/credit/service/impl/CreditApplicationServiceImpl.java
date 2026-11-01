@@ -8,7 +8,6 @@ import io.github.vitaliyprogrammer.banking.audit.entity.status.AuditAction;
 import io.github.vitaliyprogrammer.banking.audit.entity.status.AuditTarget;
 import io.github.vitaliyprogrammer.banking.audit.service.AuditService;
 import io.github.vitaliyprogrammer.banking.common.dto.PageResponseDto;
-import io.github.vitaliyprogrammer.banking.common.metrics.BusinessMetrics;
 import io.github.vitaliyprogrammer.banking.credit.configuration.CreditProperties;
 import io.github.vitaliyprogrammer.banking.credit.dto.request.CreditApplicationRequestDto;
 import io.github.vitaliyprogrammer.banking.credit.dto.request.CreditDecisionRequestDto;
@@ -66,7 +65,7 @@ public class CreditApplicationServiceImpl implements CreditApplicationService {
 
     private final AuditService auditService;
 
-    private final BusinessMetrics businessMetrics;
+    private final CreditMetrics creditMetrics;
 
     private final CreditScoring creditScoring;
 
@@ -111,7 +110,7 @@ public class CreditApplicationServiceImpl implements CreditApplicationService {
         if (!application.isUnderReview()) {
             announceDecision(application);
         }
-        businessMetrics.creditApplicationScored(application.getStatus());
+        creditMetrics.creditApplicationScored(application.getStatus());
 
         return CreditApplicationResponseDto.from(application);
     }
@@ -179,7 +178,7 @@ public class CreditApplicationServiceImpl implements CreditApplicationService {
 
         outboxService.record(OutboxEventType.CREDIT_APPLICATION_DECIDED, application.getId(),
                 CreditDecisionMessage.from(application));
-        businessMetrics.creditDecided(application.getStatus(), application.getDecisionSource());
+        creditMetrics.creditDecided(application.getStatus(), application.getDecisionSource());
     }
 
     /**

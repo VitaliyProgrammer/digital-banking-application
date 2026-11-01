@@ -122,7 +122,6 @@ The first admin is created at startup from `ADMIN_EMAIL` and `ADMIN_PASSWORD` (f
 | 🧪 | [**Testing**](docs/testing.md) | Testcontainers, one shared context, ArchUnit rules, what each test proves |
 | 📈 | [**Operations**](docs/operations.md) | Docker image, configuration, metrics, the Grafana dashboard |
 | 🔥 | [**Load tests**](load-tests/README.md) | k6 scenarios, results, and the bottleneck they found |
-| 🎓 | [**k6 in short**](docs/k6-basics.md) 🇺🇦 | The ideas behind load testing, in one page (in Ukrainian) |
 
 ## 🧰 Tech stack
 

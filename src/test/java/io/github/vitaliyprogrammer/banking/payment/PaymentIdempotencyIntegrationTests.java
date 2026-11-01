@@ -9,11 +9,9 @@ import io.github.vitaliyprogrammer.banking.dto.request.TopUpRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.request.TransferRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.response.AccountResponseDto;
 import io.github.vitaliyprogrammer.banking.dto.response.PaymentResponseDto;
-import io.github.vitaliyprogrammer.banking.entity.status.AccountType;
 import io.github.vitaliyprogrammer.banking.entity.status.Currency;
 import io.github.vitaliyprogrammer.banking.exception.IdempotencyKeyReusedException;
 import io.github.vitaliyprogrammer.banking.service.AccountService;
-import io.github.vitaliyprogrammer.banking.service.LedgerService;
 import io.github.vitaliyprogrammer.banking.service.PaymentService;
 import java.math.BigDecimal;
 import java.util.List;
@@ -29,9 +27,6 @@ class PaymentIdempotencyIntegrationTests extends IntegrationTest {
 
     @Autowired
     private AccountService accountService;
-
-    @Autowired
-    private LedgerService ledgerService;
 
     @Test
     void parallelRequestsWithSameKeyCreateOnePayment() throws Exception {
@@ -90,8 +85,8 @@ class PaymentIdempotencyIntegrationTests extends IntegrationTest {
         UUID payerId = createUser();
         UUID payerAccount = openAccountWithBalance(payerId, "3000.00");
         AccountResponseDto recipient = accountService.open(createUser(), new OpenAccountRequestDto(Currency.UAH));
-        UUID feeAccount = ledgerService.getBankAccountId(AccountType.FEE_INCOME, Currency.UAH);
-        BigDecimal feeIncomeBefore = balanceOf(feeAccount);
+        // Fee income is split into shards (V22): the bank's income is the sum of all of them.
+        BigDecimal feeIncomeBefore = feeIncome();
 
         // Spaces in the IBAN, as copied from a banking app.
         String spacedNumber = recipient.number().replaceAll("(.{4})", "$1 ").trim();
@@ -101,8 +96,13 @@ class PaymentIdempotencyIntegrationTests extends IntegrationTest {
         assertThat(payment.fee()).isEqualByComparingTo("10.00");             // 0.5% of 2000.00
         assertThat(balanceOf(payerAccount)).isEqualByComparingTo("990.00");  // 3000 - 2000 - 10
         assertThat(balanceOf(recipient.id())).isEqualByComparingTo("2000.00");
-        assertThat(balanceOf(feeAccount).subtract(feeIncomeBefore)).isEqualByComparingTo("10.00");
+        assertThat(feeIncome().subtract(feeIncomeBefore)).isEqualByComparingTo("10.00");
         assertThat(entriesOfPayment(payment.id())).isEqualTo(3);
+    }
+
+    private BigDecimal feeIncome() {
+        return jdbcTemplate.queryForObject(
+                "SELECT sum(balance) FROM accounts WHERE type = 'FEE_INCOME' AND currency = 'UAH'", BigDecimal.class);
     }
 
     private UUID openAccountWithBalance(UUID ownerId, String amount) {

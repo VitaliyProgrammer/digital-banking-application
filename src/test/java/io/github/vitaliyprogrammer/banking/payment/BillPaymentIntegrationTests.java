@@ -14,11 +14,9 @@ import io.github.vitaliyprogrammer.banking.dto.request.BillPaymentRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.request.OpenAccountRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.request.TopUpRequestDto;
 import io.github.vitaliyprogrammer.banking.dto.response.PaymentResponseDto;
-import io.github.vitaliyprogrammer.banking.entity.status.AccountType;
 import io.github.vitaliyprogrammer.banking.entity.status.Currency;
 import io.github.vitaliyprogrammer.banking.entity.status.PaymentStatus;
 import io.github.vitaliyprogrammer.banking.service.AccountService;
-import io.github.vitaliyprogrammer.banking.service.LedgerService;
 import io.github.vitaliyprogrammer.banking.service.PaymentService;
 import io.github.vitaliyprogrammer.banking.service.impl.BillPaymentProcessor;
 import java.math.BigDecimal;
@@ -43,9 +41,6 @@ class BillPaymentIntegrationTests extends IntegrationTest {
     private AccountService accountService;
 
     @Autowired
-    private LedgerService ledgerService;
-
-    @Autowired
     private BillPaymentProcessor billPaymentProcessor;
 
     private UUID clientId;
@@ -64,7 +59,7 @@ class BillPaymentIntegrationTests extends IntegrationTest {
         wireMock.stubFor(post(urlPathEqualTo("/" + PROVIDER + "/payments"))
                 .willReturn(okJson("{\"status\": \"ACCEPTED\"}").withFixedDelay(200)));
 
-        BigDecimal inTransitBefore = balanceOf(holdAccount());
+        BigDecimal inTransitBefore = inTransit();
         PaymentResponseDto payment = payElectricity("300.00");
 
         assertThat(payment.status()).isEqualTo(PaymentStatus.PROCESSING);
@@ -77,8 +72,8 @@ class BillPaymentIntegrationTests extends IntegrationTest {
 
         wireMock.verify(1, postRequestedFor(urlPathEqualTo("/" + PROVIDER + "/payments")));
         assertThat(statusOf(payment.id())).isEqualTo(PaymentStatus.COMPLETED);
-        // The HOLD account is shared by all tests, so compare with its balance before this payment.
-        assertThat(balanceOf(holdAccount())).as("nothing left in transit").isEqualByComparingTo(inTransitBefore);
+        // HOLD is shared by all tests, so compare with what was in transit before this payment.
+        assertThat(inTransit()).as("nothing left in transit").isEqualByComparingTo(inTransitBefore);
     }
 
     @Test
@@ -148,8 +143,10 @@ class BillPaymentIntegrationTests extends IntegrationTest {
         return paymentService.getPayment(clientId, paymentId).status();
     }
 
-    private UUID holdAccount() {
-        return ledgerService.getBankAccountId(AccountType.HOLD, Currency.UAH);
+    /** Money in transit: HOLD is split into shards (V22), and a hold and its capture may use different ones. */
+    private BigDecimal inTransit() {
+        return jdbcTemplate.queryForObject(
+                "SELECT sum(balance) FROM accounts WHERE type = 'HOLD' AND currency = 'UAH'", BigDecimal.class);
     }
 
     /** Instead of sleeping until the next reconciliation is due, move that moment into the past. */

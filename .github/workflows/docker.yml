@@ -1,0 +1,53 @@
+name: Docker image
+
+# Every merge into main publishes a ready-to-run image, so anyone can try the bank without building it:
+#   ghcr.io/vitaliyprogrammer/digital-banking-application:latest
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# A newer push to main makes an older, still running publish pointless.
+concurrency:
+  group: docker-image
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      # QEMU + Buildx: one build, two architectures (amd64 for most PCs, arm64 for Apple silicon).
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Tags: latest and the short commit SHA; labels link the image back to this repository.
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/digital-banking-application
+          tags: |
+            type=raw,value=latest
+            type=sha,format=short
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # Layer cache between runs: an unchanged pom.xml means no dependency download.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

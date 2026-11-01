@@ -2,7 +2,9 @@
 
 # ---- Stage 1: build -------------------------------------------------------------------------------
 # The JDK and Maven live only here: none of it reaches the image that runs in production.
-FROM eclipse-temurin:25-jdk-alpine AS build
+# BUILDPLATFORM: the jar is the same for every CPU, so it is built natively on the build machine even when the image
+# is for another architecture (arm64 for Apple silicon). Only the thin runtime stage is per architecture.
+FROM --platform=$BUILDPLATFORM eclipse-temurin:25-jdk-alpine AS build
 WORKDIR /workspace
 
 # Dependencies first, the code later: as long as pom.xml does not change, this layer comes from the cache.

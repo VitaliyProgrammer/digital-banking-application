@@ -2,10 +2,10 @@ package io.github.vitaliyprogrammer.banking.credit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.github.vitaliyprogrammer.banking.configuration.CreditProperties;
-import io.github.vitaliyprogrammer.banking.dto.response.ScoringResultDto;
-import io.github.vitaliyprogrammer.banking.entity.status.CreditApplicationStatus;
-import io.github.vitaliyprogrammer.banking.service.impl.CreditScoring;
+import io.github.vitaliyprogrammer.banking.credit.configuration.CreditProperties;
+import io.github.vitaliyprogrammer.banking.credit.dto.response.ScoringResultDto;
+import io.github.vitaliyprogrammer.banking.credit.entity.status.CreditApplicationStatus;
+import io.github.vitaliyprogrammer.banking.credit.service.impl.CreditScoring;
 import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
 

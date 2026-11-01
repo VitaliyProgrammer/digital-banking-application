@@ -2,17 +2,17 @@ package io.github.vitaliyprogrammer.banking.notification;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.github.vitaliyprogrammer.banking.dto.response.NotificationDraftDto;
-import io.github.vitaliyprogrammer.banking.entity.status.CreditApplicationStatus;
-import io.github.vitaliyprogrammer.banking.entity.status.CreditStatementStatus;
-import io.github.vitaliyprogrammer.banking.entity.status.Currency;
-import io.github.vitaliyprogrammer.banking.entity.status.DecisionSource;
-import io.github.vitaliyprogrammer.banking.entity.status.PaymentStatus;
-import io.github.vitaliyprogrammer.banking.entity.status.PaymentType;
-import io.github.vitaliyprogrammer.banking.event.CreditDecisionMessage;
-import io.github.vitaliyprogrammer.banking.event.CreditStatementMessage;
-import io.github.vitaliyprogrammer.banking.event.PaymentMessage;
-import io.github.vitaliyprogrammer.banking.service.impl.NotificationComposer;
+import io.github.vitaliyprogrammer.banking.account.entity.status.Currency;
+import io.github.vitaliyprogrammer.banking.credit.entity.status.CreditApplicationStatus;
+import io.github.vitaliyprogrammer.banking.credit.entity.status.CreditStatementStatus;
+import io.github.vitaliyprogrammer.banking.credit.entity.status.DecisionSource;
+import io.github.vitaliyprogrammer.banking.credit.event.CreditDecisionMessage;
+import io.github.vitaliyprogrammer.banking.credit.event.CreditStatementMessage;
+import io.github.vitaliyprogrammer.banking.notification.dto.response.NotificationDraftDto;
+import io.github.vitaliyprogrammer.banking.notification.service.impl.NotificationComposer;
+import io.github.vitaliyprogrammer.banking.payment.entity.status.PaymentStatus;
+import io.github.vitaliyprogrammer.banking.payment.entity.status.PaymentType;
+import io.github.vitaliyprogrammer.banking.payment.event.PaymentMessage;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;

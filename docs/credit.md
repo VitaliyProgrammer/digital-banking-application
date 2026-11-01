@@ -31,7 +31,7 @@ flowchart LR
 
 ## ⚙️ Scoring: a pure function
 
-[`CreditScoring`](../src/main/java/io/github/vitaliyprogrammer/banking/service/impl/CreditScoring.java) gets three facts and returns a decision with **reasons in plain words**. No database, no clock: every rule and every border is a millisecond unit test ([`CreditScoringTests`](../src/test/java/io/github/vitaliyprogrammer/banking/credit/CreditScoringTests.java)).
+[`CreditScoring`](../src/main/java/io/github/vitaliyprogrammer/banking/credit/service/impl/CreditScoring.java) gets three facts and returns a decision with **reasons in plain words**. No database, no clock: every rule and every border is a millisecond unit test ([`CreditScoringTests`](../src/test/java/io/github/vitaliyprogrammer/banking/credit/CreditScoringTests.java)).
 
 | Fact | Where it comes from |
 |---|---|
@@ -81,7 +81,7 @@ Everything spent in a month forms that month's statement. It closes at **midnigh
 | 31 October | 1 November 00:00 | 30 November | 31 |
 | 15 January 2028 | 1 February 00:00 | 29 February (leap year) | 46 |
 
-The calendar arithmetic is a pure class, [`GracePeriod`](../src/main/java/io/github/vitaliyprogrammer/banking/service/impl/GracePeriod.java), with tests for the 62-day case, February, leap years and Kyiv-vs-UTC midnight.
+The calendar arithmetic is a pure class, [`GracePeriod`](../src/main/java/io/github/vitaliyprogrammer/banking/credit/service/impl/GracePeriod.java), with tests for the 62-day case, February, leap years and Kyiv-vs-UTC midnight.
 
 ## 🧮 Statements, minimum payment, interest
 
@@ -104,8 +104,8 @@ Proved in [`CreditStatementIntegrationTests`](../src/test/java/io/github/vitaliy
 
 | What | File |
 |---|---|
-| Applications, staff decisions | [`CreditApplicationServiceImpl`](../src/main/java/io/github/vitaliyprogrammer/banking/service/impl/CreditApplicationServiceImpl.java) |
-| Scoring rules | [`CreditScoring`](../src/main/java/io/github/vitaliyprogrammer/banking/service/impl/CreditScoring.java) |
-| Credit line, statements, the monthly job | [`CreditLineServiceImpl`](../src/main/java/io/github/vitaliyprogrammer/banking/service/impl/CreditLineServiceImpl.java), [`CreditLineScheduler`](../src/main/java/io/github/vitaliyprogrammer/banking/service/impl/CreditLineScheduler.java) |
-| Minimum payment and settlement rules | [`CreditTerms`](../src/main/java/io/github/vitaliyprogrammer/banking/service/impl/CreditTerms.java) |
+| Applications, staff decisions | [`CreditApplicationServiceImpl`](../src/main/java/io/github/vitaliyprogrammer/banking/credit/service/impl/CreditApplicationServiceImpl.java) |
+| Scoring rules | [`CreditScoring`](../src/main/java/io/github/vitaliyprogrammer/banking/credit/service/impl/CreditScoring.java) |
+| Credit line, statements, the monthly job | [`CreditLineServiceImpl`](../src/main/java/io/github/vitaliyprogrammer/banking/credit/service/impl/CreditLineServiceImpl.java), [`CreditLineScheduler`](../src/main/java/io/github/vitaliyprogrammer/banking/credit/service/impl/CreditLineScheduler.java) |
+| Minimum payment and settlement rules | [`CreditTerms`](../src/main/java/io/github/vitaliyprogrammer/banking/credit/service/impl/CreditTerms.java) |
 | Tests | [`credit/`](../src/test/java/io/github/vitaliyprogrammer/banking/credit) |

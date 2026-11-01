@@ -103,8 +103,8 @@ sequenceDiagram
 
 | What | File |
 |---|---|
-| All payment types, idempotency | [`PaymentServiceImpl`](../src/main/java/io/github/vitaliyprogrammer/banking/service/impl/PaymentServiceImpl.java) |
-| Bill worker and reconciliation | [`BillPaymentProcessor`](../src/main/java/io/github/vitaliyprogrammer/banking/service/impl/BillPaymentProcessor.java) |
-| Fee policies | [`FeeCalculator`](../src/main/java/io/github/vitaliyprogrammer/banking/service/impl/FeeCalculator.java) and `*FeePolicy` next to it |
-| Quotes and rates | [`ExchangeQuoteServiceImpl`](../src/main/java/io/github/vitaliyprogrammer/banking/service/impl/ExchangeQuoteServiceImpl.java), [`ExchangeRateServiceImpl`](../src/main/java/io/github/vitaliyprogrammer/banking/service/impl/ExchangeRateServiceImpl.java) |
+| All payment types, idempotency | [`PaymentServiceImpl`](../src/main/java/io/github/vitaliyprogrammer/banking/payment/service/impl/PaymentServiceImpl.java) |
+| Bill worker and reconciliation | [`BillPaymentProcessor`](../src/main/java/io/github/vitaliyprogrammer/banking/payment/service/impl/BillPaymentProcessor.java) |
+| Fee policies | [`FeeCalculator`](../src/main/java/io/github/vitaliyprogrammer/banking/payment/service/impl/fee/FeeCalculator.java) and `*FeePolicy` next to it |
+| Quotes and rates | [`ExchangeQuoteServiceImpl`](../src/main/java/io/github/vitaliyprogrammer/banking/exchange/service/impl/ExchangeQuoteServiceImpl.java), [`ExchangeRateServiceImpl`](../src/main/java/io/github/vitaliyprogrammer/banking/exchange/service/impl/ExchangeRateServiceImpl.java) |
 | Tests | [`payment/`](../src/test/java/io/github/vitaliyprogrammer/banking/payment), [`exchange/`](../src/test/java/io/github/vitaliyprogrammer/banking/exchange) |

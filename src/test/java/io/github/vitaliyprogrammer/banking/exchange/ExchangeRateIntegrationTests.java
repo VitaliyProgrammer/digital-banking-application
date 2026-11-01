@@ -12,12 +12,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import io.github.vitaliyprogrammer.banking.IntegrationTest;
-import io.github.vitaliyprogrammer.banking.entity.status.Role;
-import io.github.vitaliyprogrammer.banking.exception.OfficialRatesUnavailableException;
-import io.github.vitaliyprogrammer.banking.repository.UserRepository;
-import io.github.vitaliyprogrammer.banking.service.AccessTokenService;
-import io.github.vitaliyprogrammer.banking.service.ExchangeRateService;
-import io.github.vitaliyprogrammer.banking.service.UserService;
+import io.github.vitaliyprogrammer.banking.exchange.exception.OfficialRatesUnavailableException;
+import io.github.vitaliyprogrammer.banking.exchange.service.ExchangeRateService;
+import io.github.vitaliyprogrammer.banking.identity.entity.status.Role;
+import io.github.vitaliyprogrammer.banking.identity.repository.UserRepository;
+import io.github.vitaliyprogrammer.banking.identity.service.AccessTokenService;
+import io.github.vitaliyprogrammer.banking.identity.service.UserService;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;

@@ -3,9 +3,9 @@ package io.github.vitaliyprogrammer.banking.account;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.vitaliyprogrammer.banking.IntegrationTest;
-import io.github.vitaliyprogrammer.banking.entity.status.AccountType;
-import io.github.vitaliyprogrammer.banking.entity.status.Currency;
-import io.github.vitaliyprogrammer.banking.service.LedgerService;
+import io.github.vitaliyprogrammer.banking.account.entity.status.AccountType;
+import io.github.vitaliyprogrammer.banking.account.entity.status.Currency;
+import io.github.vitaliyprogrammer.banking.account.service.LedgerService;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;

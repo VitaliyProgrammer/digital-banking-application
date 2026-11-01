@@ -2,7 +2,7 @@
 
 ![tests](https://img.shields.io/badge/tests-123%20passing-success)
 ![real infrastructure](https://img.shields.io/badge/integration-real%20PostgreSQL%20·%20Redis%20·%20RabbitMQ%20·%20SMTP-291A3D)
-![ArchUnit](https://img.shields.io/badge/architecture-23%20rules-blueviolet)
+![ArchUnit](https://img.shields.io/badge/architecture-24%20rules-blueviolet)
 ![k6](https://img.shields.io/badge/load-k6-7D64FF?logo=k6&logoColor=white)
 
 > **In one sentence:** the tests run against the same kinds of servers as production, they prove the dangerous cases (races, retries, outages), and the architecture itself is a test that fails the build.
@@ -16,7 +16,7 @@
 | Level | Count | Speed | What it covers |
 |---|---|---|---|
 | 🧮 Unit | 5 classes | milliseconds | pure rules: scoring, credit terms, grace period, backoff, notification texts |
-| 🏛️ Architecture | 23 rules | seconds | layers and table ownership ([ArchUnit](../src/test/java/io/github/vitaliyprogrammer/banking/ArchitectureTests.java)) |
+| 🏛️ Architecture | 24 rules | seconds | layers and table ownership ([ArchUnit](../src/test/java/io/github/vitaliyprogrammer/banking/ArchitectureTests.java)) |
 | 🐘 Integration | 21 classes | ~3 minutes in all | services and HTTP on real PostgreSQL, Redis, RabbitMQ, an SMTP server and HTTP fakes |
 | 🔥 Load | 3 scenarios | minutes, on demand | [k6](../load-tests/README.md) against the running stack |
 
@@ -69,11 +69,12 @@ Races are tested for real: tasks wait at a start gate (`CountDownLatch`) and are
 
 ## 🏛️ Architecture as a test
 
-[`ArchitectureTests`](../src/test/java/io/github/vitaliyprogrammer/banking/ArchitectureTests.java) runs 23 rules on every build. A broken rule fails with the exact class and line:
+[`ArchitectureTests`](../src/test/java/io/github/vitaliyprogrammer/banking/ArchitectureTests.java) runs 24 rules on every build. A broken rule fails with the exact class and line:
 
 | Rule | Example |
 |---|---|
-| Layers only depend downwards | a controller never touches a repository |
+| Layers only depend downwards, inside every domain | a controller never touches a repository |
+| Domains meet only at service interfaces | `credit` never calls into `payment/service/impl`; shared code lives in `common/` |
 | Controllers never return entities | a password hash cannot leak into JSON |
 | Only the ledger changes balances | `onlyTheLedgerChangesBalances` |
 | Each domain owns its tables | only the payment domain uses `PaymentRepository`; others go through its service |

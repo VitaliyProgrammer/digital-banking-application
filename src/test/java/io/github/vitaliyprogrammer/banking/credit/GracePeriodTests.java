@@ -2,7 +2,7 @@ package io.github.vitaliyprogrammer.banking.credit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.github.vitaliyprogrammer.banking.service.impl.GracePeriod;
+import io.github.vitaliyprogrammer.banking.credit.service.impl.GracePeriod;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;

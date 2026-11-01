@@ -15,6 +15,9 @@ import io.github.vitaliyprogrammer.banking.exception.NotificationNotFoundExcepti
 import io.github.vitaliyprogrammer.banking.repository.NotificationRepository;
 import io.github.vitaliyprogrammer.banking.service.NotificationService;
 import io.github.vitaliyprogrammer.banking.service.UserService;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.binder.MeterBinder;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import java.time.Clock;
@@ -36,7 +39,7 @@ import tools.jackson.databind.json.JsonMapper;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class NotificationServiceImpl implements NotificationService {
+public class NotificationServiceImpl implements NotificationService, MeterBinder {
 
     private final NotificationRepository notificationRepository;
 
@@ -158,6 +161,16 @@ public class NotificationServiceImpl implements NotificationService {
         helper.setSubject(notification.getTitle());
         helper.setText(notification.getBody());
         mailSender.send(message);
+    }
+
+    /** Emails waiting for the mail server: a number that keeps growing means mail is down. */
+    @Override
+    public void bindTo(MeterRegistry registry) {
+
+        Gauge.builder("bank.notifications.emails.pending", notificationRepository,
+                        repository -> repository.countByEmailStatus(EmailStatus.PENDING))
+                .description("Email copies of notifications not sent yet")
+                .register(registry);
     }
 
     /** A payload that does not match its type is a broken message, not a reason to retry. */

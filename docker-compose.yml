@@ -1,4 +1,31 @@
+# Infrastructure only:          docker compose up -d                 (run the bank itself from the IDE)
+# The whole bank in containers:  docker compose --profile app up -d --build
 services:
+
+  app:
+    profiles: [app]
+    build: .
+    image: digital-banking:local
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+      mailpit: { condition: service_started }
+    environment:
+      # Inside the compose network every service is reached by its name, not by localhost.
+      DB_HOST: postgres
+      REDIS_HOST: redis
+      RABBITMQ_HOST: rabbitmq
+      MAIL_HOST: mailpit
+      # Optional: the first admin, e.g. ADMIN_EMAIL=admin@bank.local ADMIN_PASSWORD=... in a local .env file.
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    deploy:
+      resources:
+        limits:
+          memory: 1g
 
   postgres:
     image: postgres:17-alpine

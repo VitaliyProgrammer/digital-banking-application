@@ -32,14 +32,15 @@ COPY --from=build /workspace/target/extracted/snapshot-dependencies/ ./
 COPY --from=build /workspace/target/extracted/application/ ./
 
 USER bank
-EXPOSE 8080
+# 8080: the API. 8081: health and metrics, for Docker and Prometheus only (see management.server.port).
+EXPOSE 8080 8081
 
 # The heap follows the container's memory limit, not the memory of the whole machine.
 ENV JAVA_OPTS="-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError"
 
 # "Running" is not "ready": Docker asks the application itself. Spring needs a while to start, hence start-period.
 HEALTHCHECK --interval=15s --timeout=3s --start-period=60s --retries=3 \
-    CMD wget -qO- http://localhost:8080/actuator/health | grep -q '"status":"UP"' || exit 1
+    CMD wget -qO- http://localhost:8081/actuator/health | grep -q '"status":"UP"' || exit 1
 
 # exec: java becomes PID 1 and gets SIGTERM directly, so Spring shuts down gracefully on "docker stop".
 ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS org.springframework.boot.loader.launch.JarLauncher"]

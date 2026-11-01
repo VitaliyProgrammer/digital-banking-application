@@ -1,5 +1,5 @@
-# Infrastructure only:          docker compose up -d                 (run the bank itself from the IDE)
-# The whole bank in containers:  docker compose --profile app up -d --build
+# Infrastructure only: docker compose up -d (run the bank itself from the IDE)
+# The whole bank in containers: docker compose --profile app up -d --build
 services:
 
   app:

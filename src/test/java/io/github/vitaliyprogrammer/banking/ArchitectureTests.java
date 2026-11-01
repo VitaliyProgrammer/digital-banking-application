@@ -12,6 +12,7 @@ import io.github.vitaliyprogrammer.banking.entity.Account;
 import io.github.vitaliyprogrammer.banking.entity.status.EntryDirection;
 import io.github.vitaliyprogrammer.banking.entity.status.TransactionType;
 import io.github.vitaliyprogrammer.banking.repository.AccountRepository;
+import io.github.vitaliyprogrammer.banking.repository.AuditEntryRepository;
 import io.github.vitaliyprogrammer.banking.repository.BankRateRepository;
 import io.github.vitaliyprogrammer.banking.repository.CardRepository;
 import io.github.vitaliyprogrammer.banking.repository.CashbackAccrualRepository;
@@ -36,6 +37,7 @@ import io.github.vitaliyprogrammer.banking.repository.UserRepository;
 import io.github.vitaliyprogrammer.banking.service.AccountService;
 import io.github.vitaliyprogrammer.banking.service.CardService;
 import io.github.vitaliyprogrammer.banking.service.impl.AccountServiceImpl;
+import io.github.vitaliyprogrammer.banking.service.impl.AuditServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.AuthenticationServiceImpl;
 import io.github.vitaliyprogrammer.banking.service.impl.BillPaymentProcessor;
 import io.github.vitaliyprogrammer.banking.service.impl.CardServiceImpl;
@@ -175,6 +177,12 @@ class ArchitectureTests {
     static final ArchRule outboxTableBelongsToTheOutbox = classes()
             .that().belongToAnyOf(OutboxEventRepository.class)
             .should().onlyHaveDependentClassesThat().belongToAnyOf(OutboxServiceImpl.class, OutboxRelay.class);
+
+    /** Only the audit service writes the log, and only through record(): nobody else can add or shape entries. */
+    @ArchTest
+    static final ArchRule auditTableBelongsToTheAudit = classes()
+            .that().belongToAnyOf(AuditEntryRepository.class)
+            .should().onlyHaveDependentClassesThat().belongToAnyOf(AuditServiceImpl.class);
 
     @ArchTest
     static final ArchRule ticketTablesBelongToSupport = classes()

@@ -11,6 +11,8 @@ import io.github.vitaliyprogrammer.banking.dto.response.PageResponseDto;
 import io.github.vitaliyprogrammer.banking.dto.response.RateSyncResponseDto;
 import io.github.vitaliyprogrammer.banking.entity.BankRate;
 import io.github.vitaliyprogrammer.banking.entity.OfficialRate;
+import io.github.vitaliyprogrammer.banking.entity.status.AuditAction;
+import io.github.vitaliyprogrammer.banking.entity.status.AuditTarget;
 import io.github.vitaliyprogrammer.banking.entity.status.Currency;
 import io.github.vitaliyprogrammer.banking.exception.BankRateNotSetException;
 import io.github.vitaliyprogrammer.banking.exception.InvalidBankRateException;
@@ -19,6 +21,7 @@ import io.github.vitaliyprogrammer.banking.exception.OfficialRatesUnavailableExc
 import io.github.vitaliyprogrammer.banking.exception.UnsupportedCurrencyException;
 import io.github.vitaliyprogrammer.banking.repository.BankRateRepository;
 import io.github.vitaliyprogrammer.banking.repository.OfficialRateRepository;
+import io.github.vitaliyprogrammer.banking.service.AuditService;
 import io.github.vitaliyprogrammer.banking.service.ExchangeRateService;
 import io.github.vitaliyprogrammer.banking.service.OfficialRateClient;
 import io.github.vitaliyprogrammer.banking.service.UserService;
@@ -30,6 +33,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -71,6 +75,8 @@ public class ExchangeRateServiceImpl implements ExchangeRateService {
     private final OfficialRateClient officialRateClient;
 
     private final UserService userService;
+
+    private final AuditService auditService;
 
     private final ExchangeRateProperties properties;
 
@@ -169,9 +175,23 @@ public class ExchangeRateServiceImpl implements ExchangeRateService {
         };
 
         bankRateRepository.save(rate);
+        auditService.record(adminId, AuditAction.BANK_RATE_SET, AuditTarget.BANK_RATE, rate.getId(), rateDetails(rate));
         log.info("Bank rate {} set by {}: buy {} / sell {} ({})", currency, adminId, rate.getBuy(), rate.getSell(),
                 rate.getMode());
         return toRateDto(official, rate, today());
+    }
+
+    /** Spread is null for a manual rate, so a plain map that allows nulls, in a stable order. */
+    private static Map<String, Object> rateDetails(BankRate rate) {
+
+        Map<String, Object> details = new LinkedHashMap<>();
+        details.put("currency", rate.getCurrency());
+        details.put("mode", rate.getMode());
+        details.put("buy", rate.getBuy());
+        details.put("sell", rate.getSell());
+        details.put("spreadPercent", rate.getSpreadPercent());
+        details.put("comment", rate.getComment());
+        return details;
     }
 
     /**

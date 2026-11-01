@@ -99,7 +99,9 @@ public class NotificationServiceImpl implements NotificationService {
                     int attempt = notification.getEmailAttempts() + 1;
                     Instant retryAt = attempt >= properties.maxEmailAttempts()
                             ? null
-                            : now.plus(OutboxBackoff.delayAfter(attempt, properties.maxEmailBackoff()));
+                            // Counted from the failure, not from the start of the batch: a slow SMTP answer must not
+                            // eat up the wait and make the email "due" again at once.
+                            : clock.instant().plus(OutboxBackoff.delayAfter(attempt, properties.maxEmailBackoff()));
                     notification.emailFailed(e.getMessage(), retryAt);
                     log.warn("Email for notification {} failed, attempt {}: {}",
                             notification.getId(), attempt, e.getMessage());

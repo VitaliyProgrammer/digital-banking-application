@@ -9,6 +9,8 @@ import io.github.vitaliyprogrammer.banking.dto.response.PageResponseDto;
 import io.github.vitaliyprogrammer.banking.dto.response.ScoringResultDto;
 import io.github.vitaliyprogrammer.banking.entity.CreditApplication;
 import io.github.vitaliyprogrammer.banking.entity.status.AccountType;
+import io.github.vitaliyprogrammer.banking.entity.status.AuditAction;
+import io.github.vitaliyprogrammer.banking.entity.status.AuditTarget;
 import io.github.vitaliyprogrammer.banking.entity.status.CreditApplicationStatus;
 import io.github.vitaliyprogrammer.banking.entity.status.Currency;
 import io.github.vitaliyprogrammer.banking.event.CreditDecisionMessage;
@@ -21,6 +23,7 @@ import io.github.vitaliyprogrammer.banking.exception.InvalidCreditDecisionExcept
 import io.github.vitaliyprogrammer.banking.exception.OwnCreditApplicationException;
 import io.github.vitaliyprogrammer.banking.repository.CreditApplicationRepository;
 import io.github.vitaliyprogrammer.banking.service.AccountService;
+import io.github.vitaliyprogrammer.banking.service.AuditService;
 import io.github.vitaliyprogrammer.banking.service.CreditApplicationService;
 import io.github.vitaliyprogrammer.banking.service.CreditLineService;
 import io.github.vitaliyprogrammer.banking.service.OutboxService;
@@ -29,6 +32,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -58,6 +62,8 @@ public class CreditApplicationServiceImpl implements CreditApplicationService {
     private final CreditLineService creditLineService;
 
     private final OutboxService outboxService;
+
+    private final AuditService auditService;
 
     private final CreditScoring creditScoring;
 
@@ -140,6 +146,10 @@ public class CreditApplicationServiceImpl implements CreditApplicationService {
         application.approve(reviewerId, request.approvedLimit(), request.comment().strip(), clock.instant());
         creditLineService.open(application.getUserId(), request.approvedLimit());
         announceDecision(application);
+        auditService.record(reviewerId, AuditAction.CREDIT_APPLICATION_APPROVED, AuditTarget.CREDIT_APPLICATION,
+                applicationId, Map.of("from", "MANUAL_REVIEW", "to", "APPROVED",
+                        "requestedLimit", application.getRequestedLimit(), "approvedLimit", request.approvedLimit(),
+                        "comment", application.getDecisionComment()));
 
         log.info("Credit application {} approved by {} for {}", applicationId, reviewerId, request.approvedLimit());
         return CreditApplicationResponseDto.from(application);
@@ -152,6 +162,9 @@ public class CreditApplicationServiceImpl implements CreditApplicationService {
         CreditApplication application = lockForDecision(reviewerId, applicationId);
         application.decline(reviewerId, request.comment().strip(), clock.instant());
         announceDecision(application);
+        auditService.record(reviewerId, AuditAction.CREDIT_APPLICATION_DECLINED, AuditTarget.CREDIT_APPLICATION,
+                applicationId, Map.of("from", "MANUAL_REVIEW", "to", "DECLINED",
+                        "requestedLimit", application.getRequestedLimit(), "comment", application.getDecisionComment()));
 
         log.info("Credit application {} declined by {}", applicationId, reviewerId);
         return CreditApplicationResponseDto.from(application);

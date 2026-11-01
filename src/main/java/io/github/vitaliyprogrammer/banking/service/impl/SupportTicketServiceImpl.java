@@ -9,6 +9,8 @@ import io.github.vitaliyprogrammer.banking.dto.response.TicketMessageResponseDto
 import io.github.vitaliyprogrammer.banking.dto.response.TicketResponseDto;
 import io.github.vitaliyprogrammer.banking.entity.SupportTicket;
 import io.github.vitaliyprogrammer.banking.entity.TicketMessage;
+import io.github.vitaliyprogrammer.banking.entity.status.AuditAction;
+import io.github.vitaliyprogrammer.banking.entity.status.AuditTarget;
 import io.github.vitaliyprogrammer.banking.entity.status.TicketStatus;
 import io.github.vitaliyprogrammer.banking.event.OutboxEventType;
 import io.github.vitaliyprogrammer.banking.event.SupportTicketMessage;
@@ -16,12 +18,14 @@ import io.github.vitaliyprogrammer.banking.exception.TicketNotFoundException;
 import io.github.vitaliyprogrammer.banking.repository.SupportTicketRepository;
 import io.github.vitaliyprogrammer.banking.repository.TicketMessageRepository;
 import io.github.vitaliyprogrammer.banking.service.AccountService;
+import io.github.vitaliyprogrammer.banking.service.AuditService;
 import io.github.vitaliyprogrammer.banking.service.OutboxService;
 import io.github.vitaliyprogrammer.banking.service.SupportTicketService;
 import io.github.vitaliyprogrammer.banking.service.UserService;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +47,8 @@ public class SupportTicketServiceImpl implements SupportTicketService {
     private final AccountService accountService;
 
     private final OutboxService outboxService;
+
+    private final AuditService auditService;
 
     private final Clock clock;
 
@@ -114,6 +120,7 @@ public class SupportTicketServiceImpl implements SupportTicketService {
 
         SupportTicket ticket = lock(ticketId);
         ticket.take(staffId, clock.instant());
+        audit(staffId, AuditAction.TICKET_TAKEN, ticket, Map.of("from", "OPEN", "to", "IN_PROGRESS"));
 
         log.info("Ticket {} taken by {}", ticketId, staffId);
         return details(ticket);
@@ -126,7 +133,9 @@ public class SupportTicketServiceImpl implements SupportTicketService {
         SupportTicket ticket = lock(ticketId);
         Instant now = clock.instant();
         ticket.recordStaffReply(staffId, now);
-        ticketMessageRepository.save(TicketMessage.of(ticketId, staffId, true, request.message().strip(), now));
+        TicketMessage answer = ticketMessageRepository.save(
+                TicketMessage.of(ticketId, staffId, true, request.message().strip(), now));
+        audit(staffId, AuditAction.TICKET_ANSWERED, ticket, Map.of("messageId", answer.getId()));
 
         outboxService.record(OutboxEventType.SUPPORT_TICKET_REPLIED, ticketId, SupportTicketMessage.from(ticket));
         return details(ticket);
@@ -138,6 +147,7 @@ public class SupportTicketServiceImpl implements SupportTicketService {
 
         SupportTicket ticket = lock(ticketId);
         ticket.resolve(staffId, clock.instant());
+        audit(staffId, AuditAction.TICKET_RESOLVED, ticket, Map.of("from", "IN_PROGRESS", "to", "RESOLVED"));
 
         outboxService.record(OutboxEventType.SUPPORT_TICKET_RESOLVED, ticketId, SupportTicketMessage.from(ticket));
         log.info("Ticket {} resolved by {}", ticketId, staffId);
@@ -147,18 +157,25 @@ public class SupportTicketServiceImpl implements SupportTicketService {
     /**
      * Least privilege: support has no general "show me any client's money" screen. An employee sees a client's
      * accounts because they are working on that client's ticket, and only while it is theirs.
+     * Not read-only: looking at a client's money is itself written to the audit log.
      */
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public SupportClientViewDto getClientView(UUID staffId, UUID ticketId) {
 
         SupportTicket ticket = supportTicketRepository.findById(ticketId).orElseThrow(TicketNotFoundException::new);
         ticket.requireAssignee(staffId);
 
-        log.info("Employee {} viewed the accounts of client {} for ticket {}", staffId, ticket.getClientId(), ticketId);
+        auditService.record(staffId, AuditAction.CLIENT_ACCOUNTS_VIEWED, AuditTarget.CLIENT, ticket.getClientId(),
+                Map.of("ticketId", ticketId));
         return new SupportClientViewDto(
                 userService.getById(ticket.getClientId()),
                 accountService.getAccounts(ticket.getClientId()));
+    }
+
+    private void audit(UUID staffId, AuditAction action, SupportTicket ticket, Map<String, ?> details) {
+
+        auditService.record(staffId, action, AuditTarget.SUPPORT_TICKET, ticket.getId(), details);
     }
 
     private SupportTicket lock(UUID ticketId) {

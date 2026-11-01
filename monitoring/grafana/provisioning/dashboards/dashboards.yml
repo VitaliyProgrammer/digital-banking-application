@@ -1,0 +1,10 @@
+# Every JSON file in /var/lib/grafana/dashboards appears in Grafana as a ready dashboard.
+apiVersion: 1
+
+providers:
+  - name: digital-banking
+    folder: Digital Bank
+    type: file
+    disableDeletion: true
+    options:
+      path: /var/lib/grafana/dashboards

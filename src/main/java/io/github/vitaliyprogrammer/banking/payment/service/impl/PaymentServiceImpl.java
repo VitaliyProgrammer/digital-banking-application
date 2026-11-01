@@ -11,10 +11,6 @@ import io.github.vitaliyprogrammer.banking.account.service.LedgerService;
 import io.github.vitaliyprogrammer.banking.card.dto.response.CardReferenceDto;
 import io.github.vitaliyprogrammer.banking.card.exception.CardNotUsableException;
 import io.github.vitaliyprogrammer.banking.card.service.CardService;
-import io.github.vitaliyprogrammer.banking.common.metrics.BusinessMetrics;
-import io.github.vitaliyprogrammer.banking.credit.dto.request.CreditRepaymentRequestDto;
-import io.github.vitaliyprogrammer.banking.credit.exception.RepaymentExceedsDebtException;
-import io.github.vitaliyprogrammer.banking.exchange.dto.request.ExchangeRequestDto;
 import io.github.vitaliyprogrammer.banking.exchange.dto.response.ExchangeQuoteResponseDto;
 import io.github.vitaliyprogrammer.banking.exchange.exception.ExchangeQuoteAlreadyUsedException;
 import io.github.vitaliyprogrammer.banking.exchange.exception.ExchangeQuoteExpiredException;
@@ -23,7 +19,10 @@ import io.github.vitaliyprogrammer.banking.outbox.event.OutboxEventType;
 import io.github.vitaliyprogrammer.banking.outbox.service.OutboxService;
 import io.github.vitaliyprogrammer.banking.payment.dto.request.BillPaymentRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.request.CardTransferRequestDto;
+import io.github.vitaliyprogrammer.banking.payment.dto.request.CreditRepaymentRequestDto;
+import io.github.vitaliyprogrammer.banking.payment.dto.request.ExchangeRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.request.FeeRequest;
+import io.github.vitaliyprogrammer.banking.payment.dto.request.SavingsTransferRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.request.TopUpRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.request.TransferRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.response.PaymentResponseDto;
@@ -37,12 +36,12 @@ import io.github.vitaliyprogrammer.banking.payment.exception.IdempotencyKeyReuse
 import io.github.vitaliyprogrammer.banking.payment.exception.PaymentNotFoundException;
 import io.github.vitaliyprogrammer.banking.payment.exception.ProviderNotFoundException;
 import io.github.vitaliyprogrammer.banking.payment.exception.RecipientNotFoundException;
+import io.github.vitaliyprogrammer.banking.payment.exception.RepaymentExceedsDebtException;
 import io.github.vitaliyprogrammer.banking.payment.exception.SameAccountTransferException;
 import io.github.vitaliyprogrammer.banking.payment.repository.PaymentRepository;
 import io.github.vitaliyprogrammer.banking.payment.repository.ProviderRepository;
 import io.github.vitaliyprogrammer.banking.payment.service.PaymentService;
 import io.github.vitaliyprogrammer.banking.payment.service.impl.fee.FeeCalculator;
-import io.github.vitaliyprogrammer.banking.savings.dto.request.SavingsTransferRequestDto;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -82,7 +81,7 @@ public class PaymentServiceImpl implements PaymentService {
 
     private final OutboxService outboxService;
 
-    private final BusinessMetrics businessMetrics;
+    private final PaymentMetrics paymentMetrics;
 
     private final TransactionTemplate transactionTemplate;
 
@@ -227,7 +226,7 @@ public class PaymentServiceImpl implements PaymentService {
                 // A bill payment is still PROCESSING here; its event comes when the provider answers.
                 if (created.isFinished()) {
                     outboxService.record(OutboxEventType.PAYMENT_COMPLETED, created.getId(), PaymentMessage.from(created));
-                    businessMetrics.paymentCompleted(created.getType());
+                    paymentMetrics.paymentCompleted(created.getType());
                 }
                 return created;
             }));

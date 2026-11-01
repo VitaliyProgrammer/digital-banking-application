@@ -13,7 +13,6 @@ import io.github.vitaliyprogrammer.banking.card.dto.response.CardResponseDto;
 import io.github.vitaliyprogrammer.banking.card.entity.status.CardType;
 import io.github.vitaliyprogrammer.banking.card.service.CardService;
 import io.github.vitaliyprogrammer.banking.credit.dto.request.CreditApplicationRequestDto;
-import io.github.vitaliyprogrammer.banking.credit.dto.request.CreditRepaymentRequestDto;
 import io.github.vitaliyprogrammer.banking.credit.dto.response.CreditLineResponseDto;
 import io.github.vitaliyprogrammer.banking.credit.dto.response.CreditStatementResponseDto;
 import io.github.vitaliyprogrammer.banking.credit.entity.status.CreditStatementStatus;
@@ -21,6 +20,7 @@ import io.github.vitaliyprogrammer.banking.credit.service.CreditApplicationServi
 import io.github.vitaliyprogrammer.banking.credit.service.CreditLineService;
 import io.github.vitaliyprogrammer.banking.credit.service.impl.GracePeriod;
 import io.github.vitaliyprogrammer.banking.payment.dto.request.CardTransferRequestDto;
+import io.github.vitaliyprogrammer.banking.payment.dto.request.CreditRepaymentRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.request.TopUpRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.service.PaymentService;
 import java.math.BigDecimal;

@@ -86,7 +86,7 @@ The API is on port **8080**. Health and metrics are on the management port **808
 
 | What | File |
 |---|---|
-| Filter chain, roles | [`SecurityConfiguration`](../src/main/java/io/github/vitaliyprogrammer/banking/common/configuration/SecurityConfiguration.java) |
+| Filter chain, roles | [`SecurityConfiguration`](../src/main/java/io/github/vitaliyprogrammer/banking/identity/configuration/SecurityConfiguration.java) |
 | Login, attempt limit | [`AuthenticationServiceImpl`](../src/main/java/io/github/vitaliyprogrammer/banking/identity/service/impl/AuthenticationServiceImpl.java) |
 | Refresh rotation and reuse detection | [`RefreshTokenServiceImpl`](../src/main/java/io/github/vitaliyprogrammer/banking/identity/service/impl/RefreshTokenServiceImpl.java) |
 | Audit | [`AuditServiceImpl`](../src/main/java/io/github/vitaliyprogrammer/banking/audit/service/impl/AuditServiceImpl.java) |

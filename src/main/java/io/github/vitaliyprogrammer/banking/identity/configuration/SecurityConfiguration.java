@@ -1,7 +1,6 @@
-package io.github.vitaliyprogrammer.banking.common.configuration;
+package io.github.vitaliyprogrammer.banking.identity.configuration;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
-import io.github.vitaliyprogrammer.banking.identity.configuration.JwtProperties;
 import io.github.vitaliyprogrammer.banking.identity.entity.status.Role;
 import io.github.vitaliyprogrammer.banking.identity.service.AccessTokenService;
 import java.nio.charset.StandardCharsets;

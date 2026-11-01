@@ -1,4 +1,4 @@
-package io.github.vitaliyprogrammer.banking.credit.exception;
+package io.github.vitaliyprogrammer.banking.payment.exception;
 
 import io.github.vitaliyprogrammer.banking.common.exception.ApplicationException;
 import java.math.BigDecimal;

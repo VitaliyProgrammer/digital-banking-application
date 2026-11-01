@@ -5,7 +5,6 @@ import io.github.vitaliyprogrammer.banking.audit.entity.status.AuditAction;
 import io.github.vitaliyprogrammer.banking.audit.entity.status.AuditTarget;
 import io.github.vitaliyprogrammer.banking.audit.service.AuditService;
 import io.github.vitaliyprogrammer.banking.common.dto.PageResponseDto;
-import io.github.vitaliyprogrammer.banking.common.metrics.BusinessMetrics;
 import io.github.vitaliyprogrammer.banking.identity.service.UserService;
 import io.github.vitaliyprogrammer.banking.outbox.event.OutboxEventType;
 import io.github.vitaliyprogrammer.banking.outbox.service.OutboxService;
@@ -51,7 +50,7 @@ public class SupportTicketServiceImpl implements SupportTicketService {
 
     private final AuditService auditService;
 
-    private final BusinessMetrics businessMetrics;
+    private final SupportMetrics supportMetrics;
 
     private final Clock clock;
 
@@ -63,7 +62,7 @@ public class SupportTicketServiceImpl implements SupportTicketService {
         SupportTicket ticket = supportTicketRepository.save(
                 SupportTicket.open(clientId, request.subject().strip(), now));
         ticketMessageRepository.save(TicketMessage.of(ticket.getId(), clientId, false, request.message().strip(), now));
-        businessMetrics.ticketOpened();
+        supportMetrics.ticketOpened();
 
         return details(ticket);
     }
@@ -152,7 +151,7 @@ public class SupportTicketServiceImpl implements SupportTicketService {
         SupportTicket ticket = lock(ticketId);
         ticket.resolve(staffId, clock.instant());
         audit(staffId, AuditAction.TICKET_RESOLVED, ticket, Map.of("from", "IN_PROGRESS", "to", "RESOLVED"));
-        businessMetrics.ticketResolved();
+        supportMetrics.ticketResolved();
 
         outboxService.record(OutboxEventType.SUPPORT_TICKET_RESOLVED, ticketId, SupportTicketMessage.from(ticket));
         log.info("Ticket {} resolved by {}", ticketId, staffId);

@@ -8,13 +8,13 @@ import io.github.vitaliyprogrammer.banking.account.dto.request.OpenAccountReques
 import io.github.vitaliyprogrammer.banking.account.entity.status.Currency;
 import io.github.vitaliyprogrammer.banking.account.service.AccountService;
 import io.github.vitaliyprogrammer.banking.exchange.dto.request.ExchangeQuoteRequestDto;
-import io.github.vitaliyprogrammer.banking.exchange.dto.request.ExchangeRequestDto;
 import io.github.vitaliyprogrammer.banking.exchange.dto.response.ExchangeQuoteResponseDto;
 import io.github.vitaliyprogrammer.banking.exchange.exception.ExchangeQuoteAlreadyUsedException;
 import io.github.vitaliyprogrammer.banking.exchange.exception.ExchangeQuoteExpiredException;
 import io.github.vitaliyprogrammer.banking.exchange.exception.ExchangeQuoteNotFoundException;
 import io.github.vitaliyprogrammer.banking.exchange.exception.SameCurrencyExchangeException;
 import io.github.vitaliyprogrammer.banking.exchange.service.ExchangeQuoteService;
+import io.github.vitaliyprogrammer.banking.payment.dto.request.ExchangeRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.request.TopUpRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.response.PaymentResponseDto;
 import io.github.vitaliyprogrammer.banking.payment.entity.status.PaymentStatus;

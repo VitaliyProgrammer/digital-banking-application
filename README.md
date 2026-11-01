@@ -14,7 +14,7 @@
 
 ![Tests](https://img.shields.io/badge/tests-123%20passing-success)
 ![Testcontainers](https://img.shields.io/badge/integration%20tests-Testcontainers-291A3D)
-![ArchUnit](https://img.shields.io/badge/architecture%20rules-24%20ArchUnit-blueviolet)
+![ArchUnit](https://img.shields.io/badge/architecture%20rules-25%20ArchUnit-blueviolet)
 ![k6](https://img.shields.io/badge/load%20tested-k6-7D64FF?logo=k6&logoColor=white)
 ![Prometheus](https://img.shields.io/badge/metrics-Prometheus%20%2B%20Grafana-E6522C?logo=prometheus&logoColor=white)
 
@@ -112,6 +112,19 @@ credit/                         (every domain looks like this; a layer it does n
 | Inside a domain: controller → service → repository, never backwards | [ArchUnit](src/test/java/io/github/vitaliyprogrammer/banking/ArchitectureTests.java) `layersDependOnlyDownwards` |
 | A domain's tables are used only by that domain's services | one ownership rule per repository |
 | Domains meet only at service interfaces and DTOs, never at each other's `service/impl` | `domainsDoNotReachIntoEachOthersImplementation` |
+| Dependencies between domains go one way, with no cycles | `domainsDependOnEachOtherWithoutCycles` |
+
+Every domain uses only domains on a **lower** level, never one on its own level or above:
+
+| Level | Domains | Uses |
+|---|---|---|
+| 6 | 🔔 `notification` | the events of everyone below; nobody depends on it |
+| 5 | 🏛️ `credit` · 🫙 `savings` · 🎁 `cashback` · 📄 `receipt` | payments, and what payments use |
+| 4 | 🔁 `payment` | the ledger, cards, exchange quotes, the outbox |
+| 3 | 💱 `exchange` · 🎧 `support` | the ledger, identity, the audit log |
+| 2 | 💳 `card` · 🕵️ `audit` | the ledger / identity |
+| 1 | 💰 `account` · 👤 `identity` · 📤 `outbox` | only `common` |
+| 0 | 🧰 `common` | no domain at all |
 
 ## 🚀 Quick start
 

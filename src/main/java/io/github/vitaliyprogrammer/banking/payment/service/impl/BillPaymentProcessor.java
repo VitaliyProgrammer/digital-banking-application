@@ -5,7 +5,6 @@ import io.github.vitaliyprogrammer.banking.account.entity.status.AccountType;
 import io.github.vitaliyprogrammer.banking.account.entity.status.EntryDirection;
 import io.github.vitaliyprogrammer.banking.account.entity.status.TransactionType;
 import io.github.vitaliyprogrammer.banking.account.service.LedgerService;
-import io.github.vitaliyprogrammer.banking.common.metrics.BusinessMetrics;
 import io.github.vitaliyprogrammer.banking.outbox.event.OutboxEventType;
 import io.github.vitaliyprogrammer.banking.outbox.service.OutboxService;
 import io.github.vitaliyprogrammer.banking.payment.configuration.BillPaymentProperties;
@@ -62,7 +61,7 @@ public class BillPaymentProcessor {
 
     private final OutboxService outboxService;
 
-    private final BusinessMetrics businessMetrics;
+    private final PaymentMetrics paymentMetrics;
 
     private final BillPaymentProperties properties;
 
@@ -179,7 +178,7 @@ public class BillPaymentProcessor {
                 payment.getId(), payment.getInitiatorId(), payment.getFromAccountId(), provider.getCategory(),
                 payment.getCurrency(), payment.getAmount(), now));
         outboxService.record(OutboxEventType.PAYMENT_COMPLETED, payment.getId(), PaymentMessage.from(payment));
-        businessMetrics.paymentCompleted(payment.getType());
+        paymentMetrics.paymentCompleted(payment.getType());
     }
 
     /** HOLD → client account: the full held amount comes back. */
@@ -193,7 +192,7 @@ public class BillPaymentProcessor {
 
         payment.fail(releaseId, reason, now);
         outboxService.record(OutboxEventType.PAYMENT_FAILED, payment.getId(), PaymentMessage.from(payment));
-        businessMetrics.paymentFailed(payment.getType());
+        paymentMetrics.paymentFailed(payment.getType());
     }
 
     private static String rejectionReason(ProviderCallResult result) {

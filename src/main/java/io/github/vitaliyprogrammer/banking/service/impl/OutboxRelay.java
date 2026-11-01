@@ -62,7 +62,8 @@ public class OutboxRelay {
                     count++;
                 } catch (AmqpException e) {
                     event.markFailed(e.getMessage(),
-                            now.plus(OutboxBackoff.delayAfter(event.getAttempts() + 1, properties.maxBackoff())));
+                            // From the failure, not from the start of the batch: a slow broker must not eat up the wait.
+                            clock.instant().plus(OutboxBackoff.delayAfter(event.getAttempts() + 1, properties.maxBackoff())));
                     log.warn("Outbox event {} ({}) not published, attempt {}: {}",
                             event.getId(), event.getEventType(), event.getAttempts(), e.getMessage());
                     break;

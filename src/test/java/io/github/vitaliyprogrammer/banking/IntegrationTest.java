@@ -70,6 +70,10 @@ public abstract class IntegrationTest {
         registry.add("spring.mail.port", mailServer::smtpPort);
         // A busy Docker can make the first SMTP answer slow.
         registry.add("spring.mail.properties.mail.smtp.timeout", () -> "20000");
+        // JavaMail otherwise looks up this machine's name for every email (HELO, Message-ID). On a Windows host with
+        // several virtual networks that lookup takes seconds; inside Docker in production it is instant.
+        registry.add("spring.mail.properties.mail.smtp.localhost", () -> "localhost");
+        registry.add("spring.mail.properties.mail.from", () -> "no-reply@digital-bank.local");
     }
 
     @BeforeEach

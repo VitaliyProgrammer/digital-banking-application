@@ -82,16 +82,57 @@ function writeLog(headers, method, path, status, ms, request, response) {
         ...(request !== undefined ? [`-d '${JSON.stringify(request)}'`] : [])].join(' \\\n  '));
     const entry = document.createElement('details');
     const s = String(status)[0] || '0';
-    entry.innerHTML = `<summary><span class="m">${method}</span><span class="path">${esc(path)}</span>
-        <span class="s${s}">${status || 'ERR'}</span><span>${ms} ms</span></summary>
-        ${request !== undefined ? `<pre>→ ${esc(JSON.stringify(request, null, 2))}</pre>` : ''}
-        <pre>← ${esc(typeof response === 'string' ? response : JSON.stringify(response, null, 2))}</pre>
+    const time = new Date().toLocaleTimeString('uk-UA', { hour12: false });
+    entry.innerHTML = `<summary><span class="t">${time}</span><span class="m">${method}</span><span class="path">${esc(path)}</span>
+        <span class="s${s}">${status || 'ERR'}</span><span class="ms">${ms} ms</span></summary>
+        ${request !== undefined ? `<div class="dir">→ request</div><pre>${jsonHtml(request)}</pre>` : ''}
+        <div class="dir">← response ${status || ''}</div><pre>${typeof response === 'string' ? esc(response) : jsonHtml(response)}</pre>
         <button class="curl" onclick="copyCurl('${id}')">📋 copy as curl</button>`;
     const list = document.getElementById('log');
+    list.querySelector('.log-empty')?.remove();
+    // Only the newest call is open: what just happened is visible without a click.
+    list.querySelectorAll('details[open]').forEach((d) => d.removeAttribute('open'));
+    entry.open = true;
     list.prepend(entry);
     while (list.children.length > 60) list.lastChild.remove();
+    document.getElementById('logCount').textContent = list.children.length;
 }
-function clearLog() { document.getElementById('log').innerHTML = ''; curls.clear(); }
+
+/**
+ * Pretty JSON with colours for keys, strings, numbers and true/false/null. Split into tokens first, then each token is
+ * escaped on its own: escaping the whole text first would break strings that contain an escaped quote.
+ */
+function jsonHtml(value) {
+    return JSON.stringify(value, null, 2).replace(
+        /("(?:\\.|[^"\\])*")(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/g,
+        (match, str, colon, literal) => str ? `<span class="${colon ? 'k' : 'str'}">${esc(str)}</span>${colon || ''}`
+            : literal ? `<span class="lit">${literal}</span>` : `<span class="num">${match}</span>`);
+}
+
+function clearLog() {
+    document.getElementById('log').innerHTML = '';
+    document.getElementById('logCount').textContent = '0';
+    curls.clear();
+}
+
+const LOG_OPEN = 'apiLogOpen';
+
+/** Shows or hides the API log. Remembered in this browser; open by default on wide screens. */
+function toggleLog(force) {
+    const layout = document.getElementById('layout');
+    const open = force ?? !layout.classList.contains('with-log');
+    layout.classList.toggle('with-log', open);
+    document.getElementById('logToggle').classList.toggle('on', open);
+    try { localStorage.setItem(LOG_OPEN, String(open)); } catch { /* not critical */ }
+}
+
+function initialLogState() {
+    try {
+        const saved = localStorage.getItem(LOG_OPEN);
+        if (saved !== null) return saved === 'true';
+    } catch { /* not critical */ }
+    return window.innerWidth > 1280;
+}
 
 async function copyCurl(id) {
     try { await navigator.clipboard.writeText(curls.get(id)); toast('Copied: paste it into a terminal'); }
@@ -206,11 +247,16 @@ async function login(event) {
     } catch (e) { toast(e.message, 'bad'); }
 }
 
-function toggleForgot(event) {
-    event.preventDefault();
-    const form = document.getElementById('forgotForm');
-    form.hidden = !form.hidden;
-    if (!form.hidden) {
+/** One card, three faces: log in, open an account, forgot password. */
+function showAuth(mode, event) {
+    event?.preventDefault();
+    document.getElementById('loginForm').hidden = mode !== 'login';
+    document.getElementById('registerForm').hidden = mode !== 'register';
+    document.getElementById('forgotForm').hidden = mode !== 'forgot';
+    document.querySelector('.tabs').hidden = mode === 'forgot';
+    document.getElementById('tabLogin').setAttribute('aria-selected', String(mode === 'login'));
+    document.getElementById('tabRegister').setAttribute('aria-selected', String(mode === 'register'));
+    if (mode === 'forgot') {
         document.getElementById('forgotEmail').value = val('loginEmail');
         document.getElementById('forgotEmail').focus();
     }
@@ -221,7 +267,7 @@ async function requestPasswordReset(event) {
     event.preventDefault();
     try {
         await api('POST', '/authentication/password-reset', { email: val('forgotEmail') });
-        document.getElementById('forgotForm').hidden = true;
+        showAuth('login');
         toast('If this email has an account, a link is on its way. Check Mailpit (localhost:8025).');
     } catch (e) { toast(e.message, 'bad'); }
 }
@@ -235,7 +281,6 @@ async function logout(silent) {
     sessionStorage.clear();
     state.payments = [];
     document.getElementById('app').hidden = true;
-    document.getElementById('session').hidden = true;
     document.getElementById('auth').hidden = false;
     showRememberedEmail();
 }
@@ -244,7 +289,7 @@ async function start() {
     state.me = await api('GET', '/users/me');
     document.getElementById('auth').hidden = true;
     document.getElementById('app').hidden = false;
-    document.getElementById('session').hidden = false;
+    toggleLog(initialLogState());
     document.getElementById('who').textContent = `${state.me.firstName} ${state.me.lastName} · ${state.me.role}`;
     document.getElementById('staffNav').hidden = !isStaff();
     document.querySelectorAll('[data-admin]').forEach((a) => (a.hidden = state.me.role !== 'ADMIN'));
@@ -285,7 +330,7 @@ async function render() {
 const page = (title, lead, ...cards) => `<h1>${title}</h1><p class="lead">${lead}</p>${cards.join('')}`;
 const card = (title, body, hint = '') => `<div class="card"><h2>${title}</h2>${hint ? `<p class="hint">${hint}</p>` : ''}${body}</div>`;
 const table = (headers, rows, empty = 'Nothing yet') => rows.length
-    ? `<table><tr>${headers.map((h) => `<th>${h}</th>`).join('')}</tr>${rows.join('')}</table>`
+    ? `<div class="table-wrap"><table><tr>${headers.map((h) => `<th>${h}</th>`).join('')}</tr>${rows.join('')}</table></div>`
     : `<div class="empty">${empty}</div>`;
 const CURRENCIES = ['UAH', 'USD', 'EUR'];
 
@@ -302,7 +347,7 @@ views.overview = async () => {
             'No accounts yet: open one below') +
             `<div class="row" style="margin-top:12px"><div><label>Open an account in</label>
              <select id="newCurrency">${CURRENCIES.map((c) => `<option>${c}</option>`).join('')}</select></div>
-             <div style="flex:0"><button onclick="openAccount()">Open account</button></div></div>
+             <div class="fit"><button onclick="openAccount()">Open account</button></div></div>
              <div id="statement"></div>`),
         card('💳 Cards', cards.length ? `<div class="wallet">${cards.map((c) => cardVisual(c, accounts)).join('')}</div>`
             : '<div class="empty">No cards yet: issue one on the Cards page</div>'));
@@ -330,9 +375,8 @@ views.payments = async () => {
     const accounts = (await api('GET', '/accounts')).filter((a) => a.type !== 'CREDIT');
     const spending = await api('GET', '/accounts');
     const cards = await api('GET', '/cards');
-    const providers = await api('GET', '/bill-payments/providers');
     const accountOptions = options(accounts, accountLabel);
-    return page('🔁 Payments', 'Every payment carries a new Idempotency-Key: pressing a button twice can never pay twice.',
+    return page('🔁 Transfers', 'Every payment carries a new Idempotency-Key: pressing a button twice can never pay twice. Utility bills are under 🧾 Bills & utilities.',
         `<div class="grid">`,
         card('💵 Top up', `<label>Account</label><select id="topUpAccount">${accountOptions}</select>
             <label>Amount</label><input id="topUpAmount" value="60000">
@@ -346,11 +390,6 @@ views.payments = async () => {
             <label>Recipient card number</label><input id="ctTo" placeholder="16 digits">
             <label>Amount</label><input id="ctAmount" value="250">
             <div class="actions"><button onclick="cardTransfer()">Send</button></div>`, 'Fee by card type: student 0%, payroll 0.5%, virtual 1%, credit 2%.'),
-        card('🧾 Pay a bill', `<label>Provider</label><select id="billProvider">${options(providers, (p) => `${p.name} (${p.category})`)}</select>
-            <label>Your account at the provider</label><input id="billAccount" value="380501234567">
-            <label>From</label><select id="billFrom">${options(spending.filter((a) => a.currency === 'UAH'), accountLabel)}</select>
-            <label>Amount</label><input id="billAmount" value="300">
-            <div class="actions"><button onclick="payBill()">Pay</button></div>`, 'Asynchronous: PROCESSING first, then COMPLETED or FAILED.'),
         `</div>`,
         card('🧾 Payments of this session', table(['When', 'Type', 'Amount', 'Fee', 'Status', ''], state.payments.map((p) => `<tr>
                 <td>${when(p.createdAt)}</td><td>${badge(p.type)}<br><small>${esc(p.description)}</small></td>
@@ -368,8 +407,51 @@ const pay = (path, body, label) => act(async () => rememberPayment(await api('PO
 const topUp = () => pay('/payments/top-up', { accountId: val('topUpAccount'), amount: val('topUpAmount') }, 'Top-up');
 const transfer = () => pay('/payments/transfers', { fromAccountId: val('trFrom'), toAccountNumber: val('trTo'), amount: val('trAmount'), description: val('trDesc') }, 'Transfer');
 const cardTransfer = () => pay('/payments/card-transfers', { fromCardId: val('ctFrom'), toCardNumber: val('ctTo'), amount: val('ctAmount') }, 'Card transfer');
+// ---------- 🧾 Bills & utilities ----------
+
+const PROVIDER_ICONS = { ELECTRICITY: '⚡', WATER: '💧', GAS: '🔥', HEATING: '♨️', INTERNET: '🌐', MOBILE: '📱' };
+let selectedProvider = null;
+
+views.bills = async () => {
+    const providers = await api('GET', '/bill-payments/providers');
+    const accounts = (await api('GET', '/accounts')).filter((a) => a.currency === 'UAH' && a.type !== 'SAVINGS');
+    const provider = providers.find((p) => p.id === selectedProvider) || providers[0];
+    selectedProvider = provider?.id;
+    const mobile = provider?.category === 'MOBILE';
+    const bills = state.payments.filter((p) => p.type === 'BILL_PAYMENT');
+
+    const form = !accounts.length
+        ? `<div class="empty-state"><div class="big">🧾</div><p>Bills are paid from a UAH account.</p>
+            <button onclick="openUahAccount()">Open a UAH account</button></div>`
+        : `<label>From</label><select id="billFrom">${options(accounts, accountLabel)}</select>
+            <label>${mobile ? 'Phone number' : 'Your account number at the provider'}</label>
+            <input id="billAccount" value="${mobile ? '+380671234567' : '4410012345'}">
+            <label>Amount, UAH</label><input id="billAmount" value="${mobile ? '200' : '300'}">
+            <div class="actions"><button onclick="payBill()">Pay ${esc(provider?.name || '')}</button></div>`;
+
+    return page('🧾 Bills & utilities', 'Paid asynchronously: the bank holds the money at once (PROCESSING), a background worker calls the provider, and the payment becomes COMPLETED or FAILED. Watch it in the API log.',
+        card('1. Choose a provider', `<div class="providers">${providers.map((p) => `
+            <button type="button" class="provider ${p.id === selectedProvider ? 'selected' : ''}" onclick="selectProvider('${p.id}')">
+                <span class="ico">${PROVIDER_ICONS[p.category] || '🧾'}</span><span>${esc(p.name)}</span><span class="cat">${esc(p.category)}</span>
+            </button>`).join('')}</div>`),
+        card('2. Pay', `<div class="narrow">${form}</div>`, 'Fee: 0.5% for utilities, none for mobile. Cashback comes once the provider accepts.'),
+        card('🧾 My bill payments', table(['When', 'Provider', 'Amount', 'Status', ''], bills.map((p) => `<tr>
+                <td>${when(p.createdAt)}</td><td>${esc(providers.find((x) => x.id === p.providerId)?.name || p.description)}</td>
+                <td class="num">${money(p.amount, p.currency)}</td>
+                <td>${badge(p.status)}${p.failureReason ? `<br><small>${esc(p.failureReason)}</small>` : ''}</td>
+                <td><button class="small secondary" onclick="receipt('${p.id}')">PDF</button></td></tr>`),
+            'Nothing paid in this tab yet'), 'Only what you paid in this browser tab.'));
+};
+
+function selectProvider(id) {
+    selectedProvider = id;
+    render();
+}
+
+const openUahAccount = () => act(() => api('POST', '/accounts', { currency: 'UAH' }), 'UAH account opened');
+
 async function payBill() {
-    const payment = await pay('/bill-payments', { providerId: val('billProvider'), accountNumber: val('billAccount'), fromAccountId: val('billFrom'), amount: val('billAmount') }, 'Bill payment');
+    const payment = await pay('/bill-payments', { providerId: selectedProvider, accountNumber: val('billAccount'), fromAccountId: val('billFrom'), amount: val('billAmount') }, 'Bill payment');
     if (payment) followPayment(payment.id);
 }
 
@@ -380,7 +462,7 @@ async function followPayment(id) {
         const p = rememberPayment(await api('GET', `/payments/${id}`, undefined, { quiet: true }));
         if (p.status !== 'PROCESSING' && p.status !== 'UNKNOWN') {
             toast(`Bill payment ${p.status}${p.failureReason ? `: ${p.failureReason}` : ''}`, p.status === 'COMPLETED' ? 'ok' : 'bad');
-            if (state.view === 'payments') render();
+            if (state.view === 'payments' || state.view === 'bills') render();
             return;
         }
     }
@@ -425,7 +507,7 @@ views.cards = async () => {
         card('➕ Issue a card', `<div class="row">
             <div><label>Account</label><select id="cardAccount">${options(accounts, accountLabel)}</select></div>
             <div><label>Type</label><select id="cardType"><option>PAYROLL</option><option>STUDENT</option><option>VIRTUAL</option></select></div>
-            <div style="flex:0"><button onclick="issueCard()">Issue</button></div></div>`,
+            <div class="fit"><button onclick="issueCard()">Issue</button></div></div>`,
             'Payroll 0.5% per card transfer, student 0%, virtual 1% (no plastic, so no chip). A CREDIT card comes only with an approved credit line.'),
         card('👛 My cards', cards.length ? `<div class="wallet">${cards.map((c) => `<div class="slot">${cardVisual(c, all)}
             <div class="actions">
@@ -476,7 +558,7 @@ views.exchange = async () => {
             <div><label>Sell from</label><select id="fxFrom">${options(accounts, accountLabel)}</select></div>
             <div><label>Buy into</label><select id="fxTo">${options([...accounts].reverse(), accountLabel)}</select></div>
             <div><label>Amount to sell</label><input id="fxAmount" value="1000"></div>
-            <div style="flex:0"><button onclick="quote()">Get a quote</button></div></div>
+            <div class="fit"><button onclick="quote()">Get a quote</button></div></div>
             <div id="quoteBox">${currentQuote ? quoteHtml(currentQuote) : ''}</div>`, 'You need accounts in two currencies.'));
 };
 
@@ -518,19 +600,19 @@ async function acceptQuote(quoteId) {
     }, (p) => `Exchanged: got ${money(p.creditedAmount)}`);
 }
 
-// ---------- 🫙 Savings & cashback ----------
+// ---------- 🐷 Savings & cashback ----------
 
 views.savings = async () => {
     const jars = await api('GET', '/savings');
     const accounts = (await api('GET', '/accounts')).filter((a) => a.type === 'CLIENT');
     const cashback = await api('GET', '/cashback');
-    return page('🫙 Savings & cashback', 'Jars earn interest every day (paid monthly). Cashback comes from mobile, internet and utility bills.',
-        card('🫙 My jars', table(['Currency', 'Balance', 'Rate', 'Accrued, not paid yet'], jars.map((j) => `<tr>
+    return page('🐷 Savings & cashback', 'Jars earn interest every day (paid monthly). Cashback comes from mobile, internet and utility bills.',
+        card('🐷 My jars', table(['Currency', 'Balance', 'Rate', 'Accrued, not paid yet'], jars.map((j) => `<tr>
                 <td><b>${j.currency}</b></td><td class="num">${money(j.balance, j.currency)}</td>
                 <td class="num">${j.annualRate}% / year</td><td class="num">${money(j.accruedInterest, j.currency)}</td></tr>`), 'No jars yet') +
             `<div class="row" style="margin-top:12px">
                 <div><label>Open a jar in</label><select id="jarCurrency">${CURRENCIES.map((c) => `<option>${c}</option>`).join('')}</select></div>
-                <div style="flex:0"><button onclick="openJar()">Open jar</button></div></div>
+                <div class="fit"><button onclick="openJar()">Open jar</button></div></div>
              <div class="row" style="margin-top:8px">
                 <div><label>Jar</label><select id="jarId">${options(jars, (j) => `${j.currency} jar · ${money(j.balance, j.currency)}`)}</select></div>
                 <div><label>Current account</label><select id="jarAccount">${options(accounts, accountLabel)}</select></div>
@@ -561,7 +643,7 @@ views.credit = async () => {
     const accounts = (await api('GET', '/accounts')).filter((a) => a.type === 'CLIENT' && a.currency === 'UAH');
     return page('🏛️ Credit', 'Rules decide the clear cases at once; the grey zone waits for a bank employee.',
         card('📝 Apply for a credit limit', `<div class="row"><div><label>Limit, UAH</label><input id="creditLimit" value="8000"></div>
-            <div style="flex:0"><button onclick="applyCredit()">Apply</button></div></div>`,
+            <div class="fit"><button onclick="applyCredit()">Apply</button></div></div>`,
             'Limit = 50% of your monthly income (top-ups and transfers from others, last 90 days). Up to 10 000 ₴ within it: approved at once; up to 1.5×: a person decides.') +
         card('🗂️ My applications', table(['When', 'Asked', 'Affordable', 'Approved', 'Decision', 'Why'], applications.map((a) => `<tr>
             <td>${when(a.createdAt)}</td><td class="num">${money(a.requestedLimit)}</td><td class="num">${money(a.affordableLimit)}</td>
@@ -578,7 +660,7 @@ views.credit = async () => {
                spending this month until <b>${esc(line.newSpendingInterestFreeUntil)}</b>. Spend it with the CREDIT card (Payments → card to card).</p>
             <div class="row"><div><label>Repay from</label><select id="repayFrom">${options(accounts, accountLabel)}</select></div>
                 <div><label>Amount</label><input id="repayAmount" value="${Number(line.debt) || 100}"></div>
-                <div style="flex:0"><button onclick="repay()">Repay</button></div></div>
+                <div class="fit"><button onclick="repay()">Repay</button></div></div>
             <h2 style="margin-top:16px">📅 Statements</h2>` + table(['Month', 'Debt', 'Minimum', 'Due', 'Status', 'Charged'], statements.map((s) => `<tr>
                 <td>${esc(s.period)}</td><td class="num">${money(s.closingDebt)}</td><td class="num">${money(s.minimumPayment)}</td>
                 <td>${esc(s.dueDate)}</td><td>${badge(s.status)}</td><td class="num">${s.interest == null ? '—' : money(Number(s.interest) + Number(s.lateFee))}</td></tr>`),
@@ -733,4 +815,5 @@ views.staffAudit = async () => {
 document.getElementById('regEmail').value = `client-${Math.random().toString(36).slice(2, 7)}@bank.local`;
 fillGeneratedPassword('regPassword');
 showRememberedEmail();
+showAuth(rememberedEmail() ? 'login' : 'register');
 if (state.access) start().catch(() => logout(true));

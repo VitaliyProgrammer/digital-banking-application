@@ -145,8 +145,8 @@ docker compose --profile app up -d --build
 | 🐇 RabbitMQ | <http://localhost:15672> (guest / guest) |
 
 ```bash
-# 💻 Development: infrastructure in Docker, the application from the IDE or Maven
-docker compose up -d
+# 💻 Development: run DigitalBankingApplication from the IDE (or the line below). It starts the infrastructure
+# from docker-compose.yml by itself (Spring Boot Docker Compose support); stop it with: docker compose stop
 ./mvnw spring-boot:run
 
 # 🧪 Tests: unit + integration on real PostgreSQL, Redis and RabbitMQ (Testcontainers)

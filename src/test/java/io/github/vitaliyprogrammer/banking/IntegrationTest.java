@@ -40,9 +40,9 @@ import org.springframework.test.context.TestPropertySource;
 @Import(TestcontainersConfiguration.class)
 @TestPropertySource(properties = {
         "banking.bill-payments.worker-enabled=false",
-        "banking.providers.mock-enabled=false",
-        // Short enough to keep the timeout tests fast, long enough for the first (cold) request to WireMock.
-        "banking.providers.read-timeout=1500ms"
+        "banking.providers.mock-enabled=false"
+        // The provider read timeout stays as shipped (application.yml). A shorter one made every provider call in
+        // every test race the clock, and a busy machine sometimes lost: a payment became UNKNOWN in a cashback test.
 })
 public abstract class IntegrationTest {
 

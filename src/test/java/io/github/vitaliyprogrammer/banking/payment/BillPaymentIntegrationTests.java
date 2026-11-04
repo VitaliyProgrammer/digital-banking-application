@@ -13,6 +13,7 @@ import io.github.vitaliyprogrammer.banking.IntegrationTest;
 import io.github.vitaliyprogrammer.banking.account.dto.request.OpenAccountRequestDto;
 import io.github.vitaliyprogrammer.banking.account.entity.status.Currency;
 import io.github.vitaliyprogrammer.banking.account.service.AccountService;
+import io.github.vitaliyprogrammer.banking.payment.configuration.ProviderProperties;
 import io.github.vitaliyprogrammer.banking.payment.dto.request.BillPaymentRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.request.TopUpRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.response.PaymentResponseDto;
@@ -42,6 +43,9 @@ class BillPaymentIntegrationTests extends IntegrationTest {
 
     @Autowired
     private BillPaymentProcessor billPaymentProcessor;
+
+    @Autowired
+    private ProviderProperties providerProperties;
 
     private UUID clientId;
 
@@ -92,9 +96,11 @@ class BillPaymentIntegrationTests extends IntegrationTest {
 
     @Test
     void timeoutBecomesUnknownAndReconciliationFinishesTheJob() {
-        // The provider takes the money, but answers after our 1.5 s timeout.
+        // The provider takes the money, but answers after our timeout. Taken from the configuration, so the test
+        // stays a timeout test whatever the timeout is set to.
+        int lateBy = (int) providerProperties.readTimeout().plusSeconds(2).toMillis();
         wireMock.stubFor(post(urlPathEqualTo("/" + PROVIDER + "/payments"))
-                .willReturn(okJson("{\"status\": \"ACCEPTED\"}").withFixedDelay(4_000)));
+                .willReturn(okJson("{\"status\": \"ACCEPTED\"}").withFixedDelay(lateBy)));
 
         PaymentResponseDto payment = payElectricity("300.00");
         billPaymentProcessor.processPending();

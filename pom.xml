@@ -67,6 +67,14 @@
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
+        <!-- Local development: starting the application from the IDE starts docker-compose.yml first.
+             Left out of the jar and the image by the Spring Boot Maven plugin, and skipped in tests. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-docker-compose</artifactId>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
 
         <!-- Redis: short-lived counters with TTL (failed logins, wrong PINs) -->
         <dependency>

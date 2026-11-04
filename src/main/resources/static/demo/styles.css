@@ -1,0 +1,182 @@
+/* Demo client of the bank: one page, no build step. Served by Spring Boot from /demo/. */
+:root {
+    --bg: #f3f5f9;
+    --panel: #ffffff;
+    --ink: #1c2433;
+    --muted: #6b7486;
+    --line: #e2e6ee;
+    --brand: #1f4fa3;
+    --brand-soft: #e8eefa;
+    --ok: #1d8a4e;
+    --ok-soft: #e3f4ea;
+    --warn: #b7791f;
+    --warn-soft: #fbf1df;
+    --bad: #c0392b;
+    --bad-soft: #fbe7e4;
+    --mono: "Cascadia Code", Consolas, "SF Mono", Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font: 14px/1.45 "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+}
+
+/* ---- Top bar ---- */
+header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 20px;
+    background: var(--brand);
+    color: #fff;
+}
+header .brand { font-weight: 700; font-size: 17px; letter-spacing: .2px; }
+header .brand small { font-weight: 400; opacity: .75; margin-left: 6px; }
+header .spacer { flex: 1; }
+header .who { font-size: 13px; opacity: .95; }
+header .bell { position: relative; cursor: pointer; font-size: 18px; }
+header .bell .count {
+    position: absolute; top: -6px; right: -10px;
+    background: #ff5a4f; color: #fff; border-radius: 10px;
+    font-size: 11px; padding: 0 5px; line-height: 16px;
+}
+header button { background: rgba(255, 255, 255, .15); color: #fff; border: 0; }
+header button:hover { background: rgba(255, 255, 255, .28); }
+
+/* ---- Layout ---- */
+.layout { display: grid; grid-template-columns: 200px 1fr 380px; min-height: calc(100vh - 52px); }
+nav { background: var(--panel); border-right: 1px solid var(--line); padding: 12px 8px; }
+nav a {
+    display: block; padding: 8px 12px; border-radius: 8px;
+    color: var(--ink); text-decoration: none; margin-bottom: 2px;
+}
+nav a:hover { background: var(--bg); }
+nav a.active { background: var(--brand-soft); color: var(--brand); font-weight: 600; }
+nav .group { margin: 14px 12px 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+main { padding: 20px 24px; overflow: auto; }
+main h1 { margin: 0 0 4px; font-size: 22px; }
+main .lead { margin: 0 0 18px; color: var(--muted); }
+
+/* ---- Cards and forms ---- */
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 16px; margin-bottom: 16px;
+}
+.card h2 { margin: 0 0 12px; font-size: 15px; }
+.card .hint { color: var(--muted); font-size: 12px; margin: -6px 0 10px; }
+label { display: block; font-size: 12px; color: var(--muted); margin: 8px 0 3px; }
+input, select, textarea {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px;
+    font: inherit; background: #fff; color: var(--ink);
+}
+textarea { min-height: 70px; resize: vertical; }
+.row { display: flex; gap: 8px; align-items: end; }
+.row > * { flex: 1; }
+button {
+    padding: 8px 14px; border-radius: 8px; border: 1px solid transparent; cursor: pointer;
+    font: inherit; font-weight: 600; background: var(--brand); color: #fff;
+}
+button:hover { filter: brightness(1.08); }
+button.secondary { background: var(--panel); color: var(--brand); border-color: var(--brand); }
+button.danger { background: var(--bad); }
+button.small { padding: 4px 9px; font-size: 12px; font-weight: 500; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+
+/* ---- Tables ---- */
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); font-weight: 600; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.mono { font-family: var(--mono); font-size: 12px; }
+.empty { color: var(--muted); font-style: italic; padding: 8px 0; }
+
+/* ---- Badges ---- */
+.badge { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; background: var(--bg); color: var(--muted); }
+.badge.ok { background: var(--ok-soft); color: var(--ok); }
+.badge.warn { background: var(--warn-soft); color: var(--warn); }
+.badge.bad { background: var(--bad-soft); color: var(--bad); }
+.badge.info { background: var(--brand-soft); color: var(--brand); }
+.plus { color: var(--ok); }
+.minus { color: var(--bad); }
+
+/* ---- Big numbers ---- */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.stat { background: var(--bg); border-radius: 10px; padding: 10px 12px; }
+.stat .k { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; }
+.stat .v { font-size: 18px; font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
+
+/* ---- Login screen ---- */
+.auth { max-width: 820px; margin: 40px auto; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 0 16px; }
+.auth .intro { grid-column: 1 / -1; text-align: center; }
+.auth .intro h1 { margin: 0 0 6px; color: var(--brand); }
+.auth .intro p { color: var(--muted); margin: 0; }
+
+/* ---- API log ---- */
+aside { background: #111827; color: #d1d5db; border-left: 1px solid #0b1220; display: flex; flex-direction: column; min-width: 0; }
+aside .head { display: flex; align-items: center; padding: 10px 12px; border-bottom: 1px solid #1f2937; }
+aside .head b { flex: 1; color: #fff; font-size: 13px; }
+aside .head button { background: #1f2937; font-size: 12px; padding: 3px 9px; }
+aside .entries { overflow: auto; flex: 1; font-family: var(--mono); font-size: 12px; }
+aside details { border-bottom: 1px solid #1f2937; padding: 6px 12px; }
+aside summary { cursor: pointer; list-style: none; display: flex; gap: 8px; white-space: nowrap; overflow: hidden; }
+aside summary .path { overflow: hidden; text-overflow: ellipsis; flex: 1; color: #e5e7eb; }
+aside .m { font-weight: 700; width: 46px; color: #93c5fd; }
+aside .s2 { color: #86efac; } aside .s4 { color: #fcd34d; } aside .s5, aside .s0 { color: #fca5a5; }
+aside pre { margin: 6px 0 2px; white-space: pre-wrap; word-break: break-all; color: #9ca3af; max-height: 260px; overflow: auto; }
+
+/* ---- Toast ---- */
+#toast {
+    position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+    padding: 10px 16px; border-radius: 10px; color: #fff; background: var(--ink);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .18); opacity: 0; transition: opacity .2s; pointer-events: none;
+    max-width: 70vw;
+}
+#toast.show { opacity: 1; }
+#toast.bad { background: var(--bad); }
+#toast.ok { background: var(--ok); }
+
+@media (max-width: 1100px) {
+    .layout { grid-template-columns: 170px 1fr; }
+    aside { grid-column: 1 / -1; max-height: 320px; }
+}
+
+/* ---- Payment cards: one look per card type ---- */
+.wallet { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 18px; }
+.wallet .slot .actions { margin-top: 8px; }
+.bank-card {
+    position: relative; aspect-ratio: 1.586; max-width: 100%; border-radius: 16px; padding: 18px 20px;
+    color: #fff; display: flex; flex-direction: column; overflow: hidden;
+    box-shadow: 0 10px 24px rgba(16, 24, 40, .22); font-family: "Segoe UI", system-ui, sans-serif;
+}
+.bank-card::after {
+    content: ""; position: absolute; right: -60px; top: -60px; width: 220px; height: 220px; border-radius: 50%;
+    background: rgba(255, 255, 255, .08);
+}
+.bank-card .top { display: flex; justify-content: space-between; align-items: center; font-size: 12px; letter-spacing: .4px; }
+.bank-card .top .bank { font-weight: 700; }
+.bank-card .top .kind { font-weight: 700; padding: 2px 8px; border-radius: 6px; background: rgba(255, 255, 255, .18); }
+.bank-card .chip {
+    width: 44px; height: 32px; border-radius: 6px; margin-top: 18px;
+    background: linear-gradient(135deg, #f6e27a, #c9a646 55%, #f3d88a);
+}
+.bank-card .number { margin-top: auto; font-family: var(--mono); font-size: 19px; letter-spacing: 2px; }
+.bank-card .bottom { display: flex; justify-content: space-between; margin-top: 10px; font-size: 12px; letter-spacing: .8px; opacity: .92; }
+.bank-card .secret { font-size: 11px; opacity: .85; margin-top: 2px; }
+.bank-card.payroll { background: linear-gradient(135deg, #1f4fa3, #2f7fd8); }
+.bank-card.student { background: linear-gradient(135deg, #12805c, #34b37e); }
+.bank-card.virtual { background: linear-gradient(135deg, #5b2bb5, #9a5bf0); }
+.bank-card.virtual .chip { visibility: hidden; }
+.bank-card.credit { background: linear-gradient(135deg, #15171c, #3a3d46); }
+.bank-card.credit .top .kind { background: linear-gradient(135deg, #e7c66b, #b88a2e); color: #1b1b1b; }
+.bank-card.off { filter: grayscale(1) brightness(.85); }
+.bank-card .stamp {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 26px; font-weight: 800; letter-spacing: 4px; color: rgba(255, 255, 255, .9); transform: rotate(-12deg);
+}
+aside details .curl { float: right; background: #1f2937; font-size: 11px; padding: 1px 7px; margin-top: 4px; }
+.countdown { font-variant-numeric: tabular-nums; }

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The address of this page holds a secret token: never send it to another site in the Referer header. -->
+    <meta name="referrer" content="no-referrer">
+    <title>Digital Bank — set a new password</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header>
+    <div class="brand">🏦 Taborovets Universal Bank <small>demo client</small></div>
+</header>
+
+<section class="auth single">
+    <form class="card" id="resetForm" onsubmit="resetPassword(event)">
+        <h2>🔐 Set a new password</h2>
+        <p class="hint">After this, every session of your account ends, on every device.</p>
+        <!-- Lets the password manager save the new password under the right account. -->
+        <input id="resetUsername" name="email" type="email" autocomplete="username" hidden>
+        <label for="newPassword">New password (8+ characters)</label>
+        <div class="password-field">
+            <input id="newPassword" name="new-password" type="password" autocomplete="new-password" minlength="8" maxlength="72" required>
+            <button type="button" class="secondary small" title="Generate a strong password" onclick="fillGeneratedPassword('newPassword')">🎲</button>
+            <button type="button" class="secondary small" title="Show or hide" onclick="togglePasswordVisibility('newPassword')">👁</button>
+            <button type="button" class="secondary small" title="Copy" onclick="copyPassword('newPassword', showMessage)">📋</button>
+        </div>
+        <div class="actions"><button type="submit" id="resetButton">Save the new password</button></div>
+        <p id="resetMessage" class="hint below" hidden></p>
+    </form>
+</section>
+
+<script src="password.js"></script>
+<script>
+'use strict';
+
+// Take the token out of the address bar at once: it should not stay in the browser history.
+const token = new URLSearchParams(location.search).get('token');
+history.replaceState(null, '', location.pathname);
+
+const message = document.getElementById('resetMessage');
+
+function showMessage(text, kind = '') {
+    message.textContent = text;
+    message.className = `hint below ${kind}`;
+    message.hidden = false;
+}
+
+try {
+    document.getElementById('resetUsername').value = localStorage.getItem('rememberedEmail') || '';
+} catch { /* storage blocked */ }
+
+if (!token) {
+    document.getElementById('resetButton').disabled = true;
+    showMessage('This page opens from the link in the email. Ask for a new link on the login page.', 'bad');
+} else {
+    fillGeneratedPassword('newPassword');
+}
+
+async function resetPassword(event) {
+    event.preventDefault();
+    const response = await fetch('/authentication/password-reset/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, newPassword: document.getElementById('newPassword').value }),
+    });
+    if (response.ok) {
+        document.getElementById('resetButton').disabled = true;
+        message.innerHTML = '';
+        message.append('Password changed. ');
+        const link = Object.assign(document.createElement('a'), { href: 'index.html', textContent: 'Log in with it →' });
+        message.append(link);
+        message.className = 'hint below ok';
+        message.hidden = false;
+        return;
+    }
+    const problem = await response.json().catch(() => ({}));
+    showMessage(problem.detail || problem.title || `Error ${response.status}`, 'bad');
+}
+</script>
+</body>
+</html>

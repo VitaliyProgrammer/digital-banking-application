@@ -38,6 +38,41 @@ sequenceDiagram
 | 🔹 5 failed logins per 15 min, then 429 | an atomic Redis counter with a TTL; it holds even across several instances |
 | 🔹 No default admin | the first admin comes from `ADMIN_EMAIL` / `ADMIN_PASSWORD`; staff roles are never self-assigned |
 
+### 🔁 Forgot password
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant B as Bank
+    participant M as Mail
+    C->>B: POST /authentication/password-reset {email}
+    B-->>C: 202, the same for every address
+    B-)M: after commit, on its own thread: a one-time link (30 min)
+    C->>B: POST /authentication/password-reset/confirm {token, newPassword}
+    B->>B: lock the link · set the password · use the link up · end every session
+    B-->>C: 204
+    B-)M: "your password was changed"
+```
+
+| Decision | Why |
+|---|---|
+| 🔹 The same `202` for every address, and every "no" is silent (unknown, blocked, over the limit) | the form must not tell who banks here |
+| 🔹 The email leaves **after commit** and **on its own thread** (`@TransactionalEventListener` + `@Async`) | a link whose token never reached the database is never sent, and SMTP time never shows in the response (a timing difference would reveal existing addresses) |
+| 🔹 256 random bits per link, only their SHA-256 stored, 30 minutes, one use; a new request makes older links useless | a stolen table holds no working links; an old email in the inbox opens nothing |
+| 🔹 The link is used under a row lock | two clicks at once cannot both change the password |
+| 🔹 A reset ends **every** session and sends "your password was changed" | whoever was in the account is out, and the owner knows |
+| 🔹 At most 3 emails per address an hour (Redis) | nobody can flood someone else's inbox |
+| 🔹 The token never goes through RabbitMQ | a secret does not belong in a message broker |
+
+**In the browser** (the demo client):
+
+| Decision | Why |
+|---|---|
+| 🔹 Real `<form>`s with `autocomplete="username"`, `"current-password"`, `"new-password"` | the browser's password manager suggests a strong password, saves it, and fills it next time |
+| 🔹 A password is generated in the browser (`crypto.getRandomValues`, no modulo bias), never by the server | a password the server made would have to travel back to the client, in a response or an email |
+| 🔹 "Remember me" keeps only the email, in `localStorage`, after an explicit tick; the session stays in `sessionStorage` | a shared computer never shows someone's login without their consent, and closing the tab still logs out |
+| 🔹 The reset page drops the token from the address bar at once and sends no `Referer` | the token stays out of the browser history and out of other sites' logs |
+
 ## 👥 Roles and rules
 
 | Rule | Where | Why |
@@ -88,6 +123,7 @@ The API is on port **8080**. Health and metrics are on the management port **808
 |---|---|
 | Filter chain, roles | [`SecurityConfiguration`](../src/main/java/io/github/vitaliyprogrammer/banking/identity/configuration/SecurityConfiguration.java) |
 | Login, attempt limit | [`AuthenticationServiceImpl`](../src/main/java/io/github/vitaliyprogrammer/banking/identity/service/impl/AuthenticationServiceImpl.java) |
+| Forgot password | [`PasswordResetServiceImpl`](../src/main/java/io/github/vitaliyprogrammer/banking/identity/service/impl/PasswordResetServiceImpl.java), [`PasswordResetMailer`](../src/main/java/io/github/vitaliyprogrammer/banking/identity/service/impl/PasswordResetMailer.java) |
 | Refresh rotation and reuse detection | [`RefreshTokenServiceImpl`](../src/main/java/io/github/vitaliyprogrammer/banking/identity/service/impl/RefreshTokenServiceImpl.java) |
 | Audit | [`AuditServiceImpl`](../src/main/java/io/github/vitaliyprogrammer/banking/audit/service/impl/AuditServiceImpl.java) |
 | Card cryptography | [`CardCryptography`](../src/main/java/io/github/vitaliyprogrammer/banking/card/service/impl/CardCryptography.java) |

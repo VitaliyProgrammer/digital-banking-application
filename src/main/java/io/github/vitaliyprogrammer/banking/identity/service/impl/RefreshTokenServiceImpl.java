@@ -84,6 +84,13 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
                 .ifPresent(token -> token.revoke(clock.instant()));
     }
 
+    @Override
+    @Transactional
+    public void revokeAllSessions(UUID userId) {
+
+        refreshTokenRepository.revokeAllActive(userId, clock.instant());
+    }
+
     private String generateRawToken() {
 
         byte[] bytes = new byte[TOKEN_BYTES];

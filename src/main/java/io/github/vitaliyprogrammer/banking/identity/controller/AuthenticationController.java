@@ -1,11 +1,14 @@
 package io.github.vitaliyprogrammer.banking.identity.controller;
 
 import io.github.vitaliyprogrammer.banking.identity.dto.request.LoginRequestDto;
+import io.github.vitaliyprogrammer.banking.identity.dto.request.PasswordResetConfirmRequestDto;
+import io.github.vitaliyprogrammer.banking.identity.dto.request.PasswordResetRequestDto;
 import io.github.vitaliyprogrammer.banking.identity.dto.request.RefreshRequestDto;
 import io.github.vitaliyprogrammer.banking.identity.dto.request.RegisterRequestDto;
 import io.github.vitaliyprogrammer.banking.identity.dto.response.TokenResponseDto;
 import io.github.vitaliyprogrammer.banking.identity.dto.response.UserResponseDto;
 import io.github.vitaliyprogrammer.banking.identity.service.AuthenticationService;
+import io.github.vitaliyprogrammer.banking.identity.service.PasswordResetService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -24,6 +27,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthenticationController {
 
     private final AuthenticationService authenticationService;
+
+    private final PasswordResetService passwordResetService;
 
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
@@ -60,5 +65,24 @@ public class AuthenticationController {
     public void logout(@Valid @RequestBody RefreshRequestDto request) {
 
         authenticationService.logout(request);
+    }
+
+    @PostMapping("/password-reset")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    @Operation(summary = "Forgot password",
+            description = "Emails a one-time link (30 minutes) if the address has an account. The answer is the same "
+                    + "either way, so it never reveals who has an account")
+    public void requestPasswordReset(@Valid @RequestBody PasswordResetRequestDto request) {
+
+        passwordResetService.requestReset(request.email());
+    }
+
+    @PostMapping("/password-reset/confirm")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Set a new password",
+            description = "With the token from the emailed link. Works once; every session of the user is ended")
+    public void confirmPasswordReset(@Valid @RequestBody PasswordResetConfirmRequestDto request) {
+
+        passwordResetService.resetPassword(request);
     }
 }

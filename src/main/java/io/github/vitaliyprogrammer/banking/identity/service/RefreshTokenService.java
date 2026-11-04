@@ -9,4 +9,7 @@ public interface RefreshTokenService {
     UUID consume(String rawToken);
 
     void revoke(String rawToken);
+
+    /** Ends every session of the user at once, e.g. after a password reset. */
+    void revokeAllSessions(UUID userId);
 }

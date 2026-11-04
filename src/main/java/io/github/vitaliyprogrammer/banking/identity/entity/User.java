@@ -66,4 +66,9 @@ public class User {
     public boolean isBlocked() {
         return status == UserStatus.BLOCKED;
     }
+
+    /** Takes a hash, never a password: the entity does not know how passwords are hashed. */
+    public void changePassword(String newPasswordHash) {
+        this.passwordHash = newPasswordHash;
+    }
 }

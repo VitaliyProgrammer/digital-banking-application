@@ -147,21 +147,82 @@ function fillAdmin() {
     document.getElementById('loginPassword').value = 'demo-admin-password';
 }
 
-async function register() {
+// "Remember me" keeps only the email, and only in this browser: never a password, never a token. The session itself
+// stays in sessionStorage, so closing the tab still logs out.
+const REMEMBERED_EMAIL = 'rememberedEmail';
+
+function rememberEmail(email, remember) {
+    try {
+        if (remember) localStorage.setItem(REMEMBERED_EMAIL, email);
+        else localStorage.removeItem(REMEMBERED_EMAIL);
+    } catch { /* storage blocked: nothing to remember */ }
+}
+
+function rememberedEmail() {
+    try { return localStorage.getItem(REMEMBERED_EMAIL); } catch { return null; }
+}
+
+/** Fills the login form for a returning user and puts the cursor where they type next. */
+function showRememberedEmail() {
+    const email = rememberedEmail();
+    document.getElementById('rememberedAs').hidden = !email;
+    document.getElementById('loginRemember').checked = Boolean(email);
+    document.getElementById('loginPassword').value = '';
+    if (email) {
+        document.getElementById('rememberedEmail').textContent = email;
+        document.getElementById('loginEmail').value = email;
+        document.getElementById('loginPassword').focus();
+    }
+}
+
+function forgetMe(event) {
+    event.preventDefault();
+    rememberEmail(null, false);
+    document.getElementById('loginEmail').value = '';
+    showRememberedEmail();
+    document.getElementById('loginEmail').focus();
+}
+
+async function register(event) {
+    event.preventDefault();
     try {
         const email = val('regEmail');
         const password = document.getElementById('regPassword').value;
         await api('POST', '/authentication/register', { email, password, firstName: val('regFirst'), lastName: val('regLast') });
         saveTokens(await api('POST', '/authentication/login', { email, password }));
+        rememberEmail(email, document.getElementById('regRemember').checked);
         await start();
         toast('Welcome! Open an account to begin.');
     } catch (e) { toast(e.message, 'bad'); }
 }
 
-async function login() {
+async function login(event) {
+    event.preventDefault();
     try {
-        saveTokens(await api('POST', '/authentication/login', { email: val('loginEmail'), password: document.getElementById('loginPassword').value }));
+        const email = val('loginEmail');
+        saveTokens(await api('POST', '/authentication/login', { email, password: document.getElementById('loginPassword').value }));
+        rememberEmail(email, document.getElementById('loginRemember').checked);
         await start();
+    } catch (e) { toast(e.message, 'bad'); }
+}
+
+function toggleForgot(event) {
+    event.preventDefault();
+    const form = document.getElementById('forgotForm');
+    form.hidden = !form.hidden;
+    if (!form.hidden) {
+        document.getElementById('forgotEmail').value = val('loginEmail');
+        document.getElementById('forgotEmail').focus();
+    }
+}
+
+/** The bank answers the same for every address, so the page does too: it never says whether the account exists. */
+async function requestPasswordReset(event) {
+    event.preventDefault();
+    try {
+        await api('POST', '/authentication/password-reset', { email: val('forgotEmail') });
+        document.getElementById('forgotForm').hidden = true;
+        toast('If this email has an account, a link is on its way. Check Mailpit (localhost:8025).');
     } catch (e) { toast(e.message, 'bad'); }
 }
 
@@ -176,6 +237,7 @@ async function logout(silent) {
     document.getElementById('app').hidden = true;
     document.getElementById('session').hidden = true;
     document.getElementById('auth').hidden = false;
+    showRememberedEmail();
 }
 
 async function start() {
@@ -669,4 +731,6 @@ views.staffAudit = async () => {
 // ---------- Start ----------
 
 document.getElementById('regEmail').value = `client-${Math.random().toString(36).slice(2, 7)}@bank.local`;
+fillGeneratedPassword('regPassword');
+showRememberedEmail();
 if (state.access) start().catch(() => logout(true));

@@ -3,12 +3,16 @@ package io.github.vitaliyprogrammer.banking;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.utility.DockerImageName;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * A real SMTP server (Mailpit) for the whole test run. It accepts every email and shows it through its HTTP API,
@@ -38,6 +42,8 @@ public final class FakeMailServer {
 
     private final HttpClient http = HttpClient.newHttpClient();
 
+    private final JsonMapper json = JsonMapper.builder().build();
+
     FakeMailServer start() {
         container.start();
         return this;
@@ -54,6 +60,35 @@ public final class FakeMailServer {
     /** Every email received so far, as Mailpit's JSON. */
     public String messages() {
         return call(HttpRequest.newBuilder(api("/api/v1/messages")).GET());
+    }
+
+    /** How many emails this address has received so far. */
+    public int countTo(String email) {
+        return search("to:\"" + email + "\"").path("messages_count").asInt();
+    }
+
+    /** How many emails with this subject this address has received so far. */
+    public int countTo(String email, String subject) {
+        return search(byAddressAndSubject(email, subject)).path("messages_count").asInt();
+    }
+
+    /** The plain text of the newest email with this subject to this address; empty if there is none. */
+    public String latestTextTo(String email, String subject) {
+        JsonNode messages = search(byAddressAndSubject(email, subject)).path("messages");
+        if (messages.isEmpty()) {
+            return "";
+        }
+        String id = messages.get(0).path("ID").asString();
+        return json.readTree(call(HttpRequest.newBuilder(api("/api/v1/message/" + id)).GET())).path("Text").asString();
+    }
+
+    private static String byAddressAndSubject(String email, String subject) {
+        return "to:\"" + email + "\" subject:\"" + subject + "\"";
+    }
+
+    private JsonNode search(String query) {
+        String encoded = URLEncoder.encode(query, StandardCharsets.UTF_8);
+        return json.readTree(call(HttpRequest.newBuilder(api("/api/v1/search?query=" + encoded)).GET()));
     }
 
     /** From now on every email is refused with a temporary error, until {@link #acceptEverything()}. */

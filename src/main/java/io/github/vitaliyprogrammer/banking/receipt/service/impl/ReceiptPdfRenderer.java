@@ -7,6 +7,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import org.apache.pdfbox.cos.COSArray;
+import org.apache.pdfbox.cos.COSDictionary;
+import org.apache.pdfbox.cos.COSFloat;
+import org.apache.pdfbox.cos.COSName;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -17,7 +21,10 @@ import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.font.PDType0Font;
-import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
+import org.apache.pdfbox.pdmodel.common.function.PDFunctionType2;
+import org.apache.pdfbox.pdmodel.graphics.color.PDDeviceRGB;
+import org.apache.pdfbox.pdmodel.graphics.shading.PDShading;
+import org.apache.pdfbox.pdmodel.graphics.shading.PDShadingType2;
 import org.apache.pdfbox.pdmodel.graphics.state.PDExtendedGraphicsState;
 import org.apache.pdfbox.util.Matrix;
 import org.springframework.core.io.ClassPathResource;
@@ -31,17 +38,24 @@ import org.springframework.stereotype.Component;
  * and converts in one place ({@link Painter#pdfY}). The page is drawn twice: a dry run measures the height,
  * then the real run draws, so the page is exactly as tall as the receipt needs.
  * <p>
- * The logo is replaceable: put a square {@code receipt/logo.png} on the classpath and it is used instead of
- * the drawn "DB" mark.
+ * The bank's logo (three rising bars and the name) is drawn as vectors, so it stays sharp at any zoom.
  */
 @Component
 public class ReceiptPdfRenderer {
 
     private static final String FONTS = "receipt/fonts/";
 
-    private static final String LOGO = "receipt/logo.png";
 
-    private static final String STAMP_NAME = "Taborovets Universal Bank";
+    /** The bank's name in the middle of the stamp: the first line on top, the second below it at the same length. */
+    private static final String STAMP_NAME_TOP = "Taborovets";
+
+    private static final String STAMP_NAME_BOTTOM = "Universal Bank";
+
+    /** Both lines of the name are this long: 17 to each side of the centre, well inside the inner ring (radius 24). */
+    private static final float STAMP_NAME_WIDTH = 34;
+
+    /** Height of a capital letter as a share of the font size, for IBM Plex Sans. */
+    private static final float CAP_HEIGHT = 0.7f;
 
     private static final float PAGE_WIDTH = 400;
 
@@ -76,7 +90,15 @@ public class ReceiptPdfRenderer {
 
     private static final Color LINE = new Color(0xD3D9E1);
 
-    private static final Color BRAND = new Color(0x0B5C6E);
+    // The approved logo, artboard 11 "Лайм, бірюза, зелений": three bars, each a top-to-bottom gradient.
+    private static final Color[][] LOGO_BARS = {
+            {new Color(0xD9F99D), new Color(0xA3E635)},
+            {new Color(0x86EFAC), new Color(0x22C55E)},
+            {new Color(0x4ADE80), new Color(0x16A34A)}};
+
+    private static final Color LOGO_WORD = new Color(0x15803D);
+
+    private static final Color LOGO_BANK = new Color(0x0F2A44);
 
     private static final Color DONE = new Color(0x1D8049);
 
@@ -91,8 +113,7 @@ public class ReceiptPdfRenderer {
 
     private final byte[] monoFont;
 
-    /** Null when no custom logo is on the classpath. */
-    private final byte[] logo;
+    private final byte[] logoFont;
 
     /** Fonts are read once; each PDF embeds only the glyphs it uses, so a receipt stays around 30 KB. */
     public ReceiptPdfRenderer() {
@@ -100,7 +121,7 @@ public class ReceiptPdfRenderer {
         this.regularFont = read(FONTS + "IBMPlexSans-Regular.ttf");
         this.semiboldFont = read(FONTS + "IBMPlexSans-SemiBold.ttf");
         this.monoFont = read(FONTS + "IBMPlexMono-Medium.ttf");
-        this.logo = new ClassPathResource(LOGO).exists() ? read(LOGO) : null;
+        this.logoFont = read(FONTS + "Manrope-ExtraBold.ttf");
     }
 
     public byte[] render(ReceiptDocumentDto receipt) {
@@ -109,10 +130,10 @@ public class ReceiptPdfRenderer {
             Fonts fonts = new Fonts(
                     PDType0Font.load(pdf, new ByteArrayInputStream(regularFont)),
                     PDType0Font.load(pdf, new ByteArrayInputStream(semiboldFont)),
-                    PDType0Font.load(pdf, new ByteArrayInputStream(monoFont)));
-            PDImageXObject logoImage = logo != null ? PDImageXObject.createFromByteArray(pdf, logo, "logo") : null;
+                    PDType0Font.load(pdf, new ByteArrayInputStream(monoFont)),
+                    PDType0Font.load(pdf, new ByteArrayInputStream(logoFont)));
 
-            float paperHeight = new Painter(null, 0, fonts, logoImage).content(receipt);
+            float paperHeight = new Painter(null, 0, fonts).content(receipt);
             float pageHeight = PAPER_TOP + paperHeight + TOOTH_HEIGHT + DESK_BELOW;
 
             PDPage page = new PDPage(new PDRectangle(PAGE_WIDTH, pageHeight));
@@ -120,10 +141,10 @@ public class ReceiptPdfRenderer {
 
             PDDocumentInformation info = pdf.getDocumentInformation();
             info.setTitle("Квитанція " + receipt.receiptNumber());
-            info.setAuthor("Digital Bank");
+            info.setAuthor("Taborovets Universal Bank");
 
             try (PDPageContentStream stream = new PDPageContentStream(pdf, page)) {
-                Painter painter = new Painter(stream, pageHeight, fonts, logoImage);
+                Painter painter = new Painter(stream, pageHeight, fonts);
                 painter.desk();
                 painter.shadow(paperHeight);
                 painter.paper(paperHeight);
@@ -147,7 +168,7 @@ public class ReceiptPdfRenderer {
         }
     }
 
-    private record Fonts(PDFont regular, PDFont semibold, PDFont mono) {
+    private record Fonts(PDFont regular, PDFont semibold, PDFont mono, PDFont logo) {
     }
 
     /** Draws on one page. With a null stream it only measures: every method still returns the next y. */
@@ -159,13 +180,10 @@ public class ReceiptPdfRenderer {
 
         private final Fonts fonts;
 
-        private final PDImageXObject logo;
-
-        private Painter(PDPageContentStream stream, float pageHeight, Fonts fonts, PDImageXObject logo) {
+        private Painter(PDPageContentStream stream, float pageHeight, Fonts fonts) {
             this.stream = stream;
             this.pageHeight = pageHeight;
             this.fonts = fonts;
-            this.logo = logo;
         }
 
         /** Draws everything printed on the paper and returns the paper height. */
@@ -270,29 +288,104 @@ public class ReceiptPdfRenderer {
             stream.closePath();
         }
 
+        /**
+         * The bank's logo, scaled down from the approved artboard (bars 24 wide, 8 apart, radius 8; "Taborovets"
+         * 60, "Universal Bank" 37, 14 between them; 26 between the mark and the name). The tallest bar reaches the
+         * top of the capitals of "Taborovets", every bar ends on the baseline of "Universal Bank", and the letters of
+         * "Universal Bank" are spread to exactly the width of "Taborovets".
+         */
         private float brand(float y) throws IOException {
 
-            float size = 26;
+            float scale = 0.36f;
+            float wordSize = 60 * scale;
+            float bankSize = 37 * scale;
+            float capHeight = fonts.logo().getFontDescriptor().getCapHeight() / 1000;
+            float wordCap = capHeight * wordSize;
+            float bankCap = capHeight * bankSize;
+            float height = wordCap + 14 * scale + bankCap;
 
-            if (logo != null) {
-                if (stream != null) {
-                    stream.drawImage(logo, CONTENT_X, pdfY(y + size), size, size);
-                }
-            } else {
-                roundedSquare(CONTENT_X, y, size, 6, BRAND);
-                textCentered(fonts.semibold(), 11, PAPER, CONTENT_X + size / 2, y + 17, "DB");
+            float barWidth = 24 * scale;
+            float barGap = 8 * scale;
+            float radius = 8 * scale;
+            float[] shares = {0.5f, 0.75f, 1f};
+            for (int bar = 0; bar < 3; bar++) {
+                float barHeight = height * shares[bar];
+                gradientBar(CONTENT_X + bar * (barWidth + barGap), y + height - barHeight, barWidth, barHeight, radius,
+                        LOGO_BARS[bar][0], LOGO_BARS[bar][1]);
             }
 
-            text(fonts.semibold(), 12.5f, INK, CONTENT_X + size + 10, y + 11, "Digital Bank", 0);
-            text(fonts.regular(), 7.5f, MUTED, CONTENT_X + size + 10, y + 22, "ІНТЕРНЕТ-БАНК", 0.6f);
+            float textX = CONTENT_X + 3 * barWidth + 2 * barGap + 26 * scale;
+            float spacing = -1.8f * scale;
+            String word = "Taborovets";
+            text(fonts.logo(), wordSize, LOGO_WORD, textX, y + wordCap, word, spacing);
+            spread(fonts.logo(), bankSize, LOGO_BANK, textX, y + height, "Universal Bank",
+                    width(fonts.logo(), wordSize, word, spacing) - spacing);
 
-            return y + size;
+            return y + height;
         }
 
-        /** Green dot and "Виконано", right-aligned on the title line. */
+        /** Letters placed one by one so that the line is exactly {@code totalWidth} long (like flex space-between). */
+        private void spread(PDFont font, float size, Color color, float x, float baselineY, String value,
+                            float totalWidth) throws IOException {
+
+            float lettersWidth = width(font, size, value, 0);
+            float gap = (totalWidth - lettersWidth) / (value.length() - 1);
+            for (int i = 0; i < value.length(); i++) {
+                String letter = value.substring(i, i + 1);
+                text(font, size, color, x, baselineY, letter, 0);
+                x += width(font, size, letter, 0) + gap;
+            }
+        }
+
+        /** A rounded bar filled with a top-to-bottom gradient, like CSS linear-gradient(180deg, top, bottom). */
+        private void gradientBar(float x, float topY, float width, float height, float radius, Color top, Color bottom)
+                throws IOException {
+
+            if (stream == null) {
+                return;
+            }
+
+            stream.saveGraphicsState();
+            roundedRectPath(x, topY, width, height, radius);
+            stream.clip();
+            stream.shadingFill(verticalGradient(pdfY(topY), pdfY(topY + height), top, bottom));
+            stream.restoreGraphicsState();
+        }
+
+        private static PDShading verticalGradient(float topPdfY, float bottomPdfY, Color top, Color bottom) {
+
+            COSDictionary function = new COSDictionary();
+            function.setInt(COSName.FUNCTION_TYPE, 2);
+            function.setItem(COSName.DOMAIN, floats(0, 1));
+            function.setItem(COSName.C0, floats(rgb(top)));
+            function.setItem(COSName.C1, floats(rgb(bottom)));
+            function.setInt(COSName.N, 1);
+
+            PDShadingType2 shading = new PDShadingType2(new COSDictionary());
+            shading.setShadingType(PDShading.SHADING_TYPE2);
+            shading.setColorSpace(PDDeviceRGB.INSTANCE);
+            shading.setCoords(floats(0, topPdfY, 0, bottomPdfY));
+            shading.setFunction(new PDFunctionType2(function));
+            return shading;
+        }
+
+        private static float[] rgb(Color color) {
+            return new float[] {color.getRed() / 255f, color.getGreen() / 255f, color.getBlue() / 255f};
+        }
+
+        private static COSArray floats(float... values) {
+
+            COSArray array = new COSArray();
+            for (float value : values) {
+                array.add(new COSFloat(value));
+            }
+            return array;
+        }
+
+        /** Green dot and "Успішно", right-aligned on the title line. */
         private void status(float y) throws IOException {
 
-            String label = "Виконано";
+            String label = "Успішно";
             float width = width(fonts.semibold(), 9, label, 0);
             textRight(fonts.semibold(), 9, DONE, CONTENT_RIGHT, y + 9, label);
 
@@ -374,19 +467,30 @@ public class ReceiptPdfRenderer {
             circle(0, 0, 36);
             stream.stroke();
             stream.setLineWidth(0.8f);
-            circle(0, 0, 26.5f);
+            circle(0, 0, 24);
             stream.stroke();
 
-            // The bank's name runs along the ring, like on a real bank stamp; three dots close the bottom of it.
-            textOnArc(fonts.semibold(), 5.8f, STAMP, 29.4f, STAMP_NAME, 0.5f);
+            // "ВИКОНАНО" runs along the ring; three dots close the bottom of it.
+            // Baseline at 27.7: capitals (about 4.5 high) fill 27.7 to 32.2, so about 3.7 stays free to each ring.
+            textOnArc(fonts.semibold(), 6.5f, STAMP, 27.7f, "ВИКОНАНО", 1.2f);
             stream.setNonStrokingColor(STAMP);
             for (int dot = -1; dot <= 1; dot++) {
                 double angle = -Math.PI / 2 + dot * 0.32;
-                circle((float) (31.2 * Math.cos(angle)), (float) (31.2 * Math.sin(angle)), 0.9f);
+                circle((float) (30 * Math.cos(angle)), (float) (30 * Math.sin(angle)), 0.9f);
                 stream.fill();
             }
 
-            rawTextCentered(fonts.semibold(), 7.5f, STAMP, 0, -2.6f, "ВИКОНАНО", 0.3f);
+            // The bank's name inside the inner ring (radius 24): each line gets the font size that makes it exactly
+            // STAMP_NAME_WIDTH long, and the two lines together are centred. The farthest corner is about 18.5 from
+            // the centre, so the name keeps more than 5 clear of the ring.
+            float topSize = STAMP_NAME_WIDTH / width(fonts.semibold(), 1, STAMP_NAME_TOP, 0);
+            float bottomSize = STAMP_NAME_WIDTH / width(fonts.semibold(), 1, STAMP_NAME_BOTTOM, 0);
+            float gap = 2.2f;
+            float height = CAP_HEIGHT * topSize + gap + CAP_HEIGHT * bottomSize;
+            float topBaseline = height / 2 - CAP_HEIGHT * topSize;
+            rawTextCentered(fonts.semibold(), topSize, STAMP, 0, topBaseline, STAMP_NAME_TOP, 0);
+            rawTextCentered(fonts.semibold(), bottomSize, STAMP, 0, topBaseline - gap - CAP_HEIGHT * bottomSize,
+                    STAMP_NAME_BOTTOM, 0);
 
             stream.restoreGraphicsState();
         }
@@ -455,12 +559,6 @@ public class ReceiptPdfRenderer {
             text(font, size, color, right - width(font, size, value, 0), baselineY, value, 0);
         }
 
-        private void textCentered(PDFont font, float size, Color color, float centerX, float baselineY, String value)
-                throws IOException {
-
-            text(font, size, color, centerX - width(font, size, value, 0) / 2, baselineY, value, 0);
-        }
-
         private void rawTextCentered(PDFont font, float size, Color color, float centerX, float baseline,
                                      String value, float spacing) throws IOException {
 
@@ -524,19 +622,15 @@ public class ReceiptPdfRenderer {
             return lines;
         }
 
-        private void roundedSquare(float x, float topY, float size, float radius, Color color) throws IOException {
-
-            if (stream == null) {
-                return;
-            }
+        /** The outline of a rounded rectangle, ready to fill or clip; top-down coordinates. */
+        private void roundedRectPath(float x, float topY, float width, float height, float radius) throws IOException {
 
             float k = 0.5523f * radius;
             float left = x;
-            float right = x + size;
+            float right = x + width;
             float top = pdfY(topY);
-            float bottom = pdfY(topY + size);
+            float bottom = pdfY(topY + height);
 
-            stream.setNonStrokingColor(color);
             stream.moveTo(left + radius, bottom);
             stream.lineTo(right - radius, bottom);
             stream.curveTo(right - radius + k, bottom, right, bottom + radius - k, right, bottom + radius);
@@ -547,7 +641,6 @@ public class ReceiptPdfRenderer {
             stream.lineTo(left, bottom + radius);
             stream.curveTo(left, bottom + radius - k, left + radius - k, bottom, left + radius, bottom);
             stream.closePath();
-            stream.fill();
         }
 
         /** A circle from four Bezier curves (PDF has no circle operator); the centre is in PDF coordinates. */

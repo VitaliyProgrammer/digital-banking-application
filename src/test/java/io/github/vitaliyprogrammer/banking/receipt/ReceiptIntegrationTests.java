@@ -93,7 +93,7 @@ class ReceiptIntegrationTests extends IntegrationTest {
         assertThat(receipt.fileName()).matches(RECEIPT_NUMBER + "\\.pdf");
         assertThat(new String(receipt.content(), 0, 5)).isEqualTo("%PDF-");
         // Cyrillic, the hryvnia sign and the thousands separator survive: the font is really embedded.
-        assertThat(text).contains("Переказ на рахунок", "1 250,40 ₴", "ВИКОНАНО",
+        assertThat(text).contains("Переказ на рахунок", "1 250,40 ₴", "Успішно", "Taborovets", "Universal Bank",
                 receipt.fileName().replace(".pdf", ""), payment.ledgerTransactionId().toString());
     }
 

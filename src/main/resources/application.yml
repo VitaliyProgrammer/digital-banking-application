@@ -174,18 +174,18 @@ banking:
     mailer-batch-size: 20
     max-email-attempts: 6
     max-email-backoff: 10m
-    mail-from: ${NOTIFICATIONS_MAIL_FROM:Digital Bank <no-reply@digital-bank.local>}
+    mail-from: ${NOTIFICATIONS_MAIL_FROM:Taborovets Universal Bank <no-reply@digital-bank.local>}
 
   password-reset:
     token-ttl: 30m
     # The page the emailed link opens; in production, the bank's real web address.
     link-base: ${PASSWORD_RESET_LINK_BASE:http://localhost:8080/demo/reset.html}
-    mail-from: ${PASSWORD_RESET_MAIL_FROM:Digital Bank <no-reply@digital-bank.local>}
+    mail-from: ${PASSWORD_RESET_MAIL_FROM:Taborovets Universal Bank <no-reply@digital-bank.local>}
     max-requests: 3
     request-window: 1h
 
   receipts:
-    mail-from: ${RECEIPTS_MAIL_FROM:Digital Bank <no-reply@digital-bank.local>}
+    mail-from: ${RECEIPTS_MAIL_FROM:Taborovets Universal Bank <no-reply@digital-bank.local>}
 
   # First admin, created on startup. No defaults on purpose: without these variables there is no admin.
   admin:

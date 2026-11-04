@@ -39,7 +39,10 @@ public class SecurityConfiguration {
             "/actuator/prometheus",
             "/swagger-ui.html",
             "/swagger-ui/**",
-            "/v3/api-docs/**"
+            "/v3/api-docs/**",
+            // The demo client: static files only. Every call it makes to the API still needs a token.
+            "/",
+            "/demo/**"
     };
 
     /**

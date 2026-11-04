@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Digital Bank — demo client</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header>
+    <div class="brand">🏦 Taborovets Universal Bank <small>demo client</small></div>
+    <div class="spacer"></div>
+    <div id="session" hidden>
+        <span class="bell" title="Notifications" onclick="go('notifications')">🔔<span class="count" id="unread" hidden>0</span></span>
+        &nbsp;&nbsp;<span class="who" id="who"></span>&nbsp;&nbsp;
+        <button class="small" onclick="logout()">Log out</button>
+    </div>
+    <a href="/swagger-ui.html" target="_blank" style="color:#fff;opacity:.85;font-size:13px">Swagger ↗</a>
+</header>
+
+<!-- Before login -->
+<section id="auth" class="auth">
+    <div class="intro">
+        <h1>Welcome to the demo bank</h1>
+        <p>Register a client, or log in as the demo admin (<span class="mono">admin@bank.local</span>) to see the staff side.</p>
+    </div>
+    <div class="card">
+        <h2>🆕 Register</h2>
+        <label>First name</label><input id="regFirst" value="Olena">
+        <label>Last name</label><input id="regLast" value="Demo">
+        <label>Email</label><input id="regEmail">
+        <label>Password (8+ characters)</label><input id="regPassword" type="password" value="demo-password-1">
+        <div class="actions"><button onclick="register()">Register and log in</button></div>
+    </div>
+    <div class="card">
+        <h2>🔑 Log in</h2>
+        <label>Email</label><input id="loginEmail">
+        <label>Password</label><input id="loginPassword" type="password">
+        <div class="actions">
+            <button onclick="login()">Log in</button>
+            <button class="secondary" onclick="fillAdmin()">Demo admin</button>
+        </div>
+    </div>
+</section>
+
+<!-- After login -->
+<div id="app" class="layout" hidden>
+    <nav>
+        <a data-view="overview" onclick="go('overview')">🏠 Overview</a>
+        <a data-view="payments" onclick="go('payments')">🔁 Payments</a>
+        <a data-view="cards" onclick="go('cards')">💳 Cards</a>
+        <a data-view="exchange" onclick="go('exchange')">💱 Exchange</a>
+        <a data-view="savings" onclick="go('savings')">🫙 Savings &amp; cashback</a>
+        <a data-view="credit" onclick="go('credit')">🏛️ Credit</a>
+        <a data-view="notifications" onclick="go('notifications')">🔔 Notifications</a>
+        <a data-view="support" onclick="go('support')">🎧 Support</a>
+        <div id="staffNav" hidden>
+            <div class="group">Staff</div>
+            <a data-view="staffCredit" onclick="go('staffCredit')">👀 Credit queue</a>
+            <a data-view="staffSupport" onclick="go('staffSupport')">🎧 Support queue</a>
+            <a data-view="staffRates" onclick="go('staffRates')" data-admin>💱 Bank rates</a>
+            <a data-view="staffAudit" onclick="go('staffAudit')" data-admin>🕵️ Audit log</a>
+        </div>
+    </nav>
+    <main id="view"></main>
+    <aside>
+        <div class="head"><b>⚡ API calls</b><button onclick="clearLog()">clear</button></div>
+        <div class="entries" id="log"></div>
+    </aside>
+</div>
+
+<div id="toast"></div>
+<script src="app.js"></script>
+</body>
+</html>

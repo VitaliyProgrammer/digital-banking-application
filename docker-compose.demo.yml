@@ -3,7 +3,8 @@
 #   curl -O https://raw.githubusercontent.com/VitaliyProgrammer/digital-banking-application/main/docker-compose.demo.yml
 #   docker compose -f docker-compose.demo.yml up -d
 #
-# Then: http://localhost:8080/swagger-ui.html (API), http://localhost:8025 (emails the bank sends).
+# Then: http://localhost:8080 (the demo client), http://localhost:8080/swagger-ui.html (API),
+# http://localhost:8025 (emails the bank sends).
 # Demo admin: admin@bank.local / demo-admin-password. Stop with: docker compose -f docker-compose.demo.yml down
 #
 # Self-contained on purpose: no files from the repository are needed, the bank comes as a published image.
@@ -27,6 +28,8 @@ services:
       # A demo admin, so the staff side (credit queue, rates, audit) can be tried at once. Demo only.
       ADMIN_EMAIL: admin@bank.local
       ADMIN_PASSWORD: demo-admin-password
+      # Demo only: a brand-new client may apply for credit at once (the real rule asks for a 30-day-old account).
+      BANKING_CREDIT_MIN_ACCOUNT_AGE_DAYS: "0"
     ports:
       - "8080:8080"
 

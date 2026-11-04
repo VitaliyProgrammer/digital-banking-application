@@ -105,6 +105,8 @@ banking:
     sync-enabled: ${EXCHANGE_RATES_SYNC_ENABLED:true}
     # Every hour at :05 Kyiv time. A day already stored is skipped, so extra runs only act as retries.
     sync-cron: "0 5 * * * *"
+    # Until the first sync after startup works, try again this often (a fresh bank has no rates at all).
+    startup-retry-delay: 1m
     default-spread-percent: 1.50
     max-manual-deviation-percent: 10.00
     quote-ttl: 30s

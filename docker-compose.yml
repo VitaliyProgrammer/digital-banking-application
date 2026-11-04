@@ -85,6 +85,9 @@ services:
   # Message broker for the bank's events. Management UI: http://localhost:15672 (guest / guest).
   rabbitmq:
     image: rabbitmq:4.1-management-alpine
+    # As its own user, not root: the healthcheck runs "rabbitmq-diagnostics" through docker exec, and as root it
+    # could create the Erlang cookie first, owned by root, so the broker could not read it and would not start.
+    user: rabbitmq
     ports:
       - "${RABBITMQ_PORT:-5672}:5672"
       - "15672:15672"

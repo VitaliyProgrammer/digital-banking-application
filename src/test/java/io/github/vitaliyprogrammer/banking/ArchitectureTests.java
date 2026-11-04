@@ -36,9 +36,11 @@ import io.github.vitaliyprogrammer.banking.exchange.repository.OfficialRateRepos
 import io.github.vitaliyprogrammer.banking.exchange.service.impl.ExchangeQuoteServiceImpl;
 import io.github.vitaliyprogrammer.banking.exchange.service.impl.ExchangeRateServiceImpl;
 import io.github.vitaliyprogrammer.banking.exchange.service.impl.NbuRateClient;
+import io.github.vitaliyprogrammer.banking.identity.repository.PasswordResetTokenRepository;
 import io.github.vitaliyprogrammer.banking.identity.repository.RefreshTokenRepository;
 import io.github.vitaliyprogrammer.banking.identity.repository.UserRepository;
 import io.github.vitaliyprogrammer.banking.identity.service.impl.AuthenticationServiceImpl;
+import io.github.vitaliyprogrammer.banking.identity.service.impl.PasswordResetServiceImpl;
 import io.github.vitaliyprogrammer.banking.identity.service.impl.RefreshTokenServiceImpl;
 import io.github.vitaliyprogrammer.banking.identity.service.impl.UserServiceImpl;
 import io.github.vitaliyprogrammer.banking.notification.repository.NotificationRepository;
@@ -235,5 +237,12 @@ class ArchitectureTests {
     static final ArchRule userTablesBelongToTheIdentityDomain = classes()
             .that().belongToAnyOf(UserRepository.class, RefreshTokenRepository.class)
             .should().onlyHaveDependentClassesThat().belongToAnyOf(
-                    AuthenticationServiceImpl.class, UserServiceImpl.class, RefreshTokenServiceImpl.class);
+                    AuthenticationServiceImpl.class, UserServiceImpl.class, RefreshTokenServiceImpl.class,
+                    PasswordResetServiceImpl.class);
+
+    /** Reset links are created and used up in one place only: nobody else can mint a link to someone's account. */
+    @ArchTest
+    static final ArchRule passwordResetTableBelongsToPasswordReset = classes()
+            .that().belongToAnyOf(PasswordResetTokenRepository.class)
+            .should().onlyHaveDependentClassesThat().belongToAnyOf(PasswordResetServiceImpl.class);
 }

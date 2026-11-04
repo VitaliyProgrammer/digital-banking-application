@@ -51,8 +51,11 @@ public class ReceiptPdfRenderer {
 
     private static final String STAMP_NAME_BOTTOM = "Universal Bank";
 
-    /** Both lines of the name are this long: 17 to each side of the centre, well inside the inner ring (radius 24). */
-    private static final float STAMP_NAME_WIDTH = 34;
+    /** Both lines of the name are this long: 20 to each side of the centre, inside the inner ring (radius 24). */
+    private static final float STAMP_NAME_WIDTH = 40;
+
+    /** Read along the bottom of the stamp's ring, like the country or city on a real bank stamp. */
+    private static final String STAMP_BOTTOM = "УКРАЇНА";
 
     /** Height of a capital letter as a share of the font size, for IBM Plex Sans. */
     private static final float CAP_HEIGHT = 0.7f;
@@ -470,19 +473,24 @@ public class ReceiptPdfRenderer {
             circle(0, 0, 24);
             stream.stroke();
 
-            // "ВИКОНАНО" runs along the ring; three dots close the bottom of it.
+            // "ВИКОНАНО" runs along the top of the ring.
             // Baseline at 27.7: capitals (about 4.5 high) fill 27.7 to 32.2, so about 3.7 stays free to each ring.
             textOnArc(fonts.semibold(), 6.5f, STAMP, 27.7f, "ВИКОНАНО", 1.2f);
+
+            // "УКРАЇНА" along the bottom. There the letters stand with their tops to the centre, so the baseline is
+            // the outer side: 32.3, and the capitals fill 27.8 to 32.3, again about 3.7 clear.
+            textOnBottomArc(fonts.semibold(), 6.5f, STAMP, 32.3f, STAMP_BOTTOM, 1.2f);
+
+            // Two dots exactly at the ring's middle height, left and right, between the top and the bottom words.
             stream.setNonStrokingColor(STAMP);
-            for (int dot = -1; dot <= 1; dot++) {
-                double angle = -Math.PI / 2 + dot * 0.32;
-                circle((float) (30 * Math.cos(angle)), (float) (30 * Math.sin(angle)), 0.9f);
-                stream.fill();
-            }
+            circle(-30, 0, 1.1f);
+            stream.fill();
+            circle(30, 0, 1.1f);
+            stream.fill();
 
             // The bank's name inside the inner ring (radius 24): each line gets the font size that makes it exactly
-            // STAMP_NAME_WIDTH long, and the two lines together are centred. The farthest corner is about 18.5 from
-            // the centre, so the name keeps more than 5 clear of the ring.
+            // STAMP_NAME_WIDTH long, and the two lines together are centred. The farthest corner is about 20.8 from
+            // the centre, so the name keeps about 3.2 clear of the ring.
             float topSize = STAMP_NAME_WIDTH / width(fonts.semibold(), 1, STAMP_NAME_TOP, 0);
             float bottomSize = STAMP_NAME_WIDTH / width(fonts.semibold(), 1, STAMP_NAME_BOTTOM, 0);
             float gap = 2.2f;
@@ -524,6 +532,37 @@ public class ReceiptPdfRenderer {
                 stream.endText();
 
                 angle -= letterWidth / radius;
+            }
+        }
+
+        /**
+         * Letters along the bottom of a circle around (0, 0), centred at the bottom, read left to right, standing with
+         * their tops towards the centre (so the baseline is on the outer side).
+         */
+        private void textOnBottomArc(PDFont font, float size, Color color, float radius, String value, float spacing)
+                throws IOException {
+
+            float halfAngle = width(font, size, value, spacing) / 2 / radius;
+            double angle = -Math.PI / 2 - halfAngle;
+
+            stream.setNonStrokingColor(color);
+
+            for (int i = 0; i < value.length(); i++) {
+                String letter = value.substring(i, i + 1);
+                float letterWidth = width(font, size, letter, spacing);
+                double middle = angle + letterWidth / 2 / radius;
+
+                Matrix position = Matrix.getRotateInstance(middle + Math.PI / 2,
+                        (float) (radius * Math.cos(middle)), (float) (radius * Math.sin(middle)));
+                position.translate(-(letterWidth - spacing) / 2, 0);
+
+                stream.beginText();
+                stream.setFont(font, size);
+                stream.setTextMatrix(position);
+                stream.showText(letter);
+                stream.endText();
+
+                angle += letterWidth / radius;
             }
         }
 

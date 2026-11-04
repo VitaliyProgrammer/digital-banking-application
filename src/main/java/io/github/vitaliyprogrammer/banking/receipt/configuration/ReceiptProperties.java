@@ -8,7 +8,7 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @ConfigurationProperties(prefix = "banking.receipts")
 public record ReceiptProperties(
-        /* Sender of receipt emails, e.g. "Digital Bank <no-reply@digital-bank.local>". */
+        /* Sender of receipt emails, e.g. "Taborovets Universal Bank <no-reply@digital-bank.local>". */
         @NotBlank
         String mailFrom
 ) {

@@ -112,7 +112,7 @@ public class ReceiptServiceImpl implements ReceiptService {
             helper.setTo(email);
             helper.setSubject("Квитанція " + receiptNumber);
             helper.setText("Добрий день!\n\nУ вкладенні квитанція " + receiptNumber
-                    + " про вашу операцію в Digital Bank.\n\nЦей лист надіслано автоматично, відповідати на нього не потрібно.");
+                    + " про вашу операцію в Taborovets Universal Bank.\n\nЦей лист надіслано автоматично, відповідати на нього не потрібно.");
             helper.addAttachment(receipt.fileName(), new ByteArrayResource(receipt.content()),
                     MediaType.APPLICATION_PDF_VALUE);
             mailSender.send(message);

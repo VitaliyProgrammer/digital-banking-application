@@ -57,6 +57,10 @@ public class ReceiptPdfRenderer {
     /** Read along the bottom of the stamp's ring, like the country or city on a real bank stamp. */
     private static final String STAMP_BOTTOM = "УКРАЇНА";
 
+    /** Both lines of the name are this long: 17 to each side of the centre, well inside the inner ring (radius 24). */
+    private static final float STAMP_NAME_WIDTH = 34;
+
+
     /** Height of a capital letter as a share of the font size, for IBM Plex Sans. */
     private static final float CAP_HEIGHT = 0.7f;
 
@@ -385,6 +389,36 @@ public class ReceiptPdfRenderer {
             return array;
         }
 
+        private static PDShading verticalGradient(float topPdfY, float bottomPdfY, Color top, Color bottom) {
+
+            COSDictionary function = new COSDictionary();
+            function.setInt(COSName.FUNCTION_TYPE, 2);
+            function.setItem(COSName.DOMAIN, floats(0, 1));
+            function.setItem(COSName.C0, floats(rgb(top)));
+            function.setItem(COSName.C1, floats(rgb(bottom)));
+            function.setInt(COSName.N, 1);
+
+            PDShadingType2 shading = new PDShadingType2(new COSDictionary());
+            shading.setShadingType(PDShading.SHADING_TYPE2);
+            shading.setColorSpace(PDDeviceRGB.INSTANCE);
+            shading.setCoords(floats(0, topPdfY, 0, bottomPdfY));
+            shading.setFunction(new PDFunctionType2(function));
+            return shading;
+        }
+
+        private static float[] rgb(Color color) {
+            return new float[] {color.getRed() / 255f, color.getGreen() / 255f, color.getBlue() / 255f};
+        }
+
+        private static COSArray floats(float... values) {
+
+            COSArray array = new COSArray();
+            for (float value : values) {
+                array.add(new COSFloat(value));
+            }
+            return array;
+        }
+
         /** Green dot and "Успішно", right-aligned on the title line. */
         private void status(float y) throws IOException {
 
@@ -491,6 +525,21 @@ public class ReceiptPdfRenderer {
             // The bank's name inside the inner ring (radius 24): each line gets the font size that makes it exactly
             // STAMP_NAME_WIDTH long, and the two lines together are centred. The farthest corner is about 20.8 from
             // the centre, so the name keeps about 3.2 clear of the ring.
+
+            // "ВИКОНАНО" runs along the ring; three dots close the bottom of it.
+            // Baseline at 27.7: capitals (about 4.5 high) fill 27.7 to 32.2, so about 3.7 stays free to each ring.
+            textOnArc(fonts.semibold(), 6.5f, STAMP, 27.7f, "ВИКОНАНО", 1.2f);
+            stream.setNonStrokingColor(STAMP);
+            for (int dot = -1; dot <= 1; dot++) {
+                double angle = -Math.PI / 2 + dot * 0.32;
+                circle((float) (30 * Math.cos(angle)), (float) (30 * Math.sin(angle)), 0.9f);
+                stream.fill();
+            }
+
+            // The bank's name inside the inner ring (radius 24): each line gets the font size that makes it exactly
+            // STAMP_NAME_WIDTH long, and the two lines together are centred. The farthest corner is about 18.5 from
+            // the centre, so the name keeps more than 5 clear of the ring.
+
             float topSize = STAMP_NAME_WIDTH / width(fonts.semibold(), 1, STAMP_NAME_TOP, 0);
             float bottomSize = STAMP_NAME_WIDTH / width(fonts.semibold(), 1, STAMP_NAME_BOTTOM, 0);
             float gap = 2.2f;

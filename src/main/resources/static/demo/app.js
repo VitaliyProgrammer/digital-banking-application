@@ -434,7 +434,7 @@ views.bills = async () => {
             <button type="button" class="provider ${p.id === selectedProvider ? 'selected' : ''}" onclick="selectProvider('${p.id}')">
                 <span class="ico">${PROVIDER_ICONS[p.category] || '🧾'}</span><span>${esc(p.name)}</span><span class="cat">${esc(p.category)}</span>
             </button>`).join('')}</div>`),
-        card('2. Pay', `<div class="narrow">${form}</div>`, 'Fee: 0.5% for utilities, none for mobile. Cashback comes once the provider accepts.'),
+        card('2. Pay', `<div class="narrow">${form}</div>`, 'Fee: 0.5% for utilities and internet, 1% for mobile, at least 1.00 ₴. Cashback comes once the provider accepts.'),
         card('🧾 My bill payments', table(['When', 'Provider', 'Amount', 'Status', ''], bills.map((p) => `<tr>
                 <td>${when(p.createdAt)}</td><td>${esc(providers.find((x) => x.id === p.providerId)?.name || p.description)}</td>
                 <td class="num">${money(p.amount, p.currency)}</td>

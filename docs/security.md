@@ -64,6 +64,15 @@ sequenceDiagram
 | 🔹 At most 3 emails per address an hour (Redis) | nobody can flood someone else's inbox |
 | 🔹 The token never goes through RabbitMQ | a secret does not belong in a message broker |
 
+**In the browser** (the demo client):
+
+| Decision | Why |
+|---|---|
+| 🔹 Real `<form>`s with `autocomplete="username"`, `"current-password"`, `"new-password"` | the browser's password manager suggests a strong password, saves it, and fills it next time |
+| 🔹 A password is generated in the browser (`crypto.getRandomValues`, no modulo bias), never by the server | a password the server made would have to travel back to the client, in a response or an email |
+| 🔹 "Remember me" keeps only the email, in `localStorage`, after an explicit tick; the session stays in `sessionStorage` | a shared computer never shows someone's login without their consent, and closing the tab still logs out |
+| 🔹 The reset page drops the token from the address bar at once and sends no `Referer` | the token stays out of the browser history and out of other sites' logs |
+
 ## 👥 Roles and rules
 
 | Rule | Where | Why |

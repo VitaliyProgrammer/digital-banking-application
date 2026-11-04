@@ -25,23 +25,52 @@
         <h1>Welcome to the demo bank</h1>
         <p>Register a client, or log in as the demo admin (<span class="mono">admin@bank.local</span>) to see the staff side.</p>
     </div>
-    <div class="card">
+    <!-- Real forms with autocomplete hints: the browser's password manager then suggests a strong password on
+         registration, offers to save it, and fills the login next time. -->
+    <form class="card" id="registerForm" onsubmit="register(event)">
         <h2>🆕 Register</h2>
-        <label>First name</label><input id="regFirst" value="Olena">
-        <label>Last name</label><input id="regLast" value="Demo">
-        <label>Email</label><input id="regEmail">
-        <label>Password (8+ characters)</label><input id="regPassword" type="password" value="demo-password-1">
-        <div class="actions"><button onclick="register()">Register and log in</button></div>
-    </div>
-    <div class="card">
-        <h2>🔑 Log in</h2>
-        <label>Email</label><input id="loginEmail">
-        <label>Password</label><input id="loginPassword" type="password">
-        <div class="actions">
-            <button onclick="login()">Log in</button>
-            <button class="secondary" onclick="fillAdmin()">Demo admin</button>
+        <label for="regFirst">First name</label><input id="regFirst" name="given-name" autocomplete="given-name" value="Olena" required>
+        <label for="regLast">Last name</label><input id="regLast" name="family-name" autocomplete="family-name" value="Demo" required>
+        <label for="regEmail">Email</label><input id="regEmail" name="email" type="email" autocomplete="username" required>
+        <label for="regPassword">Password (8+ characters)</label>
+        <div class="password-field">
+            <input id="regPassword" name="new-password" type="password" autocomplete="new-password" minlength="8" maxlength="72" required>
+            <button type="button" class="secondary small" title="Generate a strong password" onclick="fillGeneratedPassword('regPassword')">🎲</button>
+            <button type="button" class="secondary small" title="Show or hide" onclick="togglePasswordVisibility('regPassword')">👁</button>
+            <button type="button" class="secondary small" title="Copy" onclick="copyPassword('regPassword', toast)">📋</button>
         </div>
-    </div>
+        <p class="hint below">Generated in your browser. Your browser will offer to save it after you register.</p>
+        <label class="check"><input type="checkbox" id="regRemember" checked> Remember my email on this browser</label>
+        <div class="actions"><button type="submit">Register and log in</button></div>
+    </form>
+    <form class="card" id="loginForm" onsubmit="login(event)">
+        <h2>🔑 Log in</h2>
+        <div id="rememberedAs" class="remembered" hidden>
+            Welcome back, <b id="rememberedEmail"></b> · <a href="#" onclick="forgetMe(event)">Not you?</a>
+        </div>
+        <label for="loginEmail">Email</label><input id="loginEmail" name="email" type="email" autocomplete="username" required>
+        <label for="loginPassword">Password</label>
+        <div class="password-field">
+            <input id="loginPassword" name="password" type="password" autocomplete="current-password" required>
+            <button type="button" class="secondary small" title="Show or hide" onclick="togglePasswordVisibility('loginPassword')">👁</button>
+        </div>
+        <label class="check"><input type="checkbox" id="loginRemember"> Remember my email on this browser</label>
+        <div class="actions">
+            <button type="submit">Log in</button>
+            <button type="button" class="secondary" onclick="fillAdmin()">Demo admin</button>
+            <a href="#" class="link" onclick="toggleForgot(event)">Forgot password?</a>
+        </div>
+    </form>
+    <form class="card forgot" id="forgotForm" onsubmit="requestPasswordReset(event)" hidden>
+        <h2>📧 Forgot password</h2>
+        <p class="hint">We email a link that works once, for 30 minutes. In the demo the email is in Mailpit:
+            <a href="http://localhost:8025" target="_blank">localhost:8025 ↗</a></p>
+        <label for="forgotEmail">Email</label><input id="forgotEmail" name="email" type="email" autocomplete="username" required>
+        <div class="actions">
+            <button type="submit">Send me a link</button>
+            <button type="button" class="secondary" onclick="toggleForgot(event)">Cancel</button>
+        </div>
+    </form>
 </section>
 
 <!-- After login -->
@@ -71,6 +100,7 @@
 </div>
 
 <div id="toast"></div>
+<script src="password.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

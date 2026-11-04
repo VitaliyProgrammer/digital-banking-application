@@ -180,3 +180,22 @@ aside pre { margin: 6px 0 2px; white-space: pre-wrap; word-break: break-all; col
 }
 aside details .curl { float: right; background: #1f2937; font-size: 11px; padding: 1px 7px; margin-top: 4px; }
 .countdown { font-variant-numeric: tabular-nums; }
+
+/* ---- Passwords, "remember me", forgot password ---- */
+.password-field { display: flex; gap: 6px; }
+.password-field input { flex: 1; min-width: 0; }
+.password-field button { flex: none; }
+label.check { display: flex; align-items: center; gap: 6px; margin-top: 10px; color: var(--ink); font-size: 13px; }
+label.check input { width: auto; }
+.card .hint.below { margin: 6px 0 0; }
+.hint.ok { color: var(--ok); }
+.hint.bad { color: var(--bad); }
+.actions .link { align-self: center; font-size: 13px; color: var(--brand); }
+.remembered { background: var(--brand-soft); border-radius: 8px; padding: 8px 10px; font-size: 13px; margin-bottom: 4px; }
+.auth .forgot { grid-column: 2; }
+.auth.single { grid-template-columns: minmax(0, 420px); justify-content: center; }
+button:disabled { opacity: .5; cursor: default; filter: none; }
+@media (max-width: 700px) {
+    .auth { grid-template-columns: 1fr; }
+    .auth .forgot { grid-column: auto; }
+}

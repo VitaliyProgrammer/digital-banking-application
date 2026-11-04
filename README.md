@@ -137,6 +137,7 @@ docker compose --profile app up -d --build
 
 | What | Where |
 |---|---|
+| 🖥️ Demo client: the whole bank in the browser | <http://localhost:8080> |
 | 📚 API (Swagger UI) | <http://localhost:8080/swagger-ui.html> |
 | 📊 Grafana dashboard | <http://localhost:3000> (no login) |
 | 📈 Prometheus | <http://localhost:9090> |
@@ -208,12 +209,15 @@ About a minute later:
 
 | | |
 |---|---|
+| 🖥️ The demo client: accounts, cards, payments, credit, support, and the staff side | <http://localhost:8080> |
 | 📚 API, try every endpoint in the browser | <http://localhost:8080/swagger-ui.html> |
 | 📧 Emails the bank sends (receipts, notifications) | <http://localhost:8025> |
 | 🧑‍💼 Demo admin (credit queue, rates, audit) | `admin@bank.local` / `demo-admin-password` |
 | 🛑 Stop | `docker compose -f docker-compose.demo.yml down` |
 
-**A first tour in Swagger:** `POST /authentication/register` → `POST /authentication/login` → press **Authorize** and paste the `accessToken` → `POST /accounts` (`{"currency": "UAH"}`) → `POST /payments/top-up` → `GET /accounts/{id}/transactions`.
+**The demo client** ([`static/demo`](src/main/resources/static/demo)) is a small page of plain JavaScript over the same REST API, with a live log of every call and a *copy as curl* button: open it, register, top up, and follow the bank from there.
+
+**Or a first tour in Swagger:** `POST /authentication/register` → `POST /authentication/login` → press **Authorize** and paste the `accessToken` → `POST /accounts` (`{"currency": "UAH"}`) → `POST /payments/top-up` → `GET /accounts/{id}/transactions`.
 
 ## 🧭 How it was built
 

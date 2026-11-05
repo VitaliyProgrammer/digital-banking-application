@@ -18,6 +18,12 @@ public interface AccountService {
 
     AccountResponseDto openSavings(UUID ownerId, Currency currency);
 
+    /** For the business module: the sole proprietor's UAH business account. */
+    AccountResponseDto openBusinessAccount(UUID ownerId);
+
+    /** For the business module: the sole proprietor's tax jar. */
+    AccountResponseDto openTaxReserveAccount(UUID ownerId);
+
     /** For the credit module: puts the approved limit on the client's UAH current account. */
     AccountResponseDto grantCreditLimit(UUID ownerId, BigDecimal creditLimit);
 
@@ -28,8 +34,9 @@ public interface AccountService {
     PageResponseDto<StatementEntryResponseDto> getStatement(UUID ownerId, UUID accountId, int page, int size);
 
     /**
-     * For other modules: a CURRENT account of the given owner, or 404. Savings accounts are deliberately not found
-     * here, so no transfer, card, bill payment or exchange can ever take money straight out of savings.
+     * For other modules: a CURRENT account of the given owner (personal or a sole proprietor's business account),
+     * or 404. Savings accounts and the tax jar are deliberately not found here, so no transfer, card, bill payment
+     * or exchange can ever take money straight out of them.
      */
     AccountReferenceDto getOwnedAccountReference(UUID ownerId, UUID accountId);
 

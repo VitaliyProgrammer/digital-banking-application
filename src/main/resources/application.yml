@@ -147,6 +147,15 @@ banking:
     review-factor: 1.50
     max-limit: 100000.00
 
+  business:
+    # Groups 1 and 2 pay a fixed tax every month: 10% of the subsistence minimum and 20% of the minimum wage.
+    # These are the 2025 amounts; both bases change every January, so update them then.
+    group1-monthly-tax: 302.80
+    group2-monthly-tax: 1600.00
+    # Group 3: a share of every income, put into the tax jar the moment it arrives.
+    group3-rate-percent: 5.00
+    group3-vat-rate-percent: 3.00
+
   credit-line:
     jobs-enabled: ${CREDIT_LINE_JOBS_ENABLED:true}
     # 1st of the month, 02:00 Kyiv time: settle the statements that fell due, close last month.

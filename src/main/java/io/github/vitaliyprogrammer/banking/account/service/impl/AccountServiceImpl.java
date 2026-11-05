@@ -33,7 +33,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class AccountServiceImpl implements AccountService {
 
     /** Where a card payment or a bill may take money from: the client's own money, or the bank's credit. */
-    private static final List<AccountType> SPENDING_TYPES = List.of(AccountType.CLIENT, AccountType.CREDIT);
+    private static final List<AccountType> SPENDING_TYPES =
+            List.of(AccountType.CLIENT, AccountType.CREDIT, AccountType.BUSINESS);
+
+    /** Current accounts: money is paid from them and to them, personal or a sole proprietor's. */
+    private static final List<AccountType> CURRENT_TYPES = List.of(AccountType.CLIENT, AccountType.BUSINESS);
 
     private final AccountRepository accountRepository;
 
@@ -57,6 +61,22 @@ public class AccountServiceImpl implements AccountService {
 
         return openOnce(ownerId, currency, AccountType.SAVINGS,
                 Account.openSavingsAccount(ownerId, ibanGenerator.generate(), currency, clock.instant()));
+    }
+
+    @Override
+    @Transactional
+    public AccountResponseDto openBusinessAccount(UUID ownerId) {
+
+        return openOnce(ownerId, Currency.UAH, AccountType.BUSINESS,
+                Account.openBusinessAccount(ownerId, ibanGenerator.generate(), clock.instant()));
+    }
+
+    @Override
+    @Transactional
+    public AccountResponseDto openTaxReserveAccount(UUID ownerId) {
+
+        return openOnce(ownerId, Currency.UAH, AccountType.TAX_RESERVE,
+                Account.openTaxReserveAccount(ownerId, ibanGenerator.generate(), clock.instant()));
     }
 
     @Override
@@ -104,7 +124,9 @@ public class AccountServiceImpl implements AccountService {
     @Transactional(readOnly = true)
     public AccountReferenceDto getOwnedAccountReference(UUID ownerId, UUID accountId) {
 
-        return findOwnedAccount(ownerId, accountId, AccountType.CLIENT);
+        return accountRepository.findByIdAndOwnerIdAndTypeIn(accountId, ownerId, CURRENT_TYPES)
+                .map(AccountReferenceDto::from)
+                .orElseThrow(AccountNotFoundException::new);
     }
 
     @Override
@@ -141,7 +163,7 @@ public class AccountServiceImpl implements AccountService {
     @Transactional(readOnly = true)
     public Optional<AccountReferenceDto> findClientAccountByNumber(String number) {
 
-        return accountRepository.findByNumberAndType(number, AccountType.CLIENT)
+        return accountRepository.findByNumberAndTypeIn(number, CURRENT_TYPES)
                 .map(AccountReferenceDto::from);
     }
 

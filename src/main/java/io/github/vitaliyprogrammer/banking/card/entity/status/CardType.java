@@ -6,6 +6,9 @@ public enum CardType {
     /** The bank's main card: everyday payments and payouts. A credit limit, once approved, lives on it too. */
     UNIVERSAL,
 
+    /** A sole proprietor's card on their business account; issued together with the business. */
+    BUSINESS,
+
     PAYROLL,
 
     STUDENT,

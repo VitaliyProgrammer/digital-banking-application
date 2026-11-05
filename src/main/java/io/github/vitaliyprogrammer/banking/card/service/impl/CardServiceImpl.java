@@ -11,6 +11,8 @@ import io.github.vitaliyprogrammer.banking.card.dto.response.CardResponseDto;
 import io.github.vitaliyprogrammer.banking.card.entity.Card;
 import io.github.vitaliyprogrammer.banking.card.entity.status.CardStatus;
 import io.github.vitaliyprogrammer.banking.card.entity.status.CardType;
+import io.github.vitaliyprogrammer.banking.card.exception.CardTypeNotForAccountException;
+import io.github.vitaliyprogrammer.banking.account.entity.status.AccountType;
 import io.github.vitaliyprogrammer.banking.card.exception.CardAlreadyExistsException;
 import io.github.vitaliyprogrammer.banking.card.exception.CardNotFoundException;
 import io.github.vitaliyprogrammer.banking.card.exception.CardPinLockedException;
@@ -69,7 +71,13 @@ public class CardServiceImpl implements CardService {
             throw new CardTypeNotIssuableException(request.type());
         }
 
-        return issue(ownerId, accountService.getOwnedAccountReference(ownerId, request.accountId()), request.type());
+        AccountReferenceDto account = accountService.getOwnedAccountReference(ownerId, request.accountId());
+        // A BUSINESS card belongs on a sole proprietor's account, every other card on a personal one.
+        if ((request.type() == CardType.BUSINESS) != (account.type() == AccountType.BUSINESS)) {
+            throw new CardTypeNotForAccountException(request.type());
+        }
+
+        return issue(ownerId, account, request.type());
     }
 
     @Override

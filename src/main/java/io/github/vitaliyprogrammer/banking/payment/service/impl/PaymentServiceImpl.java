@@ -30,6 +30,8 @@ import io.github.vitaliyprogrammer.banking.payment.dto.response.ProviderResponse
 import io.github.vitaliyprogrammer.banking.payment.entity.Payment;
 import io.github.vitaliyprogrammer.banking.payment.entity.Provider;
 import io.github.vitaliyprogrammer.banking.payment.entity.status.PaymentType;
+import io.github.vitaliyprogrammer.banking.business.dto.response.IncomeTaxDto;
+import io.github.vitaliyprogrammer.banking.business.service.BusinessService;
 import io.github.vitaliyprogrammer.banking.payment.event.PaymentMessage;
 import io.github.vitaliyprogrammer.banking.payment.exception.CurrencyMismatchException;
 import io.github.vitaliyprogrammer.banking.payment.exception.IdempotencyKeyReusedException;
@@ -77,6 +79,8 @@ public class PaymentServiceImpl implements PaymentService {
     private final ExchangeQuoteService exchangeQuoteService;
 
     private final LedgerService ledgerService;
+
+    private final BusinessService businessService;
 
     private final FeeCalculator feeCalculator;
 
@@ -258,11 +262,16 @@ public class PaymentServiceImpl implements PaymentService {
                 userId, idempotencyKey, requestHash, PaymentType.TOP_UP,
                 null, account.id(), account.currency(), request.amount(), fee, "Поповнення рахунку", clock.instant()));
 
-        UUID ledgerTransactionId = ledgerService.post(PostingRequestDto.transfer(
-                TransactionType.DEPOSIT, "Поповнення рахунку",
-                ledgerService.getBankAccountId(AccountType.SETTLEMENT, account.currency()),
-                account.id(),
-                request.amount()));
+        // Money from outside the bank: on a sole proprietor's account that is income, so its tax goes aside at once.
+        Optional<IncomeTaxDto> incomeTax = businessService.taxOnIncome(account, null, request.amount());
+        List<PostingRequestDto.Line> lines = new ArrayList<>();
+        lines.add(new PostingRequestDto.Line(ledgerService.getBankAccountId(AccountType.SETTLEMENT, account.currency()),
+                EntryDirection.DEBIT, request.amount()));
+        lines.addAll(recipientLines(account, request.amount(), incomeTax));
+
+        UUID ledgerTransactionId = ledgerService.post(
+                new PostingRequestDto(TransactionType.DEPOSIT, "Поповнення рахунку", lines));
+        incomeTax.ifPresent(tax -> businessService.recordIncome(tax, payment.getId(), request.amount()));
 
         payment.complete(ledgerTransactionId, clock.instant());
 
@@ -483,9 +492,10 @@ public class PaymentServiceImpl implements PaymentService {
         BigDecimal amount = payment.getAmount();
         BigDecimal fee = payment.getFee();
 
+        Optional<IncomeTaxDto> incomeTax = businessService.taxOnIncome(to, payment.getInitiatorId(), amount);
         List<PostingRequestDto.Line> lines = new ArrayList<>();
         lines.add(new PostingRequestDto.Line(from.id(), EntryDirection.DEBIT, amount.add(fee)));
-        lines.add(new PostingRequestDto.Line(to.id(), EntryDirection.CREDIT, amount));
+        lines.addAll(recipientLines(to, amount, incomeTax));
 
         if (fee.signum() > 0) {
             UUID feeAccountId = ledgerService.getBankAccountId(AccountType.FEE_INCOME, from.currency());
@@ -498,10 +508,27 @@ public class PaymentServiceImpl implements PaymentService {
                 : TransactionType.TRANSFER;
         UUID ledgerTransactionId = ledgerService.post(
                 new PostingRequestDto(type, payment.getDescription(), lines));
+        incomeTax.ifPresent(tax -> businessService.recordIncome(tax, payment.getId(), amount));
 
         payment.complete(ledgerTransactionId, clock.instant());
 
         return payment;
+    }
+
+    /**
+     * The recipient's side of a posting. For a sole proprietor's income it is two lines: the income less its tax to
+     * the business account, and the tax to the tax jar. One balanced posting, so the tax can never be spent first.
+     */
+    private static List<PostingRequestDto.Line> recipientLines(AccountReferenceDto to, BigDecimal amount,
+                                                               Optional<IncomeTaxDto> incomeTax) {
+
+        BigDecimal tax = incomeTax.map(IncomeTaxDto::tax).orElse(BigDecimal.ZERO);
+        if (tax.signum() == 0) {
+            return List.of(new PostingRequestDto.Line(to.id(), EntryDirection.CREDIT, amount));
+        }
+        return List.of(
+                new PostingRequestDto.Line(to.id(), EntryDirection.CREDIT, amount.subtract(tax)),
+                new PostingRequestDto.Line(incomeTax.get().taxReserveAccountId(), EntryDirection.CREDIT, tax));
     }
 
     /** "UA04 3009 9977..." copied from an app and "ua043009..." must find the same account. */

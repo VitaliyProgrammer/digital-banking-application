@@ -36,7 +36,7 @@ public interface AccountRepository extends JpaRepository<Account, UUID> {
     /** A bank account type may have several shards (see V22); every one of them. */
     List<Account> findAllByTypeAndCurrency(AccountType type, Currency currency);
 
-    Optional<Account> findByNumberAndType(String number, AccountType type);
+    Optional<Account> findByNumberAndTypeIn(String number, Collection<AccountType> types);
 
     List<Account> findAllByTypeAndStatus(AccountType type, AccountStatus status);
 

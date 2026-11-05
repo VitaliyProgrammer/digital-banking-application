@@ -410,7 +410,7 @@ views.payments = async () => {
         card('💳 Card to card', `<label>From card</label><select id="ctFrom">${options(cards, (c) => `${c.type} ${c.maskedNumber}`)}</select>
             <label>Recipient card number</label><input id="ctTo" placeholder="16 digits">
             <label>Amount</label><input id="ctAmount" value="250">
-            <div class="actions"><button onclick="cardTransfer()">Send</button></div>`, 'Fee by card type: student 0%, payroll 0.5%, virtual 1%, credit 2%.'),
+            <div class="actions"><button onclick="cardTransfer()">Send</button></div>`, 'Fee by card type: universal and payroll 0.5%, student 0%, virtual 1%, credit 2%.'),
         `</div>`,
         card('🧾 Payments of this session', table(['When', 'Type', 'Amount', 'Fee', 'Status', ''], state.payments.map((p) => `<tr>
                 <td>${when(p.createdAt)}</td><td>${badge(p.type)}<br><small>${esc(p.description)}</small></td>
@@ -527,9 +527,9 @@ views.cards = async () => {
     return page('💳 Cards', 'Card numbers are stored encrypted (AES-256-GCM), the PIN as a keyed hash, the CVV not at all.',
         card('➕ Issue a card', `<div class="row">
             <div><label>Account</label><select id="cardAccount">${options(accounts, accountLabel)}</select></div>
-            <div><label>Type</label><select id="cardType"><option>PAYROLL</option><option>STUDENT</option><option>VIRTUAL</option></select></div>
+            <div><label>Type</label><select id="cardType"><option>UNIVERSAL</option><option>PAYROLL</option><option>STUDENT</option><option>VIRTUAL</option></select></div>
             <div class="fit"><button onclick="issueCard()">Issue</button></div></div>`,
-            'Payroll 0.5% per card transfer, student 0%, virtual 1% (no plastic, so no chip). A CREDIT card comes only with an approved credit line.'),
+            'Universal: the main everyday card, 0.5% per card transfer. Payroll 0.5%, student 0%, virtual 1% (no plastic, so no chip). A CREDIT card comes only with an approved credit line.'),
         card('👛 My cards', cards.length ? `<div class="wallet">${cards.map((c) => `<div class="slot">${cardVisual(c, all)}
             <div class="actions">
                 ${c.status !== 'CLOSED' ? `<button class="small secondary" onclick="cardDetails('${c.id}')">Show number</button>` : ''}

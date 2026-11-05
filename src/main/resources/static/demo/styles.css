@@ -317,3 +317,4 @@ tr.inline-form td { background: var(--bg); }
 .bank-card .mark i:nth-child(1) { height: 50%; background: linear-gradient(#d9f99d, #a3e635); }
 .bank-card .mark i:nth-child(2) { height: 75%; background: linear-gradient(#86efac, #22c55e); }
 .bank-card .mark i:nth-child(3) { height: 100%; background: linear-gradient(#4ade80, #16a34a); }
+.bank-card.universal { background: linear-gradient(135deg, #0f2a44, #1d4e89); }

@@ -3,6 +3,9 @@ package io.github.vitaliyprogrammer.banking.card.entity.status;
 /** Each type has its own fee for card-to-card transfers (see CardTransferFeePolicy). */
 public enum CardType {
 
+    /** The bank's main card: everyday payments and payouts. A credit limit, once approved, lives on it too. */
+    UNIVERSAL,
+
     PAYROLL,
 
     STUDENT,

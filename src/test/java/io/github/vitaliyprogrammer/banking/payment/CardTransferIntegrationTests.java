@@ -39,6 +39,7 @@ class CardTransferIntegrationTests extends IntegrationTest {
         paymentService.topUp(senderId, newKey(), new TopUpRequestDto(senderAccount, new BigDecimal("5000.00")));
         UUID studentCard = cardService.issue(senderId, new IssueCardRequestDto(senderAccount, CardType.STUDENT)).id();
         UUID virtualCard = cardService.issue(senderId, new IssueCardRequestDto(senderAccount, CardType.VIRTUAL)).id();
+        UUID universalCard = cardService.issue(senderId, new IssueCardRequestDto(senderAccount, CardType.UNIVERSAL)).id();
 
         UUID recipientId = createUser();
         UUID recipientAccount = accountService.open(recipientId, new OpenAccountRequestDto(Currency.UAH)).id();
@@ -50,11 +51,14 @@ class CardTransferIntegrationTests extends IntegrationTest {
                 new CardTransferRequestDto(studentCard, recipientNumber, new BigDecimal("1000.00"), null));
         PaymentResponseDto fromVirtual = paymentService.cardTransfer(senderId, newKey(),
                 new CardTransferRequestDto(virtualCard, recipientNumber, new BigDecimal("1000.00"), null));
+        PaymentResponseDto fromUniversal = paymentService.cardTransfer(senderId, newKey(),
+                new CardTransferRequestDto(universalCard, recipientNumber, new BigDecimal("1000.00"), null));
 
         assertThat(fromStudent.fee()).isEqualByComparingTo("0.00");     // STUDENT: free
         assertThat(fromVirtual.fee()).isEqualByComparingTo("10.00");    // VIRTUAL: 1% of 1000.00
-        assertThat(balanceOf(senderAccount)).isEqualByComparingTo("2990.00");  // 5000 - 1000 - 1000 - 10
-        assertThat(balanceOf(recipientAccount)).isEqualByComparingTo("2000.00");
+        assertThat(fromUniversal.fee()).isEqualByComparingTo("5.00");   // UNIVERSAL: 0.5% of 1000.00
+        assertThat(balanceOf(senderAccount)).isEqualByComparingTo("1985.00");  // 5000 - 3 × 1000 - 10 - 5
+        assertThat(balanceOf(recipientAccount)).isEqualByComparingTo("3000.00");
 
         cardService.block(senderId, virtualCard);
 

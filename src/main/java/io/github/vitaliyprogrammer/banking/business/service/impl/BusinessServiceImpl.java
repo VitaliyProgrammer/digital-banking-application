@@ -8,6 +8,7 @@ import io.github.vitaliyprogrammer.banking.business.configuration.BusinessProper
 import io.github.vitaliyprogrammer.banking.business.dto.request.OpenBusinessRequestDto;
 import io.github.vitaliyprogrammer.banking.business.dto.response.BusinessIncomeResponseDto;
 import io.github.vitaliyprogrammer.banking.business.dto.response.BusinessResponseDto;
+import io.github.vitaliyprogrammer.banking.business.dto.response.BusinessTaxProfileDto;
 import io.github.vitaliyprogrammer.banking.business.dto.response.IncomeTaxDto;
 import io.github.vitaliyprogrammer.banking.business.entity.Business;
 import io.github.vitaliyprogrammer.banking.business.entity.BusinessIncome;
@@ -110,6 +111,37 @@ public class BusinessServiceImpl implements BusinessService {
     }
 
     @Override
+    @Transactional
+    public BusinessResponseDto setAutoPayTax(UUID ownerId, boolean enabled) {
+
+        Business business = findBusiness(ownerId);
+        business.setAutoPayTax(enabled);
+        log.info("Tax auto-pay of {} turned {}", business.getId(), enabled ? "on" : "off");
+        return toResponse(business);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BusinessTaxProfileDto getTaxProfile(UUID ownerId) {
+
+        return toTaxProfile(findBusiness(ownerId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BusinessTaxProfileDto> getTaxProfiles() {
+
+        return businessRepository.findAll().stream().map(this::toTaxProfile).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BigDecimal getTaxPutAside(UUID businessId, Instant from, Instant to) {
+
+        return money(businessIncomeRepository.sumTaxBetween(businessId, from, to));
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public Optional<IncomeTaxDto> taxOnIncome(AccountReferenceDto recipient, UUID payerId, BigDecimal amount) {
 
@@ -128,6 +160,13 @@ public class BusinessServiceImpl implements BusinessService {
 
         businessIncomeRepository.save(
                 BusinessIncome.of(incomeTax.businessId(), paymentId, amount, incomeTax.tax(), clock.instant()));
+    }
+
+    private BusinessTaxProfileDto toTaxProfile(Business business) {
+
+        return new BusinessTaxProfileDto(business.getId(), business.getOwnerId(), business.getTaxGroup(),
+                monthlyTax(business), business.getBusinessAccountId(), business.getTaxReserveAccountId(),
+                business.isAutoPayTax(), business.getCreatedAt());
     }
 
     private Business findBusiness(UUID ownerId) {
@@ -178,6 +217,7 @@ public class BusinessServiceImpl implements BusinessService {
                 account.number(),
                 account.balance(),
                 reserve.id(),
+                business.isAutoPayTax(),
                 reserve.balance(),
                 ratePercent(business),
                 monthlyTax(business),

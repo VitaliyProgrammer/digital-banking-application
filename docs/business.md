@@ -51,6 +51,28 @@ flowchart LR
 | ➡️ Transfer | it is not a current account, so no transfer, bill or exchange can take money out of it |
 | 🪪 Cards and accounts | a `BUSINESS` card goes only on the business account, every other card only on a personal account |
 
+## 🧾 Paying the tax
+
+Module `tax`, above `payment` and `business`: `tax → payment → business → card → account`. Putting it into `business` would make a cycle, because `payment` already asks `business` for the tax on every income.
+
+| Group | Period | Due by (Tax Code) |
+|---|---|---|
+| 1 and 2 | a month, paid in advance | the 20th of that month, whatever the income |
+| 3 | a quarter | 50 days after it ends (40 for the declaration, 10 more to pay) |
+
+| Decision | Why |
+|---|---|
+| 🔹 The bank pays on its own only with **auto-pay** turned on | paying a tax is the sole proprietor's own instruction; auto-pay is their consent given in advance |
+| 🔹 On the due date: from the tax jar, or from the business account if the jar is short; **never part of the amount, never two sources** | a part payment still leaves a debt to the tax office, and mixing sources makes the receipt unclear |
+| 🔹 Not enough anywhere → nothing is paid and **one** "top up" notice goes out; the next morning tries again | the client is told once, not every day |
+| 🔹 A reminder **5 days** before the due date, once per period | a missed date costs a fine |
+| 🔹 What is owed is **worked out**, not stored; `tax_obligations` keeps only what was paid and which notices went out | the amount can never go stale when more group 3 income arrives |
+| 🔹 Each period's row is changed **under its row lock**, and the payment's idempotency key is `tax:<row>:<paid so far>` | the job run twice, or the job and the client's "Pay now" at the same moment, can never pay twice |
+| 🔹 A `TAX_PAYMENT` is an ordinary payment | idempotency, outbox, a receipt PDF and an email ("Сплата єдиного податку") come with it |
+| ❌ ЄСВ (the social contribution) is not paid here | another obligation with its own rules; the same mechanism can carry it later |
+
 ## 🧪 Proof
+
+`TaxIntegrationTests`: a quarter is paid from the jar with a receipt; auto-pay pays on the due date once even if the job runs twice; a reminder goes out once; with too little money nothing is paid and one notice goes out, the next run pays from the business account; without auto-pay the bank never pays.
 
 `BusinessIntegrationTests`: opening gives all three; only group 3 may pay VAT; 5% and 3% go into the jar; the owner's own money is not income; groups 1 and 2 put nothing aside but still count income; the jar cannot be spent and cards stay on their kind of account.

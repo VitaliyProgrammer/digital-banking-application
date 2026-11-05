@@ -25,6 +25,8 @@ import io.github.vitaliyprogrammer.banking.business.repository.BusinessIncomeRep
 import io.github.vitaliyprogrammer.banking.business.repository.BusinessRepository;
 import io.github.vitaliyprogrammer.banking.business.service.impl.BusinessServiceImpl;
 import io.github.vitaliyprogrammer.banking.card.service.CardService;
+import io.github.vitaliyprogrammer.banking.tax.repository.TaxObligationRepository;
+import io.github.vitaliyprogrammer.banking.tax.service.impl.TaxServiceImpl;
 import io.github.vitaliyprogrammer.banking.card.service.impl.CardServiceImpl;
 import io.github.vitaliyprogrammer.banking.cashback.repository.CashbackAccrualRepository;
 import io.github.vitaliyprogrammer.banking.cashback.repository.CashbackPayoutRepository;
@@ -187,6 +189,12 @@ class ArchitectureTests {
     static final ArchRule businessTablesBelongToTheBusinessDomain = classes()
             .that().belongToAnyOf(BusinessRepository.class, BusinessIncomeRepository.class)
             .should().onlyHaveDependentClassesThat().belongToAnyOf(BusinessServiceImpl.class);
+
+    /** What was paid for a tax period, and which notices went out, changes only through the tax module. */
+    @ArchTest
+    static final ArchRule taxTableBelongsToTheTaxDomain = classes()
+            .that().belongToAnyOf(TaxObligationRepository.class)
+            .should().onlyHaveDependentClassesThat().belongToAnyOf(TaxServiceImpl.class);
 
     /** A credit limit is lent money: it exists only because an application was approved, never on a plain request. */
     @ArchTest

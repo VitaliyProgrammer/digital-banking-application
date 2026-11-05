@@ -1,6 +1,7 @@
 package io.github.vitaliyprogrammer.banking.receipt.service.impl;
 
 import io.github.vitaliyprogrammer.banking.account.dto.response.AccountReferenceDto;
+import io.github.vitaliyprogrammer.banking.account.entity.status.AccountType;
 import io.github.vitaliyprogrammer.banking.account.entity.status.Currency;
 import io.github.vitaliyprogrammer.banking.account.service.AccountService;
 import io.github.vitaliyprogrammer.banking.card.dto.response.CardReferenceDto;
@@ -142,6 +143,7 @@ public class ReceiptServiceImpl implements ReceiptService {
             case BILL_PAYMENT -> billPayment(payment, receiptNumber);
             case EXCHANGE -> exchange(payment, receiptNumber);
             case SAVINGS_DEPOSIT, SAVINGS_WITHDRAWAL, CREDIT_REPAYMENT -> ownTransfer(payment, receiptNumber);
+            case TAX_PAYMENT -> taxPayment(payer, payment, receiptNumber);
         };
     }
 
@@ -230,6 +232,24 @@ public class ReceiptServiceImpl implements ReceiptService {
         return document(receiptNumber,
                 mobile ? "Квитанція про поповнення" : "Квитанція про оплату",
                 debited(payment), null, operation(provider.category()), rows, payment);
+    }
+
+    private ReceiptDocumentDto taxPayment(UserResponseDto payer, PaymentResponseDto payment, String receiptNumber) {
+
+        AccountReferenceDto from = accountService.getAccountReference(payment.fromAccountId());
+
+        List<Row> rows = new ArrayList<>();
+        rows.add(Row.of("Платник", fullName(payer), "фізична особа-підприємець"));
+        rows.add(Row.of("Отримувач", "ДПС (demo)", "державний бюджет"));
+        rows.add(Row.of("Призначення", payment.description()));
+        rows.add(Row.of("Рахунок списання", iban(from.number()),
+                from.type() == AccountType.TAX_RESERVE ? "банка «На податки»" : "рахунок ФОП"));
+        rows.add(Row.of("Сума", money(payment.amount(), payment.currency())));
+        rows.add(Row.of("Комісія", money(payment.fee(), payment.currency())));
+        rows.add(dateRow(payment));
+
+        return document(receiptNumber, "Квитанція про сплату податку", debited(payment), null,
+                "Єдиний податок", rows, payment);
     }
 
     private ReceiptDocumentDto exchange(PaymentResponseDto payment, String receiptNumber) {

@@ -17,4 +17,9 @@ public interface BusinessIncomeRepository extends JpaRepository<BusinessIncome, 
 
     @Query("select coalesce(sum(i.tax), 0) from BusinessIncome i where i.businessId = :businessId and i.createdAt >= :since")
     BigDecimal sumTaxSince(UUID businessId, Instant since);
+
+    @Query("""
+            select coalesce(sum(i.tax), 0) from BusinessIncome i
+            where i.businessId = :businessId and i.createdAt >= :from and i.createdAt < :to""")
+    BigDecimal sumTaxBetween(UUID businessId, Instant from, Instant to);
 }

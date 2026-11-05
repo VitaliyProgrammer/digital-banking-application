@@ -682,6 +682,7 @@ views.business = async () => {
     }
 
     const incomes = await api('GET', '/business/incomes');
+    const periods = await api('GET', '/tax/periods');
     const cards = (await api('GET', '/cards')).filter((c) => c.accountId === business.businessAccountId);
     const accounts = await api('GET', '/accounts');
     const percent = Number(business.taxRatePercent) > 0;
@@ -695,6 +696,17 @@ views.business = async () => {
             ${percent ? `<b>${Number(business.taxRatePercent)}% of every income goes into the tax jar the moment it arrives</b>, in the same ledger transaction, so it can never be spent by mistake. Your own money moved in from a personal account is not income.`
                 : `Fixed tax: <b>${money(business.monthlyTax, 'UAH')}</b> a month, whatever the income.`}
             IBAN for customers: <span class="mono">${esc(business.businessAccountNumber)}</span></p>`),
+        card('🧾 Single tax', `<label class="check"><input type="checkbox" ${business.autoPayTax ? 'checked' : ''} onchange="setTaxAutoPay(this.checked)">
+                <span><b>Auto-pay</b>: on the due date the bank pays from the tax jar (or the business account if the jar is short) and emails the receipt</span></label>
+            <div style="margin-top:12px">` + table(['Period', 'Due by', 'Tax', 'Paid', 'Left', 'Status', ''], periods.map((p) => `<tr>
+                <td>${esc(p.label)}</td><td>${esc(p.dueDate)}</td><td class="num">${money(p.amount, 'UAH')}</td>
+                <td class="num">${money(p.paid, 'UAH')}</td><td class="num"><b>${money(p.left, 'UAH')}</b></td><td>${badge(p.status)}</td>
+                <td>${Number(p.left) > 0 ? `<button class="small" onclick="payTax('${p.period}')">Pay now</button>` : ''}</td></tr>`),
+                'No tax periods yet') + '</div>',
+            `${business.taxGroup === 'GROUP_3'
+                ? 'Group 3 pays for a quarter within 50 days after it ends; a quarter still going on (ACCRUING) may be paid early for the tax so far.'
+                : 'Groups 1 and 2 pay for each month in advance, by the 20th of that month, whatever the income.'}
+             A reminder comes 5 days before the due date. The bank never pays part of the tax.`),
         `<div class="grid">`,
         card('💵 Receive a payment from a customer', `<label>Amount, UAH</label><input id="fopIncome" value="10000">
             <div class="actions"><button onclick="receiveIncome('${business.businessAccountId}')">Receive</button></div>`,
@@ -711,6 +723,12 @@ const openBusiness = () => act(() => api('POST', '/business', {
     kvedCodes: val('fopKved').split(',').map((k) => k.trim()).filter(Boolean),
     taxGroup: val('fopGroup'), vatPayer: document.getElementById('fopVat').checked, registeredOn: val('fopDate'),
 }), 'ФОП account opened, with a BUSINESS card and a tax jar');
+
+const setTaxAutoPay = (enabled) => act(() => api('PUT', '/business/tax-auto-pay', { enabled }),
+    enabled ? 'Auto-pay on: the bank pays the tax on its due date' : 'Auto-pay off');
+
+const payTax = (period) => act(async () => rememberPayment(await api('POST', `/tax/periods/${period}/payments`)),
+    (p) => `Tax paid: ${money(p.amount, 'UAH')}. The receipt is under Transfers → Payments of this session`);
 
 async function receiveIncome(accountId) {
     await pay('/payments/top-up', { accountId, amount: val('fopIncome') }, 'Income');

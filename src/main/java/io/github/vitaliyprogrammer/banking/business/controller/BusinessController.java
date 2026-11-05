@@ -1,6 +1,7 @@
 package io.github.vitaliyprogrammer.banking.business.controller;
 
 import io.github.vitaliyprogrammer.banking.business.dto.request.OpenBusinessRequestDto;
+import io.github.vitaliyprogrammer.banking.business.dto.request.TaxAutoPayRequestDto;
 import io.github.vitaliyprogrammer.banking.business.dto.response.BusinessIncomeResponseDto;
 import io.github.vitaliyprogrammer.banking.business.dto.response.BusinessResponseDto;
 import io.github.vitaliyprogrammer.banking.business.service.BusinessService;
@@ -16,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -47,6 +49,16 @@ public class BusinessController {
     public BusinessResponseDto getBusiness(@CurrentUserId UUID userId) {
 
         return businessService.getBusiness(userId);
+    }
+
+    @PutMapping("/tax-auto-pay")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Turn tax auto-pay on or off",
+            description = "With it on, the bank pays the single tax on its due date from the tax jar (or the business "
+                    + "account if the jar is short) and sends the receipt by email. Nothing is paid in part")
+    public BusinessResponseDto setTaxAutoPay(@CurrentUserId UUID userId, @Valid @RequestBody TaxAutoPayRequestDto request) {
+
+        return businessService.setAutoPayTax(userId, request.enabled());
     }
 
     @GetMapping("/incomes")

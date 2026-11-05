@@ -16,6 +16,7 @@ import io.github.vitaliyprogrammer.banking.notification.service.NotificationServ
 import io.github.vitaliyprogrammer.banking.outbox.event.OutboxEventType;
 import io.github.vitaliyprogrammer.banking.payment.event.PaymentMessage;
 import io.github.vitaliyprogrammer.banking.support.event.SupportTicketMessage;
+import io.github.vitaliyprogrammer.banking.tax.event.TaxNoticeMessage;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.binder.MeterBinder;
@@ -73,6 +74,7 @@ public class NotificationServiceImpl implements NotificationService, MeterBinder
             case SUPPORT_TICKET_REPLIED -> NotificationComposer.supportReplied(read(payload, SupportTicketMessage.class));
             case SUPPORT_TICKET_RESOLVED -> NotificationComposer.supportResolved(
                     read(payload, SupportTicketMessage.class));
+            case TAX_NOTICE -> NotificationComposer.taxNotice(read(payload, TaxNoticeMessage.class));
         };
 
         Instant now = clock.instant();

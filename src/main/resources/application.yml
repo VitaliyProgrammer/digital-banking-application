@@ -156,6 +156,12 @@ banking:
     group3-rate-percent: 5.00
     group3-vat-rate-percent: 3.00
 
+  tax:
+    jobs-enabled: ${TAX_JOBS_ENABLED:true}
+    # Every morning, 09:00 Kyiv time: reminders before due dates, auto-pay on them.
+    daily-cron: "0 0 9 * * *"
+    reminder-days-before: 5
+
   credit-line:
     jobs-enabled: ${CREDIT_LINE_JOBS_ENABLED:true}
     # 1st of the month, 02:00 Kyiv time: settle the statements that fell due, close last month.

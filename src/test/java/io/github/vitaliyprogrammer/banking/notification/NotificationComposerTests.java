@@ -13,6 +13,8 @@ import io.github.vitaliyprogrammer.banking.notification.service.impl.Notificatio
 import io.github.vitaliyprogrammer.banking.payment.entity.status.PaymentStatus;
 import io.github.vitaliyprogrammer.banking.payment.entity.status.PaymentType;
 import io.github.vitaliyprogrammer.banking.payment.event.PaymentMessage;
+import io.github.vitaliyprogrammer.banking.tax.entity.status.TaxNoticeKind;
+import io.github.vitaliyprogrammer.banking.tax.event.TaxNoticeMessage;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -44,6 +46,24 @@ class NotificationComposerTests {
 
         assertThat(failed.emailRequired()).isTrue();
         assertThat(failed.body()).contains("Rejected by provider").contains("1005.00 UAH повернуто");
+    }
+
+    @Test
+    void taxNoticesAndTaxPaymentsAreEmailed() {
+        TaxNoticeMessage notice = new TaxNoticeMessage(UUID.randomUUID(), TaxNoticeKind.DUE_SOON, "IV квартал 2026",
+                new BigDecimal("1250.00"), LocalDate.of(2027, 2, 19), true);
+        NotificationDraftDto dueSoon = NotificationComposer.taxNotice(notice);
+        NotificationDraftDto shortfall = NotificationComposer.taxNotice(new TaxNoticeMessage(notice.userId(),
+                TaxNoticeKind.SHORTFALL, notice.period(), notice.amount(), notice.dueDate(), true));
+        NotificationDraftDto paid = NotificationComposer.paymentCompleted(payment(PaymentType.TAX_PAYMENT, "0.00", null));
+
+        assertThat(dueSoon.emailRequired()).isTrue();
+        assertThat(dueSoon.title()).isEqualTo("Єдиний податок до 19.02.2027");
+        assertThat(dueSoon.body()).contains("IV квартал 2026").contains("1250.00 UAH").contains("Автосплата увімкнена");
+        assertThat(shortfall.emailRequired()).isTrue();
+        assertThat(shortfall.body()).contains("банк нічого не списав");
+        assertThat(paid.title()).isEqualTo("Сплата єдиного податку");
+        assertThat(paid.emailRequired()).isTrue();
     }
 
     @Test

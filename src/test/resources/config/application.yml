@@ -13,6 +13,9 @@ banking:
   credit-line:
     # The month is closed only when a test calls it, for the day it chooses.
     jobs-enabled: false
+  tax:
+    # The daily tax job runs only when a test calls it, for the day it chooses.
+    jobs-enabled: false
   outbox:
     # Events are published only when a test runs the relay.
     relay-enabled: false

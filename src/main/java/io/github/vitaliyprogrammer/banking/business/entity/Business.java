@@ -54,6 +54,9 @@ public class Business {
 
     private UUID taxReserveAccountId;
 
+    /** The client's consent that the bank pays the tax on its due date by itself. Off until they turn it on. */
+    private boolean autoPayTax;
+
     private Instant createdAt;
 
     public static Business register(UUID ownerId, String name, String taxId, List<String> kvedCodes, TaxGroup taxGroup,
@@ -71,6 +74,10 @@ public class Business {
         business.taxReserveAccountId = taxReserveAccountId;
         business.createdAt = now;
         return business;
+    }
+
+    public void setAutoPayTax(boolean enabled) {
+        this.autoPayTax = enabled;
     }
 
     public List<String> getKvedCodeList() {

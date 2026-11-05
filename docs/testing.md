@@ -56,7 +56,7 @@ A bug that leaks one kopiyka anywhere fails the next test that runs.
 | A provider times out after taking the money | `timeoutBecomesUnknownAndReconciliationFinishesTheJob` |
 | Five workers send the same bill | `acceptedPaymentIsSentOnceEvenWithFiveWorkers` |
 | A quote spent twice | `aQuoteIsSpentOnceEvenByFiveParallelRequestsWithDifferentKeys` |
-| A credit limit overspent in parallel | `parallelSpendingNeverGoesPastTheLimit` |
+| A credit limit overspent in parallel | `ownMoneyGoesFirstAndParallelSpendingNeverGoesPastTheLimit` |
 | Interest charged twice by a repeated job | `theMinimumPaymentAvoidsTheLateFeeAndInterestIsChargedOnlyOnceOnTheRest` |
 | An event about a payment that rolled back | `anEventIsWrittenOnlyTogetherWithItsPayment` |
 | A duplicate message makes two notifications | `theSameEventDeliveredTwiceMakesOneNotification` |

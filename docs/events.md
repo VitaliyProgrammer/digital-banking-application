@@ -60,6 +60,7 @@ sequenceDiagram
 | `credit.application.decided` | approved or declined, by the rules or by a person | `CreditDecisionMessage` |
 | `credit.statement.settled` | a statement after its due date: PAID, MINIMUM_PAID, OVERDUE | `CreditStatementMessage` |
 | `support.ticket.replied` / `support.ticket.resolved` | support answered or closed a ticket | `SupportTicketMessage` |
+| `tax.notice` | a sole proprietor's tax is due in a few days, or auto-pay found too little money | `TaxNoticeMessage` |
 
 The exchange `banking.events` is a **topic** exchange: a consumer binds to exactly what it needs (`payment.*`, `credit.#`). A message body is a contract: fields may be added, never renamed or removed, and it carries no account numbers or card data.
 
@@ -67,7 +68,7 @@ The exchange `banking.events` is a **topic** exchange: a consumer binds to exact
 
 ```mermaid
 flowchart LR
-    MQ{{banking.events}} -- "payment.* · credit.#35; · support.#35;" --> Q[banking.notifications]
+    MQ{{banking.events}} -- "payment.* · credit.#35; · support.#35; · tax.#35;" --> Q[banking.notifications]
     Q --> L[NotificationListener]
     L -- broken / unknown --> DLQ[(banking.notifications.dlq)]
     L -- DB down: 3 retries, then --> DLQ

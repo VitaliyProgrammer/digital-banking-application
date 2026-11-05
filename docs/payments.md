@@ -20,6 +20,7 @@
 | 🧾 Bill | `POST /bill-payments` | client → hold → provider (asynchronous) | utilities and internet 0.5%, mobile 1%, at least 1.00 ₴ |
 | 💱 Exchange | `POST /exchange` | client (currency A) → FX position → client (currency B) | none: the bank earns on its buy/sell spread |
 | 🫙 Savings | `POST /savings/{id}/deposits`, `…/withdrawals` | current ↔ savings of the same client | free |
+| 🧾 Single tax | `POST /tax/periods/{period}/payments` (or auto-pay) | tax jar or business account → the tax office, outside the bank | free |
 | 🏛️ Credit repayment | `POST /credit-line/repayments` | current → separate credit account (earlier model only; a limit on the card is repaid by any money arriving on it) | free |
 
 Every fee is a separate `FeePolicy` per payment type. The application **refuses to start** if a type has no policy, so a new payment type can never go out free by accident.

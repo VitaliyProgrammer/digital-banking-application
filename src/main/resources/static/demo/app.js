@@ -512,11 +512,13 @@ const cardVisual = (c, accounts = []) => {
     const holder = state.me ? `${state.me.firstName} ${state.me.lastName}`.toUpperCase() : '';
     const off = c.status !== 'ACTIVE';
     return `<div class="bank-card ${c.type.toLowerCase()} ${off ? 'off' : ''}">
-        <div class="top"><span class="bank"><span class="mark" aria-hidden="true"><i></i><i></i><i></i></span>TABOROVETS UNIVERSAL BANK</span><span class="kind">${esc(c.type)}</span></div>
+        <div class="top"><span class="bank"><span class="mark" aria-hidden="true"><i></i><i></i><i></i></span>TABOROVETS UNIVERSAL BANK</span></div>
         <div class="chip"></div>
         <div class="number" id="num-${c.id}">${esc(c.maskedNumber)}</div>
-        <div class="secret" id="cvv-${c.id}">${account ? `${account.currency} · ${money(account.balance, account.currency)}` : ''}</div>
-        <div class="bottom"><span>${esc(holder)}</span><span>${esc(c.expiry)}</span></div>
+        <div class="secret" id="cvv-${c.id}">${!account ? '' : account.creditLimit
+            ? `Own ${money(Math.max(Number(account.balance), 0), account.currency)} · limit ${money(account.creditLimit, account.currency)}`
+            : `${account.currency} · ${money(account.balance, account.currency)}`}</div>
+        <div class="bottom"><span>${esc(holder)}</span><span>${esc(c.expiry)}</span><span class="kind">${esc(c.type)}</span></div>
         ${off ? `<div class="stamp">${esc(c.status.replace('_', ' '))}</div>` : ''}</div>`;
 };
 
@@ -529,7 +531,7 @@ views.cards = async () => {
             <div><label>Account</label><select id="cardAccount">${options(accounts, accountLabel)}</select></div>
             <div><label>Type</label><select id="cardType"><option>UNIVERSAL</option><option>PAYROLL</option><option>STUDENT</option><option>VIRTUAL</option></select></div>
             <div class="fit"><button onclick="issueCard()">Issue</button></div></div>`,
-            'Universal: the main everyday card, 0.5% per card transfer. Payroll 0.5%, student 0%, virtual 1% (no plastic, so no chip). A CREDIT card comes only with an approved credit line.'),
+            'Universal: the main everyday card, 0.5% per card transfer. Payroll 0.5%, student 0%, virtual 1% (no plastic, so no chip). A credit limit lives on the UNIVERSAL card: see 💳 Credit limit in the menu.'),
         card('👛 My cards', cards.length ? `<div class="wallet">${cards.map((c) => `<div class="slot">${cardVisual(c, all)}
             <div class="actions">
                 ${c.status !== 'CLOSED' ? `<button class="small secondary" onclick="cardDetails('${c.id}')">Show number</button>` : ''}
@@ -651,7 +653,7 @@ const openJar = () => act(() => api('POST', '/savings', { currency: val('jarCurr
 const jarMove = (kind) => act(async () => rememberPayment(await api('POST', `/savings/${val('jarId')}/${kind}`,
     { accountId: val('jarAccount'), amount: val('jarAmount') }, { idempotent: true })), kind === 'deposits' ? 'Put into the jar' : 'Taken out of the jar');
 
-// ---------- 🏛️ Credit ----------
+// ---------- 💳 Credit limit ----------
 
 views.credit = async () => {
     const applications = await api('GET', '/credit-applications');
@@ -661,37 +663,45 @@ views.credit = async () => {
         line = await api('GET', '/credit-line');
         statements = await api('GET', '/credit-line/statements');
     } catch { /* no credit line yet: a 404 is the normal answer */ }
-    const accounts = (await api('GET', '/accounts')).filter((a) => a.type === 'CLIENT' && a.currency === 'UAH');
-    return page('🏛️ Credit', 'Rules decide the clear cases at once; the grey zone waits for a bank employee.',
-        card('📝 Apply for a credit limit', `<div class="row"><div><label>Limit, UAH</label><input id="creditLimit" value="8000"></div>
+    const uah = (await api('GET', '/accounts')).find((x) => x.type === 'CLIENT' && x.currency === 'UAH');
+    const cards = await api('GET', '/cards');
+    const universal = uah && cards.find((c) => c.type === 'UNIVERSAL' && c.accountId === uah.id && c.status !== 'CLOSED');
+
+    const applyCard = line ? '' : !universal
+        ? card('📝 Get a credit limit', `<div class="empty-state"><div class="big">💳</div>
+            <p>The limit lives on your <b>UNIVERSAL</b> card, next to your own money. Issue the card on your UAH account first.</p>
+            <button onclick="go('cards')">Go to Cards</button></div>`)
+        : card('📝 Get a credit limit on your UNIVERSAL card', `<div class="row"><div><label>Limit, UAH</label><input id="creditLimit" value="8000"></div>
             <div class="fit"><button onclick="applyCredit()">Apply</button></div></div>`,
-            'Limit = 50% of your monthly income (top-ups and transfers from others, last 90 days). Up to 10 000 ₴ within it: approved at once; up to 1.5×: a person decides.') +
-        card('🗂️ My applications', table(['When', 'Asked', 'Affordable', 'Approved', 'Decision', 'Why'], applications.map((a) => `<tr>
-            <td>${when(a.createdAt)}</td><td class="num">${money(a.requestedLimit)}</td><td class="num">${money(a.affordableLimit)}</td>
-            <td class="num">${money(a.approvedLimit)}</td><td>${badge(a.status)}<br><small>${esc(a.decisionSource || '')}</small></td>
-            <td><small>${(a.reasons || []).map(esc).join('<br>')}${a.decisionComment ? `<br>💬 ${esc(a.decisionComment)}` : ''}</small></td></tr>`), 'No applications yet')),
-        line ? card('💳 My credit line', `<div class="stats">
-                <div class="stat"><div class="k">Limit</div><div class="v">${money(line.creditLimit, 'UAH')}</div></div>
-                <div class="stat"><div class="k">Available</div><div class="v">${money(line.available, 'UAH')}</div></div>
-                <div class="stat"><div class="k">Debt</div><div class="v">${money(line.debt, 'UAH')}</div></div>
-                <div class="stat"><div class="k">Last statement</div><div class="v">${money(line.statementDebt, 'UAH')}</div></div>
-                <div class="stat"><div class="k">To pay no interest</div><div class="v">${money(line.leftToRepayInterestFree, 'UAH')}</div></div>
-                <div class="stat"><div class="k">Minimum payment left</div><div class="v">${money(line.leftForMinimumPayment, 'UAH')}</div></div></div>
-            <p class="hint" style="margin-top:10px">Last statement interest-free until <b>${esc(line.statementInterestFreeUntil)}</b>;
-               spending this month until <b>${esc(line.newSpendingInterestFreeUntil)}</b>. Spend it with the CREDIT card (Payments → card to card).</p>
-            <div class="row"><div><label>Repay from</label><select id="repayFrom">${options(accounts, accountLabel)}</select></div>
-                <div><label>Amount</label><input id="repayAmount" value="${Number(line.debt) || 100}"></div>
-                <div class="fit"><button onclick="repay()">Repay</button></div></div>
-            <h2 style="margin-top:16px">📅 Statements</h2>` + table(['Month', 'Debt', 'Minimum', 'Due', 'Status', 'Charged'], statements.map((s) => `<tr>
-                <td>${esc(s.period)}</td><td class="num">${money(s.closingDebt)}</td><td class="num">${money(s.minimumPayment)}</td>
-                <td>${esc(s.dueDate)}</td><td>${badge(s.status)}</td><td class="num">${s.interest == null ? '—' : money(Number(s.interest) + Number(s.lateFee))}</td></tr>`),
-            'The first statement closes on the 1st of next month')) : '');
+            'Limit = 50% of your monthly income (top-ups and transfers from others, last 90 days). Up to 10 000 ₴ within it: approved at once; up to 1.5×: a person decides.');
+
+    const lineCard = !line ? '' : card('💳 Credit limit on your UNIVERSAL card', `<div class="stats">
+            <div class="stat"><div class="k">Own money</div><div class="v">${money(line.ownFunds, 'UAH')}</div></div>
+            <div class="stat"><div class="k">Credit limit</div><div class="v">${money(line.creditLimit, 'UAH')}</div></div>
+            <div class="stat"><div class="k">Available</div><div class="v">${money(line.available, 'UAH')}</div></div>
+            <div class="stat"><div class="k">Debt</div><div class="v">${money(line.debt, 'UAH')}</div></div>
+            <div class="stat"><div class="k">Last statement</div><div class="v">${money(line.statementDebt, 'UAH')}</div></div>
+            <div class="stat"><div class="k">To pay no interest</div><div class="v">${money(line.leftToRepayInterestFree, 'UAH')}</div></div>
+            <div class="stat"><div class="k">Minimum payment left</div><div class="v">${money(line.leftForMinimumPayment, 'UAH')}</div></div></div>
+        <p class="hint" style="margin-top:10px">Your own money is spent first, then the limit. Card payments and bills may use the limit;
+           transfers by IBAN, jars and exchange use only your own money. <b>Any money that arrives on the account repays the debt</b>,
+           so there is no separate repay button: just top up (Overview → 💵 Top up).<br>
+           Last statement interest-free until <b>${esc(line.statementInterestFreeUntil)}</b>; spending this month until <b>${esc(line.newSpendingInterestFreeUntil)}</b>.</p>
+        <h2 style="margin-top:16px">📅 Statements</h2>` + table(['Month', 'Debt', 'Minimum', 'Due', 'Status', 'Charged'], statements.map((s) => `<tr>
+            <td>${esc(s.period)}</td><td class="num">${money(s.closingDebt)}</td><td class="num">${money(s.minimumPayment)}</td>
+            <td>${esc(s.dueDate)}</td><td>${badge(s.status)}</td><td class="num">${s.interest == null ? '—' : money(Number(s.interest) + Number(s.lateFee))}</td></tr>`),
+        'The first statement closes on the 1st of next month'));
+
+    return page('💳 Credit limit', 'Like monobank: one UNIVERSAL card holds your own money and the bank\'s credit limit. Rules decide the clear cases at once; the grey zone waits for a bank employee.',
+        lineCard, applyCard,
+        card('🗂️ My applications', table(['When', 'Asked', 'Affordable', 'Approved', 'Decision', 'Why'], applications.map((x) => `<tr>
+            <td>${when(x.createdAt)}</td><td class="num">${money(x.requestedLimit)}</td><td class="num">${money(x.affordableLimit)}</td>
+            <td class="num">${money(x.approvedLimit)}</td><td>${badge(x.status)}<br><small>${esc(x.decisionSource || '')}</small></td>
+            <td><small>${(x.reasons || []).map(esc).join('<br>')}${x.decisionComment ? `<br>💬 ${esc(x.decisionComment)}` : ''}</small></td></tr>`), 'No applications yet')));
 };
 
 const applyCredit = () => act(() => api('POST', '/credit-applications', { requestedLimit: val('creditLimit') }),
-    (a) => `Application: ${a.status}${a.status === 'MANUAL_REVIEW' ? ' (log in as the demo admin to decide)' : ''}`);
-const repay = () => act(async () => rememberPayment(await api('POST', '/credit-line/repayments',
-    { fromAccountId: val('repayFrom'), amount: val('repayAmount') }, { idempotent: true })), 'Repaid');
+    (x) => `Application: ${x.status}${x.status === 'MANUAL_REVIEW' ? ' (log in as the demo admin to decide)' : ''}`);
 
 // ---------- 🔔 Notifications ----------
 

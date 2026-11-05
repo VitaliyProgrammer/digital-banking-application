@@ -216,7 +216,7 @@ About a minute later:
 | 🧑‍💼 Demo admin (credit queue, rates, audit) | `admin@bank.local` / `demo-admin-password` |
 | 🛑 Stop | `docker compose -f docker-compose.demo.yml down` |
 
-**The demo client** ([`static/demo`](src/main/resources/static/demo)) is a small page of plain JavaScript over the same REST API, with a live log of every call and a *copy as curl* button: open it, register, top up, and follow the bank from there.
+**The demo client** ([`static/demo`](src/main/resources/static/demo)) is a small page of plain JavaScript over the same REST API, in Ukrainian and English (УКР / ENG at the top; dates in Kyiv time, while the API itself speaks ISO 8601), with a live log of every call and a *copy as curl* button: open it, register, top up, and follow the bank from there.
 
 **Or a first tour in Swagger:** `POST /authentication/register` → `POST /authentication/login` → press **Authorize** and paste the `accessToken` → `POST /accounts` (`{"currency": "UAH"}`) → `POST /payments/top-up` → `GET /accounts/{id}/transactions`.
 

@@ -50,7 +50,7 @@ h1, h2 { text-wrap: balance; }
 .auth-brand .tagline { margin: 0; font-size: 16px; opacity: .88; max-width: 34em; }
 .auth-brand .features { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 12px; max-width: 34em; }
 .auth-brand .features li { display: flex; gap: 12px; align-items: center; font-size: 15px; }
-.auth-brand .features span {
+.auth-brand .features li > span:first-child {
     flex: none; width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center;
     background: rgba(255, 255, 255, .12);
 }
@@ -326,3 +326,12 @@ tr.inline-form td { background: var(--bg); }
 }
 .bank-card.credit .bottom .kind { background: linear-gradient(135deg, #e7c66b, #b88a2e); color: #1b1b1b; }
 .bank-card.business { background: linear-gradient(135deg, #134e4a, #0f766e); }
+
+/* ---- Language switch: УКР / ENG ---- */
+.lang-switch { display: inline-flex; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); background: var(--panel); }
+.lang-switch button { background: transparent; color: var(--muted); border: 0; border-radius: 0; padding: 5px 10px; font-size: 12px; font-weight: 700; letter-spacing: .4px; }
+.lang-switch button.on { background: var(--brand); color: #fff; }
+.topbar .lang-switch { border-color: rgba(255, 255, 255, .25); background: rgba(255, 255, 255, .1); }
+.topbar .lang-switch button { color: rgba(255, 255, 255, .8); }
+.topbar .lang-switch button.on { background: #fff; color: var(--brand); }
+.auth-panel .lang-switch { align-self: flex-end; max-width: 420px; }

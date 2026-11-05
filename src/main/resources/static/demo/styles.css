@@ -325,3 +325,4 @@ tr.inline-form td { background: var(--bg); }
     background: rgba(255, 255, 255, .18);
 }
 .bank-card.credit .bottom .kind { background: linear-gradient(135deg, #e7c66b, #b88a2e); color: #1b1b1b; }
+.bank-card.business { background: linear-gradient(135deg, #134e4a, #0f766e); }

@@ -9,6 +9,8 @@ public record CreditLineResponseDto(
         UUID accountId,
         String number,
         BigDecimal creditLimit,
+        /* The client's own money on the account: the part of the balance above zero. Spent before the limit. */
+        BigDecimal ownFunds,
         /* What may still be spent: the limit minus the debt, plus any own money on the account. Never below zero. */
         BigDecimal available,
         /* Zero when nothing is owed. May exceed the limit after interest and fees. */

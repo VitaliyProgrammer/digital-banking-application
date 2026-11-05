@@ -9,6 +9,9 @@ import io.github.vitaliyprogrammer.banking.IntegrationTest;
 import io.github.vitaliyprogrammer.banking.account.dto.request.OpenAccountRequestDto;
 import io.github.vitaliyprogrammer.banking.account.entity.status.Currency;
 import io.github.vitaliyprogrammer.banking.account.service.AccountService;
+import io.github.vitaliyprogrammer.banking.card.dto.request.IssueCardRequestDto;
+import io.github.vitaliyprogrammer.banking.card.entity.status.CardType;
+import io.github.vitaliyprogrammer.banking.card.service.CardService;
 import io.github.vitaliyprogrammer.banking.credit.dto.request.CreditApplicationRequestDto;
 import io.github.vitaliyprogrammer.banking.credit.dto.request.CreditDecisionRequestDto;
 import io.github.vitaliyprogrammer.banking.credit.dto.response.CreditApplicationResponseDto;
@@ -45,6 +48,9 @@ class CreditApplicationIntegrationTests extends IntegrationTest {
     private AccountService accountService;
 
     @Autowired
+    private CardService cardService;
+
+    @Autowired
     private PaymentService paymentService;
 
     @Autowired
@@ -70,6 +76,7 @@ class CreditApplicationIntegrationTests extends IntegrationTest {
         account = accountService.open(clientId, new OpenAccountRequestDto(Currency.UAH)).id();
         jdbcTemplate.update("UPDATE accounts SET created_at = now() - interval '60 days' WHERE id = ?", account);
         paymentService.topUp(clientId, newKey(), new TopUpRequestDto(account, new BigDecimal("60000.00")));
+        cardService.issue(clientId, new IssueCardRequestDto(account, CardType.UNIVERSAL));
     }
 
     @Test

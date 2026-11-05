@@ -10,6 +10,7 @@ import io.github.vitaliyprogrammer.banking.account.entity.status.AccountType;
 import io.github.vitaliyprogrammer.banking.account.entity.status.Currency;
 import io.github.vitaliyprogrammer.banking.account.exception.AccountAlreadyExistsException;
 import io.github.vitaliyprogrammer.banking.account.exception.AccountNotFoundException;
+import io.github.vitaliyprogrammer.banking.account.exception.CreditLineAlreadyExistsException;
 import io.github.vitaliyprogrammer.banking.account.exception.CreditLineNotFoundException;
 import io.github.vitaliyprogrammer.banking.account.repository.AccountRepository;
 import io.github.vitaliyprogrammer.banking.account.repository.LedgerEntryRepository;
@@ -60,10 +61,16 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     @Transactional
-    public AccountResponseDto openCreditAccount(UUID ownerId, BigDecimal creditLimit) {
+    public AccountResponseDto grantCreditLimit(UUID ownerId, BigDecimal creditLimit) {
 
-        return openOnce(ownerId, Currency.UAH, AccountType.CREDIT,
-                Account.openCreditAccount(ownerId, ibanGenerator.generate(), creditLimit, clock.instant()));
+        if (accountRepository.findByOwnerIdAndCreditLimitIsNotNull(ownerId).isPresent()) {
+            throw new CreditLineAlreadyExistsException();
+        }
+
+        Account account = accountRepository.findByOwnerIdAndTypeAndCurrency(ownerId, AccountType.CLIENT, Currency.UAH)
+                .orElseThrow(() -> new AccountNotFoundException());
+        account.grantCreditLimit(creditLimit);
+        return AccountResponseDto.from(account);
     }
 
     @Override
@@ -161,7 +168,7 @@ public class AccountServiceImpl implements AccountService {
     @Transactional(readOnly = true)
     public List<AccountReferenceDto> getActiveCreditAccounts() {
 
-        return accountRepository.findAllByTypeAndStatus(AccountType.CREDIT, AccountStatus.ACTIVE).stream()
+        return accountRepository.findAllByCreditLimitIsNotNullAndStatus(AccountStatus.ACTIVE).stream()
                 .map(AccountReferenceDto::from)
                 .toList();
     }
@@ -196,7 +203,7 @@ public class AccountServiceImpl implements AccountService {
 
     private Account findCreditAccount(UUID ownerId) {
 
-        return accountRepository.findByOwnerIdAndType(ownerId, AccountType.CREDIT)
+        return accountRepository.findByOwnerIdAndCreditLimitIsNotNull(ownerId)
                 .orElseThrow(CreditLineNotFoundException::new);
     }
 

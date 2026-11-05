@@ -6,6 +6,7 @@ import io.github.vitaliyprogrammer.banking.account.entity.status.Currency;
 import io.github.vitaliyprogrammer.banking.account.entity.status.EntryDirection;
 import io.github.vitaliyprogrammer.banking.account.entity.status.TransactionType;
 import io.github.vitaliyprogrammer.banking.account.exception.AccountNotActiveException;
+import io.github.vitaliyprogrammer.banking.account.exception.CreditLineAlreadyExistsException;
 import io.github.vitaliyprogrammer.banking.account.exception.InsufficientFundsException;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -53,7 +54,11 @@ public class Account {
     @Column(precision = 19, scale = 4)
     private BigDecimal balance;
 
-    /** Only on a CREDIT account: how far below zero its balance may go. */
+    /**
+     * How far below zero the balance may go: an approved credit limit. It lives on the client's own UAH account
+     * (like monobank), so the same balance shows own money above zero and the debt below it. Accounts of the
+     * earlier model (a separate CREDIT account) carry it too and work the same way.
+     */
     @Column(precision = 19, scale = 4)
     private BigDecimal creditLimit;
 
@@ -77,12 +82,15 @@ public class Account {
         return account;
     }
 
-    /** Credit lines are in hryvnias only: the limit comes from income in hryvnias. */
-    public static Account openCreditAccount(UUID ownerId, String number, BigDecimal creditLimit, Instant now) {
-        Account account = openClientAccount(ownerId, number, Currency.UAH, now);
-        account.type = AccountType.CREDIT;
-        account.creditLimit = creditLimit;
-        return account;
+    /** Credit is in hryvnias only (the limit comes from income in hryvnias), and an account gets it once. */
+    public void grantCreditLimit(BigDecimal limit) {
+        if (type != AccountType.CLIENT || currency != Currency.UAH) {
+            throw new IllegalStateException("A credit limit goes on a UAH current account only");
+        }
+        if (creditLimit != null) {
+            throw new CreditLineAlreadyExistsException();
+        }
+        creditLimit = limit;
     }
 
     /** Accounts that belong to a client: current, savings and credit. */
@@ -93,7 +101,8 @@ public class Account {
     /**
      * The only way to change the balance. Called by the ledger, never directly by other code, and always under the
      * row lock: two parallel payments from one credit card cannot both slip under the limit.
-     * The transaction type matters only on a credit line: the bank's charges may go past its limit, spending may not.
+     * The transaction type matters only on a credit line: card payments and bills may use the limit, other money
+     * movements only the client's own money, and the bank's charges may even go past the limit.
      */
     public void apply(TransactionType transactionType, EntryDirection direction, BigDecimal amount) {
         if (status != AccountStatus.ACTIVE) {
@@ -110,9 +119,9 @@ public class Account {
         balance = newBalance;
     }
 
-    /** Zero for the client's own money; minus the limit for a credit line, or no floor for the bank's charges. */
+    /** Zero for own money; minus the limit when credit may be used; no floor for the bank's charges. */
     private boolean mayGoTo(BigDecimal newBalance, TransactionType transactionType) {
-        if (type != AccountType.CREDIT) {
+        if (creditLimit == null || !transactionType.mayUseCredit()) {
             return newBalance.signum() >= 0;
         }
         return transactionType.mayExceedCreditLimit() || newBalance.compareTo(creditLimit.negate()) >= 0;

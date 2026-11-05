@@ -18,8 +18,8 @@ public interface AccountService {
 
     AccountResponseDto openSavings(UUID ownerId, Currency currency);
 
-    /** For the credit module: opens the client's one UAH credit line with the approved limit. */
-    AccountResponseDto openCreditAccount(UUID ownerId, BigDecimal creditLimit);
+    /** For the credit module: puts the approved limit on the client's UAH current account. */
+    AccountResponseDto grantCreditLimit(UUID ownerId, BigDecimal creditLimit);
 
     List<AccountResponseDto> getAccounts(UUID ownerId);
 
@@ -42,10 +42,10 @@ public interface AccountService {
     /** For other modules: a savings account of the given owner, or 404. */
     AccountReferenceDto getOwnedSavingsReference(UUID ownerId, UUID accountId);
 
-    /** For other modules: the owner's credit account, or 404 if they have no credit line. */
+    /** For other modules: the owner's account that carries a credit limit, or 404 if they have no credit line. */
     AccountReferenceDto getCreditAccountReference(UUID ownerId);
 
-    /** The owner's credit account with its balance and limit, or 404 if they have no credit line. */
+    /** The owner's account with a credit limit, with its balance, or 404 if they have no credit line. */
     AccountResponseDto getCreditAccount(UUID ownerId);
 
     /** For other modules: a client account by its IBAN, e.g. the recipient of a transfer. */

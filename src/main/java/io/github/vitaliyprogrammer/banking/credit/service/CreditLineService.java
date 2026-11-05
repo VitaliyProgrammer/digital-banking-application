@@ -9,7 +9,7 @@ import java.util.UUID;
 
 public interface CreditLineService {
 
-    /** Called in the transaction that approves an application: the credit account and the CREDIT card. */
+    /** Called in the transaction that approves an application: the limit appears on the client's UNIVERSAL card. */
     void open(UUID ownerId, BigDecimal creditLimit);
 
     /** The credit line as of today in Kyiv. */

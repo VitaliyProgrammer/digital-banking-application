@@ -8,6 +8,9 @@ import io.github.vitaliyprogrammer.banking.account.dto.request.OpenAccountReques
 import io.github.vitaliyprogrammer.banking.account.entity.status.Currency;
 import io.github.vitaliyprogrammer.banking.account.exception.InsufficientFundsException;
 import io.github.vitaliyprogrammer.banking.account.service.AccountService;
+import io.github.vitaliyprogrammer.banking.card.dto.request.IssueCardRequestDto;
+import io.github.vitaliyprogrammer.banking.card.entity.status.CardType;
+import io.github.vitaliyprogrammer.banking.card.service.CardService;
 import io.github.vitaliyprogrammer.banking.credit.dto.request.CreditApplicationRequestDto;
 import io.github.vitaliyprogrammer.banking.credit.service.CreditApplicationService;
 import io.github.vitaliyprogrammer.banking.outbox.configuration.OutboxProperties;
@@ -43,6 +46,9 @@ class OutboxIntegrationTests extends IntegrationTest {
 
     @Autowired
     private AccountService accountService;
+
+    @Autowired
+    private CardService cardService;
 
     @Autowired
     private CreditApplicationService creditApplicationService;
@@ -126,6 +132,7 @@ class OutboxIntegrationTests extends IntegrationTest {
         UUID account = accountService.open(userId, new OpenAccountRequestDto(Currency.UAH)).id();
         jdbcTemplate.update("UPDATE accounts SET created_at = now() - interval '60 days' WHERE id = ?", account);
         paymentService.topUp(userId, newKey(), new TopUpRequestDto(account, new BigDecimal("60000.00")));
+        cardService.issue(userId, new IssueCardRequestDto(account, CardType.UNIVERSAL));
 
         UUID application = creditApplicationService.apply(userId,
                 new CreditApplicationRequestDto(new BigDecimal("8000.00"))).id();

@@ -37,6 +37,7 @@ import io.github.vitaliyprogrammer.banking.payment.exception.PaymentNotFoundExce
 import io.github.vitaliyprogrammer.banking.payment.exception.ProviderNotFoundException;
 import io.github.vitaliyprogrammer.banking.payment.exception.RecipientNotFoundException;
 import io.github.vitaliyprogrammer.banking.payment.exception.RepaymentExceedsDebtException;
+import io.github.vitaliyprogrammer.banking.payment.exception.RepaymentNotNeededException;
 import io.github.vitaliyprogrammer.banking.payment.exception.SameAccountTransferException;
 import io.github.vitaliyprogrammer.banking.payment.repository.PaymentRepository;
 import io.github.vitaliyprogrammer.banking.payment.repository.ProviderRepository;
@@ -448,6 +449,10 @@ public class PaymentServiceImpl implements PaymentService {
                                           CreditRepaymentRequestDto request) {
 
         AccountReferenceDto from = accountService.getOwnedAccountReference(userId, request.fromAccountId());
+        AccountReferenceDto creditLine = accountService.getCreditAccountReference(userId);
+        if (from.id().equals(creditLine.id())) {
+            throw new RepaymentNotNeededException();
+        }
         BigDecimal debt = accountService.getCreditAccount(userId).balance().negate().max(BigDecimal.ZERO);
 
         if (request.amount().compareTo(debt) > 0) {
@@ -455,7 +460,7 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         return createOwnTransfer(userId, idempotencyKey, requestHash, PaymentType.CREDIT_REPAYMENT,
-                from, accountService.getCreditAccountReference(userId), request.amount(), "Погашення кредиту");
+                from, creditLine, request.amount(), "Погашення кредиту");
     }
 
     private static void requireTransferable(AccountReferenceDto from, AccountReferenceDto to) {
@@ -487,8 +492,12 @@ public class PaymentServiceImpl implements PaymentService {
             lines.add(new PostingRequestDto.Line(feeAccountId, EntryDirection.CREDIT, fee));
         }
 
+        // Card-to-card is a card payment, so it may be paid with the card's credit limit; other transfers may not.
+        TransactionType type = payment.getType() == PaymentType.CARD_TRANSFER
+                ? TransactionType.CARD_TRANSFER
+                : TransactionType.TRANSFER;
         UUID ledgerTransactionId = ledgerService.post(
-                new PostingRequestDto(TransactionType.TRANSFER, payment.getDescription(), lines));
+                new PostingRequestDto(type, payment.getDescription(), lines));
 
         payment.complete(ledgerTransactionId, clock.instant());
 

@@ -89,7 +89,7 @@ class CreditLineIntegrationTests extends IntegrationTest {
     }
 
     @Test
-    void anApprovedLimitAppearsOnTheUniversalCardWithoutANewCard() {
+    void approvedLimitAppearsOnTheUniversalCard() {
         assertThatThrownBy(() -> creditLineService.getCreditLine(clientId))
                 .isInstanceOf(CreditLineNotFoundException.class);
 
@@ -106,7 +106,7 @@ class CreditLineIntegrationTests extends IntegrationTest {
     }
 
     @Test
-    void aLimitNeedsTheUniversalCardItWillLiveOn() {
+    void applyingRequiresAUniversalCard() {
         UUID otherClient = createUser();
         establishedAccount(otherClient);
 
@@ -114,7 +114,7 @@ class CreditLineIntegrationTests extends IntegrationTest {
     }
 
     @Test
-    void aManualApprovalPutsTheLimitOnTheCardToo() {
+    void manualApprovalPutsTheLimitOnTheCard() {
         CreditApplicationResponseDto application = apply(clientId, "12000.00");
         assertThat(application.status()).isEqualTo(CreditApplicationStatus.MANUAL_REVIEW);
         assertThatThrownBy(() -> creditLineService.getCreditLine(clientId))
@@ -131,7 +131,7 @@ class CreditLineIntegrationTests extends IntegrationTest {
     }
 
     @Test
-    void ownMoneyGoesFirstAndParallelSpendingNeverGoesPastTheLimit() throws Exception {
+    void parallelSpendingStopsAtTheLimit() throws Exception {
         apply(clientId, "8000.00");
 
         // 60 000 own + 8 000 limit = 68 000. 10 × (7 000 + 0.5% fee) = 70 350 wanted: exactly 9 fit (63 315).
@@ -152,7 +152,7 @@ class CreditLineIntegrationTests extends IntegrationTest {
     }
 
     @Test
-    void creditMoneyPaysByCardButNeverLeavesByIbanOrGoesIntoAJar() {
+    void creditMoneyIsForCardsAndBillsOnly() {
         apply(clientId, "8000.00");
         UUID jar = savingsService.open(clientId, new OpenAccountRequestDto(Currency.UAH)).id();
         spend("61000.00");
@@ -170,7 +170,7 @@ class CreditLineIntegrationTests extends IntegrationTest {
     }
 
     @Test
-    void moneyArrivingOnTheAccountRepaysTheDebtAndTheClosedStatementIsWhatKeepsItInterestFree() {
+    void incomingMoneyRepaysTheDebt() {
         apply(clientId, "8000.00");
         spend("63000.00");
         // 63 000 + 315 fee = 63 315: own 60 000, 3 315 owed.

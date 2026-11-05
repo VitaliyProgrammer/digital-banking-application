@@ -23,7 +23,9 @@ public enum OutboxEventType {
     /** Support answered the client's ticket. */
     SUPPORT_TICKET_REPLIED("support.ticket.replied"),
 
-    SUPPORT_TICKET_RESOLVED("support.ticket.resolved");
+    SUPPORT_TICKET_RESOLVED("support.ticket.resolved"),
+    /** A sole proprietor's tax is due soon, or auto-pay found too little money on the due date. */
+    TAX_NOTICE("tax.notice");
 
     private final String routingKey;
 

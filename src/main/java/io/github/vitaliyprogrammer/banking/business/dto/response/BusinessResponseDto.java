@@ -19,6 +19,8 @@ public record BusinessResponseDto(
         String businessAccountNumber,
         BigDecimal businessBalance,
         UUID taxReserveAccountId,
+        /* Whether the bank pays the tax on its due date by itself. */
+        boolean autoPayTax,
         /* What is in the tax jar right now. */
         BigDecimal taxReserve,
         /* Group 3: the share of every income that goes into the tax jar; zero for groups 1 and 2. */

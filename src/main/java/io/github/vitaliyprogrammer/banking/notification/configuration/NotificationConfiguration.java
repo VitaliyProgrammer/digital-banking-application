@@ -57,13 +57,14 @@ public class NotificationConfiguration {
                 .register(registry);
     }
 
-    /** Every payment event, everything about credit and support answers. */
+    /** Every payment event, everything about credit, support answers and tax notices. */
     @Bean
     Declarables notificationsBindings(Queue notificationsQueue, TopicExchange bankingEventsExchange) {
 
         return new Declarables(
                 BindingBuilder.bind(notificationsQueue).to(bankingEventsExchange).with("payment.*"),
                 BindingBuilder.bind(notificationsQueue).to(bankingEventsExchange).with("credit.#"),
-                BindingBuilder.bind(notificationsQueue).to(bankingEventsExchange).with("support.#"));
+                BindingBuilder.bind(notificationsQueue).to(bankingEventsExchange).with("support.#"),
+                BindingBuilder.bind(notificationsQueue).to(bankingEventsExchange).with("tax.#"));
     }
 }

@@ -3,6 +3,7 @@ package io.github.vitaliyprogrammer.banking.payment.service.impl;
 import io.github.vitaliyprogrammer.banking.account.dto.request.PostingRequestDto;
 import io.github.vitaliyprogrammer.banking.account.dto.response.AccountReferenceDto;
 import io.github.vitaliyprogrammer.banking.account.entity.status.AccountType;
+import io.github.vitaliyprogrammer.banking.account.exception.AccountNotFoundException;
 import io.github.vitaliyprogrammer.banking.account.entity.status.Currency;
 import io.github.vitaliyprogrammer.banking.account.entity.status.EntryDirection;
 import io.github.vitaliyprogrammer.banking.account.entity.status.TransactionType;
@@ -167,6 +168,16 @@ public class PaymentServiceImpl implements PaymentService {
                 accountService.getOwnedSavingsReference(userId, savingsId),
                 accountService.getOwnedAccountReference(userId, request.accountId()),
                 request.amount(), "Зняття зі скарбнички"));
+    }
+
+    @Override
+    public PaymentResponseDto payTax(UUID userId, String idempotencyKey, UUID fromAccountId, BigDecimal amount,
+                                     String description) {
+
+        String requestHash = hash(PaymentType.TAX_PAYMENT, fromAccountId, amount);
+
+        return executeOnce(userId, idempotencyKey, requestHash,
+                () -> createTaxPayment(userId, idempotencyKey, requestHash, fromAccountId, amount, description));
     }
 
     @Override
@@ -470,6 +481,35 @@ public class PaymentServiceImpl implements PaymentService {
 
         return createOwnTransfer(userId, idempotencyKey, requestHash, PaymentType.CREDIT_REPAYMENT,
                 from, creditLine, request.amount(), "Погашення кредиту");
+    }
+
+    /** The money leaves the bank: the account is debited and the settlement account (the outside world) credited. */
+    private Payment createTaxPayment(UUID userId,
+                                     String idempotencyKey,
+                                     String requestHash,
+                                     UUID fromAccountId,
+                                     BigDecimal amount,
+                                     String description) {
+
+        AccountReferenceDto from = accountService.getAccountReference(fromAccountId);
+        if (!from.ownerId().equals(userId)
+                || (from.type() != AccountType.TAX_RESERVE && from.type() != AccountType.BUSINESS)) {
+            throw new AccountNotFoundException();
+        }
+
+        BigDecimal fee = feeCalculator.calculate(PaymentType.TAX_PAYMENT, FeeRequest.withoutCard(amount, from.currency()));
+        Payment payment = paymentRepository.saveAndFlush(Payment.pending(
+                userId, idempotencyKey, requestHash, PaymentType.TAX_PAYMENT,
+                from.id(), null, from.currency(), amount, fee, description, clock.instant()));
+
+        UUID ledgerTransactionId = ledgerService.post(PostingRequestDto.transfer(
+                TransactionType.TRANSFER, description,
+                from.id(),
+                ledgerService.getBankAccountId(AccountType.SETTLEMENT, from.currency()),
+                amount));
+
+        payment.complete(ledgerTransactionId, clock.instant());
+        return payment;
     }
 
     private static void requireTransferable(AccountReferenceDto from, AccountReferenceDto to) {

@@ -9,6 +9,7 @@ import io.github.vitaliyprogrammer.banking.payment.dto.request.TopUpRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.request.TransferRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.response.PaymentResponseDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.response.ProviderResponseDto;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -33,6 +34,13 @@ public interface PaymentService {
     /** Savings jar → the same client's current account. The only way money leaves a jar. */
     PaymentResponseDto withdrawFromSavings(UUID userId, String idempotencyKey, UUID savingsId,
                                            SavingsTransferRequestDto request);
+
+    /**
+     * For the tax module: the single tax from a sole proprietor's tax jar or business account to the tax office.
+     * Idempotent like every payment: the same key never pays twice.
+     */
+    PaymentResponseDto payTax(UUID userId, String idempotencyKey, UUID fromAccountId, BigDecimal amount,
+                              String description);
 
     /** Current UAH account → the same client's credit line. Never more than the debt. */
     PaymentResponseDto repayCredit(UUID userId, String idempotencyKey, CreditRepaymentRequestDto request);

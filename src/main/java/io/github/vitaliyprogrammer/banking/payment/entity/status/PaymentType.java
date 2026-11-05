@@ -24,5 +24,8 @@ public enum PaymentType {
     SAVINGS_WITHDRAWAL,
 
     /** Client's current UAH account → the same client's credit account: pays the debt back. */
-    CREDIT_REPAYMENT
+    CREDIT_REPAYMENT,
+
+    /** A sole proprietor's tax jar or business account → the tax office, outside the bank: the single tax. */
+    TAX_PAYMENT
 }

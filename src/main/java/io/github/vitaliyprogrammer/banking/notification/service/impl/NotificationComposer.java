@@ -9,6 +9,7 @@ import io.github.vitaliyprogrammer.banking.payment.event.PaymentMessage;
 import io.github.vitaliyprogrammer.banking.support.event.SupportTicketMessage;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import io.github.vitaliyprogrammer.banking.tax.event.TaxNoticeMessage;
 import java.time.format.DateTimeFormatter;
 
 /**
@@ -31,8 +32,9 @@ public final class NotificationComposer {
                 ? " (комісія " + money(payment.fee(), payment.currency()) + ")"
                 : "";
 
+        // A tax payment may be made by the bank on its own (auto-pay), so the client also gets it by email.
         return new NotificationDraftDto(payment.userId(), titleOf(payment.type()),
-                amount + fee + ". " + payment.description(), false);
+                amount + fee + ". " + payment.description(), payment.type() == PaymentType.TAX_PAYMENT);
     }
 
     public static NotificationDraftDto paymentFailed(PaymentMessage payment) {
@@ -41,6 +43,25 @@ public final class NotificationComposer {
                 payment.description() + ": " + payment.failureReason() + ". "
                         + money(payment.amount().add(payment.fee()), payment.currency()) + " повернуто на рахунок.",
                 true);
+    }
+
+    /** Both kinds go by email too: a missed tax date costs the client a fine from the tax office. */
+    public static NotificationDraftDto taxNotice(TaxNoticeMessage notice) {
+
+        String amount = money(notice.amount(), Currency.UAH);
+        String due = notice.dueDate().format(DATE);
+
+        return switch (notice.kind()) {
+            case DUE_SOON -> new NotificationDraftDto(notice.userId(), "Єдиний податок до " + due,
+                    "За " + notice.period() + " треба сплатити " + amount + " до " + due + ". "
+                            + (notice.autoPay()
+                            ? "Автосплата увімкнена: банк сплатить сам у цей день, з банки «На податки» або рахунку ФОП."
+                            : "Сплатіть у розділі ФОП або увімкніть автосплату."), true);
+            case SHORTFALL -> new NotificationDraftDto(notice.userId(), "Не вистачає коштів на податок",
+                    "Сьогодні строк сплати податку за " + notice.period() + ": " + amount + ". "
+                            + "Ні на банці «На податки», ні на рахунку ФОП немає цієї суми, тож банк нічого не списав. "
+                            + "Поповніть одну з них: автосплата спробує знову завтра.", true);
+        };
     }
 
     public static NotificationDraftDto creditDecided(CreditDecisionMessage decision) {
@@ -100,6 +121,7 @@ public final class NotificationComposer {
             case SAVINGS_DEPOSIT -> "Поповнення скарбнички";
             case SAVINGS_WITHDRAWAL -> "Зняття зі скарбнички";
             case CREDIT_REPAYMENT -> "Погашення кредиту";
+            case TAX_PAYMENT -> "Сплата єдиного податку";
         };
     }
 

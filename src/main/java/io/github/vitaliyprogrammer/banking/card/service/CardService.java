@@ -7,6 +7,7 @@ import io.github.vitaliyprogrammer.banking.card.dto.response.CardDetailsResponse
 import io.github.vitaliyprogrammer.banking.card.dto.response.CardReferenceDto;
 import io.github.vitaliyprogrammer.banking.card.dto.response.CardResponseDto;
 import java.util.List;
+import io.github.vitaliyprogrammer.banking.card.entity.status.CardType;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -14,8 +15,8 @@ public interface CardService {
 
     CardResponseDto issue(UUID ownerId, IssueCardRequestDto request);
 
-    /** For the credit module only: a CREDIT card on the owner's credit line, issued when the limit is approved. */
-    CardResponseDto issueCreditCard(UUID ownerId);
+    /** For other modules: whether the owner has a card of this type on this account that is not closed. */
+    boolean hasCard(UUID ownerId, UUID accountId, CardType type);
 
     List<CardResponseDto> getCards(UUID ownerId);
 

@@ -16,11 +16,11 @@
 |---|---|---|---|
 | 💵 Top-up | `POST /payments/top-up` | settlement → client | free |
 | ➡️ Transfer by IBAN | `POST /payments/transfers` | client → client | 0.5%, at least 5.00 ₴ |
-| 💳 Card to card | `POST /payments/card-transfers` | the sender card's account → the recipient card's account | by card type: student 0%, payroll 0.5%, virtual 1%, credit 2% |
+| 💳 Card to card | `POST /payments/card-transfers` | the sender card's account → the recipient card's account (may use the card's credit limit) | by card type: universal and payroll 0.5%, student 0%, virtual 1%, credit 2% |
 | 🧾 Bill | `POST /bill-payments` | client → hold → provider (asynchronous) | utilities and internet 0.5%, mobile 1%, at least 1.00 ₴ |
 | 💱 Exchange | `POST /exchange` | client (currency A) → FX position → client (currency B) | none: the bank earns on its buy/sell spread |
 | 🫙 Savings | `POST /savings/{id}/deposits`, `…/withdrawals` | current ↔ savings of the same client | free |
-| 🏛️ Credit repayment | `POST /credit-line/repayments` | current → credit line | free |
+| 🏛️ Credit repayment | `POST /credit-line/repayments` | current → separate credit account (earlier model only; a limit on the card is repaid by any money arriving on it) | free |
 
 Every fee is a separate `FeePolicy` per payment type. The application **refuses to start** if a type has no policy, so a new payment type can never go out free by accident.
 

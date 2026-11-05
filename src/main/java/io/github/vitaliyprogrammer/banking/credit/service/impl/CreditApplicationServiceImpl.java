@@ -20,6 +20,9 @@ import io.github.vitaliyprogrammer.banking.credit.exception.CreditApplicationAlr
 import io.github.vitaliyprogrammer.banking.credit.exception.CreditApplicationExistsException;
 import io.github.vitaliyprogrammer.banking.credit.exception.CreditApplicationNotFoundException;
 import io.github.vitaliyprogrammer.banking.credit.exception.CurrentAccountRequiredException;
+import io.github.vitaliyprogrammer.banking.credit.exception.UniversalCardRequiredException;
+import io.github.vitaliyprogrammer.banking.card.entity.status.CardType;
+import io.github.vitaliyprogrammer.banking.card.service.CardService;
 import io.github.vitaliyprogrammer.banking.credit.exception.InvalidCreditDecisionException;
 import io.github.vitaliyprogrammer.banking.credit.exception.OwnCreditApplicationException;
 import io.github.vitaliyprogrammer.banking.credit.repository.CreditApplicationRepository;
@@ -61,6 +64,8 @@ public class CreditApplicationServiceImpl implements CreditApplicationService {
     /** Same transaction as the decision: an approved limit without a credit line (or the reverse) cannot exist. */
     private final CreditLineService creditLineService;
 
+    private final CardService cardService;
+
     private final OutboxService outboxService;
 
     private final AuditService auditService;
@@ -85,6 +90,10 @@ public class CreditApplicationServiceImpl implements CreditApplicationService {
                 .filter(candidate -> candidate.type() == AccountType.CLIENT && candidate.currency() == Currency.UAH)
                 .findFirst()
                 .orElseThrow(CurrentAccountRequiredException::new);
+
+        if (!cardService.hasCard(userId, account.id(), CardType.UNIVERSAL)) {
+            throw new UniversalCardRequiredException();
+        }
 
         Instant now = clock.instant();
         long accountAgeDays = Duration.between(account.createdAt(), now).toDays();

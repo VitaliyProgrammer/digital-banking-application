@@ -14,13 +14,14 @@
 
 ```mermaid
 flowchart LR
-    A[📝 Application] --> S{⚙️ Scoring}
+    C[💳 UNIVERSAL card] --> A[📝 Application]
+    A --> S{⚙️ Scoring}
     S -- clear yes --> OK[✅ APPROVED<br/>auto]
     S -- clear no --> NO[❌ DECLINED<br/>auto]
     S -- grey zone --> Q[👀 MANUAL_REVIEW]
     Q -- employee --> OK2[✅ APPROVED<br/>manual]
     Q -- employee --> NO2[❌ DECLINED<br/>manual]
-    OK --> L[💳 Credit line + CREDIT card]
+    OK --> L[💳 Limit on the same card]
     OK2 --> L
     L --> M[📅 Monthly statement]
     M --> D{Due date passed}
@@ -59,17 +60,23 @@ flowchart LR
 | 🕵️ Accountable | every manual decision is in the [audit log](security.md#-audit-log): who, from which state to which, the limit, the comment |
 | 🔔 Announced | the client gets a notification and an email ([events](events.md)) |
 
-## 💳 The credit line
+## 💳 The credit line: a limit on the UNIVERSAL card
 
-Approval opens the line **in the same transaction**: a `CREDIT` account in UAH with the approved limit, and a `CREDIT` card on it. "Approved, but no account" cannot happen.
+Like monobank: there is no separate credit card. The client applies once they have a **UNIVERSAL** card on their UAH account, and approval puts the limit **on that same account, in the same transaction**. One balance tells everything: above zero is the client's own money, below zero the debt.
+
+```mermaid
+flowchart LR
+    O["➕ 2 000 ₴ own"] --> Z["0"] --> D["➖ down to −8 000 ₴: the limit"]
+```
 
 | | |
 |---|---|
-| 💸 Spend | card-to-card transfers (2% fee) and bill payments |
-| 🚫 Not allowed | moving borrowed money into savings, exchanging it, sending it by IBAN: no earning 12% on the bank's money |
-| 🔒 Limit | checked in `Account.apply()` under the row lock: 10 parallel payments against an 8 000 ₴ limit → exactly 7 go through |
-| 💵 Repay | `POST /credit-line/repayments` from the UAH current account, free, never more than the debt |
-| ➕ Positive balance | allowed: a refund or cashback after repayment is the client's own money, spent first |
+| 💸 Spend | own money first, then the limit; this happens by itself, because the balance simply goes below zero |
+| 💳 May use the limit | card payments (card-to-card) and bills: `TransactionType.mayUseCredit()` |
+| 🚫 Own money only | transfers by IBAN, jars, exchange: otherwise interest-free credit could be parked in a jar at 12% or simply taken out of the bank |
+| 🔒 Limit | checked in `Account.apply()` under the row lock, so the check and the write cannot be separated: 10 parallel payments of 7 035 ₴ against 60 000 own + 8 000 limit → exactly 9 go through |
+| 💵 Repay | nothing to press: **any money that arrives on the account repays the debt**. `POST /credit-line/repayments` stays only for credit lines of the earlier model (a separate `CREDIT` account) and answers 422 for a limit on the card |
+| 🗄️ Earlier model | separate `CREDIT` accounts and cards opened before V25 keep working: a credit line is simply "the account that has a limit", whichever type it is |
 
 ## 📅 Up to 62 days without interest
 
@@ -96,7 +103,7 @@ A job runs on the **1st of every month at 02:00 Kyiv time**. It is safe to run t
 | 🟡 `MINIMUM_PAID` | at least the minimum: 5% of the statement, at least 100 ₴, never more than the debt | **2.5%** of what is still unpaid |
 | 🔴 `OVERDUE` | less than the minimum | 2.5% interest **+ 100 ₴** late fee |
 
-Charges are one ledger transaction: credit line → `INTEREST_INCOME` (+ `FEE_INCOME`). They **may take a used-up line past its limit** (overlimit), because interest has to be charged anyway. Spending still stops at the limit, and a repayment into an overlimit line always works.
+Charges are one ledger transaction: the account with the limit → `INTEREST_INCOME` (+ `FEE_INCOME`). They **may take a used-up line past its limit** (overlimit), because interest has to be charged anyway. Spending still stops at the limit, and a repayment into an overlimit line always works.
 
 Proved in [`CreditStatementIntegrationTests`](../src/test/java/io/github/vitaliyprogrammer/banking/credit/CreditStatementIntegrationTests.java): a statement is closed once, interest is charged once even if the job runs twice, and an overdue line ends at 8 254.90 ₴ debt on an 8 000 ₴ limit, yet refuses to spend another 1 ₴.
 

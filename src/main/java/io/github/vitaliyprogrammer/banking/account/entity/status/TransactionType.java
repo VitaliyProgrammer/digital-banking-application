@@ -5,8 +5,11 @@ public enum TransactionType {
     /** Money enters the bank from outside: settlement account → client account. */
     DEPOSIT,
 
-    /** Money moves between two accounts inside the bank. */
+    /** Money moves between two accounts inside the bank: by IBAN, into or out of a jar, a credit repayment. */
     TRANSFER,
+
+    /** Card-to-card: like TRANSFER, but a card payment, so it may be paid with the card's credit limit. */
+    CARD_TRANSFER,
 
     /** Client account → HOLD: money is reserved for an external payment and can no longer be spent. */
     HOLD,
@@ -36,5 +39,15 @@ public enum TransactionType {
     public boolean mayExceedCreditLimit() {
 
         return this == CREDIT_CHARGES;
+    }
+
+    /**
+     * Credit money pays for card payments and bills only. A transfer by IBAN, a jar or an exchange takes the
+     * client's own money: otherwise interest-free credit could be parked in a jar to earn interest, or simply
+     * taken out of the bank.
+     */
+    public boolean mayUseCredit() {
+
+        return this == CARD_TRANSFER || this == HOLD || this == CREDIT_CHARGES;
     }
 }

@@ -268,7 +268,6 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: now
 }
 .bank-card .top { display: flex; justify-content: space-between; align-items: center; font-size: 12px; letter-spacing: .4px; }
 .bank-card .top .bank { font-weight: 700; }
-.bank-card .top .kind { font-weight: 700; padding: 2px 8px; border-radius: 6px; background: rgba(255, 255, 255, .18); }
 .bank-card .chip {
     width: 44px; height: 32px; border-radius: 6px; margin-top: 18px;
     background: linear-gradient(135deg, #f6e27a, #c9a646 55%, #f3d88a);
@@ -281,7 +280,6 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: now
 .bank-card.virtual { background: linear-gradient(135deg, #5b2bb5, #9a5bf0); }
 .bank-card.virtual .chip { visibility: hidden; }
 .bank-card.credit { background: linear-gradient(135deg, #15171c, #3a3d46); }
-.bank-card.credit .top .kind { background: linear-gradient(135deg, #e7c66b, #b88a2e); color: #1b1b1b; }
 .bank-card.off { filter: grayscale(1) brightness(.85); }
 .bank-card .stamp {
     position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
@@ -318,3 +316,12 @@ tr.inline-form td { background: var(--bg); }
 .bank-card .mark i:nth-child(2) { height: 75%; background: linear-gradient(#86efac, #22c55e); }
 .bank-card .mark i:nth-child(3) { height: 100%; background: linear-gradient(#4ade80, #16a34a); }
 .bank-card.universal { background: linear-gradient(135deg, #0f2a44, #1d4e89); }
+
+/* The card type sits in the bottom right corner, inside the card, like a payment-system logo. */
+.bank-card .bottom { align-items: center; gap: 12px; }
+.bank-card .bottom span:first-child { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bank-card .bottom .kind {
+    flex: none; font-weight: 700; font-size: 11px; letter-spacing: .6px; padding: 2px 8px; border-radius: 6px;
+    background: rgba(255, 255, 255, .18);
+}
+.bank-card.credit .bottom .kind { background: linear-gradient(135deg, #e7c66b, #b88a2e); color: #1b1b1b; }

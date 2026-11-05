@@ -179,12 +179,11 @@ class ArchitectureTests {
             .that().belongToAnyOf(CreditStatementRepository.class)
             .should().onlyHaveDependentClassesThat().belongToAnyOf(CreditLineServiceImpl.class);
 
-    /** A credit line is lent money: it exists only because an application was approved, never on a plain request. */
+    /** A credit limit is lent money: it exists only because an application was approved, never on a plain request. */
     @ArchTest
-    static final ArchRule onlyTheCreditModuleOpensCreditLines = noClasses()
+    static final ArchRule onlyTheCreditModuleGrantsCreditLimits = noClasses()
             .that().doNotBelongToAnyOf(CreditLineServiceImpl.class)
-            .should().callMethod(AccountService.class, "openCreditAccount", UUID.class, BigDecimal.class)
-            .orShould().callMethod(CardService.class, "issueCreditCard", UUID.class);
+            .should().callMethod(AccountService.class, "grantCreditLimit", UUID.class, BigDecimal.class);
 
     /** Payments announce what happened; they never call the cashback module directly. */
     @ArchTest

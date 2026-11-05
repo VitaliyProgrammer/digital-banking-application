@@ -23,6 +23,8 @@ public interface CardRepository extends JpaRepository<Card, UUID> {
 
     boolean existsByAccountIdAndTypeAndStatusNot(UUID accountId, CardType type, CardStatus status);
 
+    boolean existsByOwnerIdAndAccountIdAndTypeAndStatusNot(UUID ownerId, UUID accountId, CardType type, CardStatus status);
+
     /**
      * PIN checks of one card run one after another. The attempt count itself is atomic in Redis;
      * the lock keeps the status change (ACTIVE → PIN_LOCKED) from racing with another check or a parallel block.

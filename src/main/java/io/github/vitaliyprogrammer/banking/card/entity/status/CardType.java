@@ -13,7 +13,10 @@ public enum CardType {
     /** Card without plastic, for online payments. */
     VIRTUAL,
 
-    /** Issued only after a credit decision (Credit Engine), never on a plain client request. */
+    /**
+     * The earlier model: a separate card on a separate credit account. No longer issued (the limit lives on the
+     * UNIVERSAL card now); kept because cards issued before still exist and the database stores the name.
+     */
     CREDIT;
 
     public boolean isIssuedOnRequest() {

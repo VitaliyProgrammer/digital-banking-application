@@ -9,7 +9,6 @@ import io.github.vitaliyprogrammer.banking.account.entity.status.EntryDirection;
 import io.github.vitaliyprogrammer.banking.account.entity.status.TransactionType;
 import io.github.vitaliyprogrammer.banking.account.service.AccountService;
 import io.github.vitaliyprogrammer.banking.account.service.LedgerService;
-import io.github.vitaliyprogrammer.banking.card.service.CardService;
 import io.github.vitaliyprogrammer.banking.credit.dto.response.CreditLineResponseDto;
 import io.github.vitaliyprogrammer.banking.credit.dto.response.CreditStatementResponseDto;
 import io.github.vitaliyprogrammer.banking.credit.dto.response.SettlementDto;
@@ -45,8 +44,6 @@ public class CreditLineServiceImpl implements CreditLineService {
 
     private final AccountService accountService;
 
-    private final CardService cardService;
-
     private final LedgerService ledgerService;
 
     private final CreditStatementRepository creditStatementRepository;
@@ -63,10 +60,9 @@ public class CreditLineServiceImpl implements CreditLineService {
     @Transactional
     public void open(UUID ownerId, BigDecimal creditLimit) {
 
-        AccountResponseDto account = accountService.openCreditAccount(ownerId, creditLimit);
-        cardService.issueCreditCard(ownerId);
+        AccountResponseDto account = accountService.grantCreditLimit(ownerId, creditLimit);
 
-        log.info("Credit line {} opened for {} with limit {}", account.id(), ownerId, creditLimit);
+        log.info("Credit limit {} granted on account {} of {}", creditLimit, account.id(), ownerId);
     }
 
     @Override
@@ -97,6 +93,7 @@ public class CreditLineServiceImpl implements CreditLineService {
                 account.id(),
                 account.number(),
                 account.creditLimit(),
+                money(account.balance().max(BigDecimal.ZERO)),
                 money(account.creditLimit().add(account.balance()).max(BigDecimal.ZERO)),
                 debt(account.balance()),
                 statementDebt,

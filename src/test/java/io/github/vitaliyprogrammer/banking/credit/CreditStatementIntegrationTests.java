@@ -9,7 +9,6 @@ import io.github.vitaliyprogrammer.banking.account.entity.status.Currency;
 import io.github.vitaliyprogrammer.banking.account.exception.InsufficientFundsException;
 import io.github.vitaliyprogrammer.banking.account.service.AccountService;
 import io.github.vitaliyprogrammer.banking.card.dto.request.IssueCardRequestDto;
-import io.github.vitaliyprogrammer.banking.card.dto.response.CardResponseDto;
 import io.github.vitaliyprogrammer.banking.card.entity.status.CardType;
 import io.github.vitaliyprogrammer.banking.card.service.CardService;
 import io.github.vitaliyprogrammer.banking.credit.dto.request.CreditApplicationRequestDto;
@@ -20,9 +19,10 @@ import io.github.vitaliyprogrammer.banking.credit.service.CreditApplicationServi
 import io.github.vitaliyprogrammer.banking.credit.service.CreditLineService;
 import io.github.vitaliyprogrammer.banking.credit.service.impl.GracePeriod;
 import io.github.vitaliyprogrammer.banking.payment.dto.request.CardTransferRequestDto;
-import io.github.vitaliyprogrammer.banking.payment.dto.request.CreditRepaymentRequestDto;
+import io.github.vitaliyprogrammer.banking.payment.dto.request.SavingsTransferRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.request.TopUpRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.service.PaymentService;
+import io.github.vitaliyprogrammer.banking.savings.service.SavingsService;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -57,29 +57,34 @@ class CreditStatementIntegrationTests extends IntegrationTest {
     @Autowired
     private PaymentService paymentService;
 
+    @Autowired
+    private SavingsService savingsService;
+
     private final LocalDate today = LocalDate.now(GracePeriod.KYIV);
 
     private UUID clientId;
 
     private UUID currentAccount;
 
-    private UUID creditCard;
+    private UUID universalCard;
 
     private String recipientCardNumber;
 
-    /** A client with a credit line of 8 000, and a stranger with a card to spend the credit on. */
+    /**
+     * A client with a limit of 8 000 on the UNIVERSAL card, and a stranger with a card to spend the credit on.
+     * The 60 000 of income the scoring needs goes into a jar afterwards, so every spending below is credit money.
+     */
     @BeforeEach
     void clientWithACreditLine() {
         clientId = createUser();
         currentAccount = accountService.open(clientId, new OpenAccountRequestDto(Currency.UAH)).id();
         jdbcTemplate.update("UPDATE accounts SET created_at = now() - interval '60 days' WHERE id = ?", currentAccount);
         paymentService.topUp(clientId, newKey(), new TopUpRequestDto(currentAccount, new BigDecimal("60000.00")));
+        universalCard = cardService.issue(clientId, new IssueCardRequestDto(currentAccount, CardType.UNIVERSAL)).id();
         creditApplicationService.apply(clientId, new CreditApplicationRequestDto(new BigDecimal("8000.00")));
-        creditCard = cardService.getCards(clientId).stream()
-                .filter(card -> card.type() == CardType.CREDIT)
-                .map(CardResponseDto::id)
-                .findFirst()
-                .orElseThrow();
+        UUID jar = savingsService.open(clientId, new OpenAccountRequestDto(Currency.UAH)).id();
+        paymentService.depositToSavings(clientId, newKey(), jar,
+                new SavingsTransferRequestDto(currentAccount, new BigDecimal("60000.00")));
 
         UUID recipientId = createUser();
         UUID recipientAccount = accountService.open(recipientId, new OpenAccountRequestDto(Currency.UAH)).id();
@@ -98,8 +103,8 @@ class CreditStatementIntegrationTests extends IntegrationTest {
 
         assertThat(creditLineService.getStatements(clientId)).singleElement().satisfies(statement -> {
             assertThat(statement.period()).isEqualTo(today.toString().substring(0, 7));
-            assertThat(statement.closingDebt()).isEqualByComparingTo("3060.00");
-            assertThat(statement.minimumPayment()).isEqualByComparingTo("153.00");
+            assertThat(statement.closingDebt()).isEqualByComparingTo("3015.00");
+            assertThat(statement.minimumPayment()).isEqualByComparingTo("150.75");
             assertThat(statement.dueDate()).isEqualTo(GracePeriod.interestFreeUntil(today));
             assertThat(statement.status()).isEqualTo(CreditStatementStatus.OPEN);
         });
@@ -108,8 +113,8 @@ class CreditStatementIntegrationTests extends IntegrationTest {
     @Test
     void repaidInFullByTheDueDateCostsNothing() {
         spend("3000.00");
-        statementDueTonight("3060.00", "153.00");
-        repay("3060.00");
+        statementDueTonight("3015.00", "150.75");
+        repay("3015.00");
 
         settleTomorrow();
 
@@ -120,7 +125,7 @@ class CreditStatementIntegrationTests extends IntegrationTest {
     @Test
     void theMinimumPaymentAvoidsTheLateFeeAndInterestIsChargedOnlyOnceOnTheRest() {
         spend("3000.00");
-        statementDueTonight("3060.00", "153.00");
+        statementDueTonight("3015.00", "150.75");
         repay("200.00");
 
         settleTomorrow();
@@ -129,10 +134,10 @@ class CreditStatementIntegrationTests extends IntegrationTest {
         CreditStatementResponseDto statement = madeUpStatement();
         assertThat(statement.status()).isEqualTo(CreditStatementStatus.MINIMUM_PAID);
         assertThat(statement.repaid()).isEqualByComparingTo("200.00");
-        assertThat(statement.interest()).isEqualByComparingTo("71.50");
+        assertThat(statement.interest()).isEqualByComparingTo("70.38");
         assertThat(statement.lateFee()).isEqualByComparingTo("0.00");
-        // 2 860 left + 71.50 interest, charged once although the job ran twice.
-        assertThat(creditLineService.getCreditLine(clientId).debt()).isEqualByComparingTo("2931.50");
+        // 2 815 left + 70.38 interest (2.5%, rounded half up), charged once although the job ran twice.
+        assertThat(creditLineService.getCreditLine(clientId).debt()).isEqualByComparingTo("2885.38");
     }
 
     @Test
@@ -140,35 +145,35 @@ class CreditStatementIntegrationTests extends IntegrationTest {
         for (int i = 0; i < 7; i++) {
             spend("1000.00");
         }
-        spend("800.00");
-        // 7 × 1 020 + 816 = 7 956 of 8 000 used, nothing repaid by the due date.
-        statementDueTonight("7956.00", "397.80");
+        spend("950.00");
+        // 7 × 1 005 + 955 (0.5% of 950 is below the 5.00 minimum fee) = 7 990 of 8 000 used, nothing repaid.
+        statementDueTonight("7990.00", "399.50");
 
         settleTomorrow();
 
         CreditStatementResponseDto statement = madeUpStatement();
         assertThat(statement.status()).isEqualTo(CreditStatementStatus.OVERDUE);
-        assertThat(statement.interest()).isEqualByComparingTo("198.90");
+        assertThat(statement.interest()).isEqualByComparingTo("199.75");
         assertThat(statement.lateFee()).isEqualByComparingTo("100.00");
 
         CreditLineResponseDto creditLine = creditLineService.getCreditLine(clientId);
-        assertThat(creditLine.debt()).isEqualByComparingTo("8254.90");
+        assertThat(creditLine.debt()).isEqualByComparingTo("8289.75");
         assertThat(creditLine.available()).isEqualByComparingTo("0.00");
         assertThatThrownBy(() -> spend("1.00")).isInstanceOf(InsufficientFundsException.class);
 
-        // Paying back into a line that is over its limit must always work.
+        // Money arriving on a line that is over its limit must always be accepted.
         repay("500.00");
-        assertThat(creditLineService.getCreditLine(clientId).debt()).isEqualByComparingTo("7754.90");
+        assertThat(creditLineService.getCreditLine(clientId).debt()).isEqualByComparingTo("7789.75");
     }
 
     private void spend(String amount) {
         paymentService.cardTransfer(clientId, newKey(),
-                new CardTransferRequestDto(creditCard, recipientCardNumber, new BigDecimal(amount), null));
+                new CardTransferRequestDto(universalCard, recipientCardNumber, new BigDecimal(amount), null));
     }
 
+    /** With the limit on the account itself, repaying is simply money arriving on it. */
     private void repay(String amount) {
-        paymentService.repayCredit(clientId, newKey(),
-                new CreditRepaymentRequestDto(currentAccount, new BigDecimal(amount)));
+        paymentService.topUp(clientId, newKey(), new TopUpRequestDto(currentAccount, new BigDecimal(amount)));
     }
 
     /**

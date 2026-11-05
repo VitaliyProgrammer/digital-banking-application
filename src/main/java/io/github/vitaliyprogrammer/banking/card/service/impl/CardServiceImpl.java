@@ -73,10 +73,10 @@ public class CardServiceImpl implements CardService {
     }
 
     @Override
-    @Transactional
-    public CardResponseDto issueCreditCard(UUID ownerId) {
+    @Transactional(readOnly = true)
+    public boolean hasCard(UUID ownerId, UUID accountId, CardType type) {
 
-        return issue(ownerId, accountService.getCreditAccountReference(ownerId), CardType.CREDIT);
+        return cardRepository.existsByOwnerIdAndAccountIdAndTypeAndStatusNot(ownerId, accountId, type, CardStatus.CLOSED);
     }
 
     private CardResponseDto issue(UUID ownerId, AccountReferenceDto account, CardType type) {

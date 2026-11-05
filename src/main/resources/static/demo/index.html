@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="uk">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,79 +8,84 @@
 </head>
 <body>
 
+<!-- Texts come from i18n.js: data-i18n sets the content, data-i18n-title / -placeholder set those attributes. -->
+
 <!-- ===== Before login: one screen, the bank on the left, one form on the right ===== -->
 <section id="auth" class="auth-screen">
     <div class="auth-brand">
         <div class="logo">🏦</div>
         <h1>Taborovets Universal Bank</h1>
-        <p class="tagline">A demo of a real banking backend: every button here is a call to its REST API.</p>
+        <p class="tagline" data-i18n="auth.tagline"></p>
         <ul class="features">
-            <li><span>💳</span>Accounts, cards and transfers on a double-entry ledger</li>
-            <li><span>🧾</span>Utility bills paid asynchronously, with PDF receipts</li>
-            <li><span>💱</span>Exchange at NBU rates, savings, cashback and credit</li>
-            <li><span>⚡</span>Every request and its JSON answer in the API log</li>
+            <li><span>💳</span><span class="text" data-i18n="auth.feature.ledger"></span></li>
+            <li><span>🧾</span><span class="text" data-i18n="auth.feature.bills"></span></li>
+            <li><span>💱</span><span class="text" data-i18n="auth.feature.exchange"></span></li>
+            <li><span>⚡</span><span class="text" data-i18n="auth.feature.log"></span></li>
         </ul>
-        <p class="admin-hint">Staff side: log in as <span class="mono">admin@bank.local</span> (“Fill in the demo admin”).</p>
+        <p class="admin-hint" data-i18n="auth.adminHint"></p>
     </div>
 
     <div class="auth-panel">
+        <div class="lang-switch" role="group" aria-label="Language">
+            <button type="button" data-lang="uk" onclick="setLang('uk')">УКР</button>
+            <button type="button" data-lang="en" onclick="setLang('en')">ENG</button>
+        </div>
         <div class="auth-card">
             <div class="tabs" role="tablist">
-                <button type="button" role="tab" id="tabLogin" onclick="showAuth('login')">Log in</button>
-                <button type="button" role="tab" id="tabRegister" onclick="showAuth('register')">Open an account</button>
+                <button type="button" role="tab" id="tabLogin" onclick="showAuth('login')" data-i18n="auth.tab.login"></button>
+                <button type="button" role="tab" id="tabRegister" onclick="showAuth('register')" data-i18n="auth.tab.register"></button>
             </div>
 
             <!-- Real forms with autocomplete hints: the browser's password manager suggests a strong password on
                  registration, offers to save it, and fills the login next time. -->
             <form id="loginForm" onsubmit="login(event)">
                 <div id="rememberedAs" class="remembered" hidden>
-                    Welcome back, <b id="rememberedEmail"></b> · <a href="#" onclick="forgetMe(event)">Not you?</a>
+                    <span data-i18n="auth.welcomeBack"></span> <b id="rememberedEmail"></b> · <a href="#" onclick="forgetMe(event)" data-i18n="auth.notYou"></a>
                 </div>
-                <label for="loginEmail">Email</label>
+                <label for="loginEmail" data-i18n="auth.email"></label>
                 <input id="loginEmail" name="email" type="email" autocomplete="username" required>
                 <div class="label-row">
-                    <label for="loginPassword">Password</label>
-                    <a href="#" onclick="showAuth('forgot', event)">Forgot password?</a>
+                    <label for="loginPassword" data-i18n="auth.password"></label>
+                    <a href="#" onclick="showAuth('forgot', event)" data-i18n="auth.forgotLink"></a>
                 </div>
                 <div class="password-field">
                     <input id="loginPassword" name="password" type="password" autocomplete="current-password" required>
-                    <button type="button" class="icon" title="Show or hide" onclick="togglePasswordVisibility('loginPassword')">👁</button>
+                    <button type="button" class="icon" data-i18n-title="auth.showHide" onclick="togglePasswordVisibility('loginPassword')">👁</button>
                 </div>
-                <label class="check"><input type="checkbox" id="loginRemember"> Remember my email on this browser</label>
-                <button type="submit" class="wide">Log in</button>
-                <button type="button" class="wide secondary" onclick="fillAdmin()">Fill in the demo admin</button>
+                <label class="check"><input type="checkbox" id="loginRemember"> <span data-i18n="auth.remember"></span></label>
+                <button type="submit" class="wide" data-i18n="auth.tab.login"></button>
+                <button type="button" class="wide secondary" onclick="fillAdmin()" data-i18n="auth.fillAdmin"></button>
             </form>
 
             <form id="registerForm" onsubmit="register(event)" hidden>
                 <div class="row">
-                    <div><label for="regFirst">First name</label><input id="regFirst" name="given-name" autocomplete="given-name" value="Olena" required></div>
-                    <div><label for="regLast">Last name</label><input id="regLast" name="family-name" autocomplete="family-name" value="Demo" required></div>
+                    <div><label for="regFirst" data-i18n="auth.firstName"></label><input id="regFirst" name="given-name" autocomplete="given-name" value="Olena" required></div>
+                    <div><label for="regLast" data-i18n="auth.lastName"></label><input id="regLast" name="family-name" autocomplete="family-name" value="Demo" required></div>
                 </div>
-                <label for="regEmail">Email</label>
+                <label for="regEmail" data-i18n="auth.email"></label>
                 <input id="regEmail" name="email" type="email" autocomplete="username" required>
-                <label for="regPassword">Password (8+ characters)</label>
+                <label for="regPassword" data-i18n="auth.newPassword"></label>
                 <div class="password-field">
                     <input id="regPassword" name="new-password" type="password" autocomplete="new-password" minlength="8" maxlength="72" required>
-                    <button type="button" class="icon" title="Generate a strong password" onclick="fillGeneratedPassword('regPassword')">🎲</button>
-                    <button type="button" class="icon" title="Show or hide" onclick="togglePasswordVisibility('regPassword')">👁</button>
-                    <button type="button" class="icon" title="Copy" onclick="copyPassword('regPassword', toast)">📋</button>
+                    <button type="button" class="icon" data-i18n-title="auth.generate" onclick="fillGeneratedPassword('regPassword')">🎲</button>
+                    <button type="button" class="icon" data-i18n-title="auth.showHide" onclick="togglePasswordVisibility('regPassword')">👁</button>
+                    <button type="button" class="icon" data-i18n-title="auth.copy" onclick="copyPassword('regPassword', toast)">📋</button>
                 </div>
-                <p class="hint below">Generated in your browser. It will offer to save it after you register.</p>
-                <label class="check"><input type="checkbox" id="regRemember" checked> Remember my email on this browser</label>
-                <button type="submit" class="wide">Open an account</button>
+                <p class="hint below" data-i18n="auth.generatedHint"></p>
+                <label class="check"><input type="checkbox" id="regRemember" checked> <span data-i18n="auth.remember"></span></label>
+                <button type="submit" class="wide" data-i18n="auth.tab.register"></button>
             </form>
 
             <form id="forgotForm" onsubmit="requestPasswordReset(event)" hidden>
-                <h2>Forgot your password?</h2>
-                <p class="hint">We email a link that works once, for 30 minutes. In the demo, emails land in
-                    <a href="http://localhost:8025" target="_blank">Mailpit ↗</a>.</p>
-                <label for="forgotEmail">Email</label>
+                <h2 data-i18n="auth.forgot.title"></h2>
+                <p class="hint" data-i18n="auth.forgot.hint"></p>
+                <label for="forgotEmail" data-i18n="auth.email"></label>
                 <input id="forgotEmail" name="email" type="email" autocomplete="username" required>
-                <button type="submit" class="wide">Send me a link</button>
-                <button type="button" class="wide secondary" onclick="showAuth('login')">← Back to log in</button>
+                <button type="submit" class="wide" data-i18n="auth.forgot.send"></button>
+                <button type="button" class="wide secondary" onclick="showAuth('login')" data-i18n="auth.forgot.back"></button>
             </form>
         </div>
-        <p class="auth-foot"><a href="/swagger-ui.html" target="_blank">API in Swagger ↗</a> · <a href="http://localhost:8025" target="_blank">Mailpit ↗</a></p>
+        <p class="auth-foot"><a href="/swagger-ui.html" target="_blank" data-i18n="auth.swagger"></a> · <a href="http://localhost:8025" target="_blank">Mailpit ↗</a></p>
     </div>
 </section>
 
@@ -89,29 +94,33 @@
     <header class="topbar">
         <div class="brand">🏦 Taborovets Universal Bank <small>demo</small></div>
         <div class="spacer"></div>
-        <button type="button" class="ghost" id="logToggle" onclick="toggleLog()" title="Every API call with its JSON">⚡<span class="label"> API log</span> <span class="pill" id="logCount">0</span></button>
-        <span class="bell" title="Notifications" onclick="go('notifications')">🔔<span class="count" id="unread" hidden>0</span></span>
+        <div class="lang-switch" role="group" aria-label="Language">
+            <button type="button" data-lang="uk" onclick="setLang('uk')">УКР</button>
+            <button type="button" data-lang="en" onclick="setLang('en')">ENG</button>
+        </div>
+        <button type="button" class="ghost" id="logToggle" onclick="toggleLog()" data-i18n-title="top.logTitle">⚡<span class="label"> API log</span> <span class="pill" id="logCount">0</span></button>
+        <span class="bell" data-i18n-title="nav.notifications" onclick="go('notifications')">🔔<span class="count" id="unread" hidden>0</span></span>
         <span class="who" id="who"></span>
-        <button type="button" class="ghost" onclick="logout()">Log out</button>
+        <button type="button" class="ghost" onclick="logout()" data-i18n="top.logout"></button>
     </header>
     <div class="layout" id="layout">
         <nav>
-            <a data-view="overview" onclick="go('overview')">🏠 Overview</a>
-            <a data-view="payments" onclick="go('payments')">🔁 Transfers</a>
-            <a data-view="bills" onclick="go('bills')">🧾 Bills &amp; utilities</a>
-            <a data-view="cards" onclick="go('cards')">💳 Cards</a>
-            <a data-view="exchange" onclick="go('exchange')">💱 Exchange</a>
-            <a data-view="savings" onclick="go('savings')">🐷 Jars &amp; cashback</a>
-            <a data-view="business" onclick="go('business')">💼 Sole proprietor (ФОП)</a>
-            <a data-view="credit" onclick="go('credit')">💳 Credit limit</a>
-            <a data-view="notifications" onclick="go('notifications')">🔔 Notifications</a>
-            <a data-view="support" onclick="go('support')">🎧 Support</a>
+            <a data-view="overview" onclick="go('overview')">🏠 <span data-i18n="nav.overview"></span></a>
+            <a data-view="payments" onclick="go('payments')">🔁 <span data-i18n="nav.payments"></span></a>
+            <a data-view="bills" onclick="go('bills')">🧾 <span data-i18n="nav.bills"></span></a>
+            <a data-view="cards" onclick="go('cards')">💳 <span data-i18n="nav.cards"></span></a>
+            <a data-view="exchange" onclick="go('exchange')">💱 <span data-i18n="nav.exchange"></span></a>
+            <a data-view="savings" onclick="go('savings')">🐷 <span data-i18n="nav.savings"></span></a>
+            <a data-view="business" onclick="go('business')">💼 <span data-i18n="nav.business"></span></a>
+            <a data-view="credit" onclick="go('credit')">💳 <span data-i18n="nav.credit"></span></a>
+            <a data-view="notifications" onclick="go('notifications')">🔔 <span data-i18n="nav.notifications"></span></a>
+            <a data-view="support" onclick="go('support')">🎧 <span data-i18n="nav.support"></span></a>
             <div id="staffNav" hidden>
-                <div class="group">Staff</div>
-                <a data-view="staffCredit" onclick="go('staffCredit')">👀 Credit queue</a>
-                <a data-view="staffSupport" onclick="go('staffSupport')">🎧 Support queue</a>
-                <a data-view="staffRates" onclick="go('staffRates')" data-admin>💱 Bank rates</a>
-                <a data-view="staffAudit" onclick="go('staffAudit')" data-admin>🕵️ Audit log</a>
+                <div class="group" data-i18n="nav.staff"></div>
+                <a data-view="staffCredit" onclick="go('staffCredit')">👀 <span data-i18n="nav.staffCredit"></span></a>
+                <a data-view="staffSupport" onclick="go('staffSupport')">🎧 <span data-i18n="nav.staffSupport"></span></a>
+                <a data-view="staffRates" onclick="go('staffRates')" data-admin>💱 <span data-i18n="nav.staffRates"></span></a>
+                <a data-view="staffAudit" onclick="go('staffAudit')" data-admin>🕵️ <span data-i18n="nav.staffAudit"></span></a>
             </div>
             <div class="nav-foot"><a href="/swagger-ui.html" target="_blank">Swagger ↗</a><a href="http://localhost:8025" target="_blank">Mailpit ↗</a></div>
         </nav>
@@ -128,6 +137,7 @@
 </div>
 
 <div id="toast"></div>
+<script src="i18n.js"></script>
 <script src="password.js"></script>
 <script src="app.js"></script>
 </body>

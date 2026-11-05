@@ -40,10 +40,10 @@ async function copyPassword(inputId, onDone) {
     const input = document.getElementById(inputId);
     try {
         await navigator.clipboard.writeText(input.value);
-        onDone?.('Password copied');
+        onDone?.(typeof t === 'function' ? t('password.copied') : 'Password copied');
     } catch {
         input.type = 'text';
         input.select();
-        onDone?.('Press Ctrl+C to copy');
+        onDone?.(typeof t === 'function' ? t('password.pressCtrlC') : 'Press Ctrl+C to copy');
     }
 }

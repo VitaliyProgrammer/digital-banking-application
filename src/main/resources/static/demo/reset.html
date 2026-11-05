@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="uk">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -14,31 +14,36 @@
     <div class="auth-brand">
         <div class="logo">🏦</div>
         <h1>Taborovets Universal Bank</h1>
-        <p class="tagline">Set a new password. The link from the email works once and only for 30 minutes.</p>
+        <p class="tagline" data-i18n="reset.tagline"></p>
     </div>
 
     <div class="auth-panel">
+        <div class="lang-switch" role="group" aria-label="Language">
+            <button type="button" data-lang="uk" onclick="setLang('uk')">УКР</button>
+            <button type="button" data-lang="en" onclick="setLang('en')">ENG</button>
+        </div>
         <div class="auth-card">
             <form id="resetForm" onsubmit="resetPassword(event)">
-                <h2>🔐 Set a new password</h2>
-                <p class="hint below">After this, every session of your account ends, on every device.</p>
+                <h2 data-i18n="reset.title"></h2>
+                <p class="hint below" data-i18n="reset.sessionsEnd"></p>
                 <!-- Lets the password manager save the new password under the right account. -->
                 <input id="resetUsername" name="email" type="email" autocomplete="username" hidden>
-                <label for="newPassword">New password (8+ characters)</label>
+                <label for="newPassword" data-i18n="reset.newPassword"></label>
                 <div class="password-field">
                     <input id="newPassword" name="new-password" type="password" autocomplete="new-password" minlength="8" maxlength="72" required>
-                    <button type="button" class="icon" title="Generate a strong password" onclick="fillGeneratedPassword('newPassword')">🎲</button>
-                    <button type="button" class="icon" title="Show or hide" onclick="togglePasswordVisibility('newPassword')">👁</button>
-                    <button type="button" class="icon" title="Copy" onclick="copyPassword('newPassword', showMessage)">📋</button>
+                    <button type="button" class="icon" data-i18n-title="auth.generate" onclick="fillGeneratedPassword('newPassword')">🎲</button>
+                    <button type="button" class="icon" data-i18n-title="auth.showHide" onclick="togglePasswordVisibility('newPassword')">👁</button>
+                    <button type="button" class="icon" data-i18n-title="auth.copy" onclick="copyPassword('newPassword', showMessage)">📋</button>
                 </div>
-                <button type="submit" class="wide" id="resetButton">Save the new password</button>
+                <button type="submit" class="wide" id="resetButton" data-i18n="reset.save"></button>
                 <p id="resetMessage" class="hint below" hidden></p>
             </form>
         </div>
-        <p class="auth-foot"><a href="index.html">← Back to log in</a></p>
+        <p class="auth-foot"><a href="index.html" data-i18n="reset.back"></a></p>
     </div>
 </section>
 
+<script src="i18n.js"></script>
 <script src="password.js"></script>
 <script>
 'use strict';
@@ -49,10 +54,27 @@ history.replaceState(null, '', location.pathname);
 
 const message = document.getElementById('resetMessage');
 
+/** The last message, kept as a key, so a language switch can say it again in the other language. */
+let lastMessage = null;
+
 function showMessage(text, kind = '') {
     message.textContent = text;
     message.className = `hint below ${kind}`;
     message.hidden = false;
+}
+
+function showDone() {
+    message.innerHTML = '';
+    message.append(t('reset.done') + ' ');
+    message.append(Object.assign(document.createElement('a'), { href: 'index.html', textContent: t('reset.logIn') }));
+    message.className = 'hint below ok';
+    message.hidden = false;
+}
+
+/** Called by i18n.js after the language changed. */
+function onLanguageChanged() {
+    if (lastMessage === 'noToken') showMessage(t('reset.noToken'), 'bad');
+    if (lastMessage === 'done') showDone();
 }
 
 try {
@@ -61,7 +83,8 @@ try {
 
 if (!token) {
     document.getElementById('resetButton').disabled = true;
-    showMessage('This page opens from the link in the email. Ask for a new link on the login page.', 'bad');
+    lastMessage = 'noToken';
+    showMessage(t('reset.noToken'), 'bad');
 } else {
     fillGeneratedPassword('newPassword');
 }
@@ -70,21 +93,18 @@ async function resetPassword(event) {
     event.preventDefault();
     const response = await fetch('/authentication/password-reset/confirm', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Accept-Language': currentLang() },
         body: JSON.stringify({ token, newPassword: document.getElementById('newPassword').value }),
     });
     if (response.ok) {
         document.getElementById('resetButton').disabled = true;
-        message.innerHTML = '';
-        message.append('Password changed. ');
-        const link = Object.assign(document.createElement('a'), { href: 'index.html', textContent: 'Log in with it →' });
-        message.append(link);
-        message.className = 'hint below ok';
-        message.hidden = false;
+        lastMessage = 'done';
+        showDone();
         return;
     }
+    lastMessage = null;
     const problem = await response.json().catch(() => ({}));
-    showMessage(problem.detail || problem.title || `Error ${response.status}`, 'bad');
+    showMessage(problem.detail || problem.title || t('reset.error', { status: response.status }), 'bad');
 }
 </script>
 </body>

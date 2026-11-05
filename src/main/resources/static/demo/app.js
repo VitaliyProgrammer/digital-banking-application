@@ -1,4 +1,6 @@
 // Demo client of the bank. Plain JavaScript over the REST API: every call shows up in the log on the right.
+// Every text a person reads comes from i18n.js: t() for texts, label() for status names, and dates and money formatted
+// for the chosen language (Kyiv time).
 'use strict';
 
 const state = {
@@ -13,9 +15,9 @@ const state = {
 
 const uuid = () => crypto.randomUUID();
 
-/** One place for every request: token, idempotency key, the log, a token refresh on 401, readable errors. */
+/** One place for every request: token, idempotency key, language, the log, a token refresh on 401, readable errors. */
 async function api(method, path, body, { idempotent = false, raw = false, retried = false, quiet = false } = {}) {
-    const headers = {};
+    const headers = { 'Accept-Language': currentLang() };
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     if (state.access) headers.Authorization = `Bearer ${state.access}`;
     if (idempotent) headers['Idempotency-Key'] = uuid();
@@ -27,7 +29,7 @@ async function api(method, path, body, { idempotent = false, raw = false, retrie
         response = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
     } catch (e) {
         log(method, path, 0, Math.round(performance.now() - started), body, String(e));
-        throw new Error('The bank does not answer. Is it running?');
+        throw new Error(t('error.noAnswer'));
     }
     const ms = Math.round(performance.now() - started);
 
@@ -75,6 +77,7 @@ function saveTokens(tokens) {
 
 const curls = new Map();
 
+/** The API log is a developer's tool (paths, JSON, curl), so it stays in English whatever the language. */
 function writeLog(headers, method, path, status, ms, request, response) {
     const id = uuid();
     curls.set(id, [`curl -X ${method} '${location.origin}${path}'`,
@@ -82,7 +85,7 @@ function writeLog(headers, method, path, status, ms, request, response) {
         ...(request !== undefined ? [`-d '${JSON.stringify(request)}'`] : [])].join(' \\\n  '));
     const entry = document.createElement('details');
     const s = String(status)[0] || '0';
-    const time = new Date().toLocaleTimeString('uk-UA', { hour12: false });
+    const time = new Date().toLocaleTimeString('uk-UA', { hour12: false, timeZone: 'Europe/Kyiv' });
     entry.innerHTML = `<summary><span class="t">${time}</span><span class="m">${method}</span><span class="path">${esc(path)}</span>
         <span class="s${s}">${status || 'ERR'}</span><span class="ms">${ms} ms</span></summary>
         ${request !== undefined ? `<div class="dir">→ request</div><pre>${jsonHtml(request)}</pre>` : ''}
@@ -135,17 +138,17 @@ function initialLogState() {
 }
 
 async function copyCurl(id) {
-    try { await navigator.clipboard.writeText(curls.get(id)); toast('Copied: paste it into a terminal'); }
-    catch { window.prompt('Copy the command', curls.get(id)); }
+    try { await navigator.clipboard.writeText(curls.get(id)); toast(t('toast.curlCopied')); }
+    catch { window.prompt(t('prompt.copyCommand'), curls.get(id)); }
 }
 
 let toastTimer;
 function toast(message, kind = 'ok') {
-    const t = document.getElementById('toast');
-    t.textContent = message;
-    t.className = `show ${kind}`;
+    const el = document.getElementById('toast');
+    el.textContent = message;
+    el.className = `show ${kind}`;
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => (t.className = ''), 3500);
+    toastTimer = setTimeout(() => (el.className = ''), 3500);
 }
 
 /** Runs an action from a button: shows the error as a toast instead of failing silently, then redraws the view. */
@@ -162,23 +165,35 @@ async function act(action, success) {
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const val = (id) => document.getElementById(id).value.trim();
-const money = (amount, currency = '') => amount == null ? '—' : `${Number(amount).toLocaleString('uk-UA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
-const when = (iso) => iso ? new Date(iso).toLocaleString('uk-UA') : '—';
+const money = (amount, currency = '') => formatMoney(amount, currency);
+/** A moment (createdAt, ...): in Kyiv time, as the chosen language writes it. */
+const when = (iso) => formatDateTime(iso);
+/** A calendar day (a due date, ...): no time zone, so it never moves to the day before. */
+const day = (isoDate) => formatDate(isoDate);
 const short = (id) => id ? String(id).slice(0, 8) : '—';
-const badge = (text) => {
-    const kind = /COMPLETED|APPROVED|ACTIVE|PAID|RESOLVED|SENT/.test(text) ? 'ok'
-        : /FAILED|DECLINED|BLOCKED|OVERDUE|CLOSED|LOCKED/.test(text) ? 'bad'
-            : /PROCESSING|UNKNOWN|MANUAL_REVIEW|OPEN|IN_PROGRESS|MINIMUM_PAID|PENDING/.test(text) ? 'warn' : 'info';
-    return `<span class="badge ${kind}">${esc(text)}</span>`;
+/** A status or type: the colour comes from the code, the words from the dictionary. */
+const badge = (code) => {
+    const kind = /COMPLETED|APPROVED|ACTIVE|PAID|RESOLVED|SENT/.test(code) ? 'ok'
+        : /FAILED|DECLINED|BLOCKED|OVERDUE|CLOSED|LOCKED/.test(code) ? 'bad'
+            : /PROCESSING|UNKNOWN|MANUAL_REVIEW|OPEN|IN_PROGRESS|MINIMUM_PAID|PENDING/.test(code) ? 'warn' : 'info';
+    return `<span class="badge ${kind}">${esc(label(code))}</span>`;
 };
-const options = (items, label, valueOf = (x) => x.id) => items.map((x) => `<option value="${esc(valueOf(x))}">${esc(label(x))}</option>`).join('');
-const accountLabel = (a) => `${a.currency} · ${a.type} · ${money(a.balance, a.currency)} · …${a.number.slice(-6)}`;
+const options = (items, text, valueOf = (x) => x.id) => items.map((x) => `<option value="${esc(valueOf(x))}">${esc(text(x))}</option>`).join('');
+const accountLabel = (a) => `${a.currency} · ${label(a.type)} · ${money(a.balance, a.currency)} · …${a.number.slice(-6)}`;
 const isStaff = () => state.me && (state.me.role === 'ADMIN' || state.me.role === 'SUPPORT');
 
 function rememberPayment(payment) {
     state.payments = [payment, ...state.payments.filter((p) => p.id !== payment.id)].slice(0, 20);
     sessionStorage.setItem('payments', JSON.stringify(state.payments));
     return payment;
+}
+
+/** Called by i18n.js after the language changed: everything drawn by code is drawn again. */
+function onLanguageChanged() {
+    if (state.me) {
+        document.getElementById('who').textContent = `${state.me.firstName} ${state.me.lastName} · ${t(`role.${state.me.role}`)}`;
+        render();
+    }
 }
 
 // ---------- Session ----------
@@ -233,7 +248,7 @@ async function register(event) {
         saveTokens(await api('POST', '/authentication/login', { email, password }));
         rememberEmail(email, document.getElementById('regRemember').checked);
         await start();
-        toast('Welcome! Open an account to begin.');
+        toast(t('toast.welcome'));
     } catch (e) { toast(e.message, 'bad'); }
 }
 
@@ -268,7 +283,7 @@ async function requestPasswordReset(event) {
     try {
         await api('POST', '/authentication/password-reset', { email: val('forgotEmail') });
         showAuth('login');
-        toast('If this email has an account, a link is on its way. Check Mailpit (localhost:8025).');
+        toast(t('toast.resetSent'));
     } catch (e) { toast(e.message, 'bad'); }
 }
 
@@ -290,7 +305,7 @@ async function start() {
     document.getElementById('auth').hidden = true;
     document.getElementById('app').hidden = false;
     toggleLog(initialLogState());
-    document.getElementById('who').textContent = `${state.me.firstName} ${state.me.lastName} · ${state.me.role}`;
+    document.getElementById('who').textContent = `${state.me.firstName} ${state.me.lastName} · ${t(`role.${state.me.role}`)}`;
     document.getElementById('staffNav').hidden = !isStaff();
     document.querySelectorAll('[data-admin]').forEach((a) => (a.hidden = state.me.role !== 'ADMIN'));
     clearInterval(state.bell);
@@ -317,19 +332,31 @@ async function go(name) {
     await render();
 }
 
+/** Each drawing gets a number: a slow one that finishes after a newer one has started is thrown away. */
+let renderTicket = 0;
+
+/**
+ * Draws the current view. A view waits for the API, so two drawings can overlap (a language switch, then a quick
+ * click in the menu): without the ticket the older, slower one would finish last and put the old page back.
+ */
 async function render() {
+    if (!state.me) return;
+    const ticket = ++renderTicket;
     const main = document.getElementById('view');
+    let html;
     try {
-        main.innerHTML = await views[state.view]();
+        html = await views[state.view]();
     } catch (e) {
-        main.innerHTML = `<div class="card"><h2>Something went wrong</h2><p>${esc(e.message)}</p></div>`;
+        html = `<div class="card"><h2>${t('error.title')}</h2><p>${esc(e.message)}</p></div>`;
     }
+    if (ticket !== renderTicket) return;
+    main.innerHTML = html;
     refreshBell();
 }
 
 const page = (title, lead, ...cards) => `<h1>${title}</h1><p class="lead">${lead}</p>${cards.join('')}`;
 const card = (title, body, hint = '') => `<div class="card"><h2>${title}</h2>${hint ? `<p class="hint">${hint}</p>` : ''}${body}</div>`;
-const table = (headers, rows, empty = 'Nothing yet') => rows.length
+const table = (headers, rows, empty = t('common.nothingYet')) => rows.length
     ? `<div class="table-wrap"><table><tr>${headers.map((h) => `<th>${h}</th>`).join('')}</tr>${rows.join('')}</table></div>`
     : `<div class="empty">${empty}</div>`;
 const CURRENCIES = ['UAH', 'USD', 'EUR'];
@@ -345,33 +372,33 @@ views.overview = async () => {
     const own = accounts.filter((a) => a.type === 'CLIENT');
     const empty = own.length > 0 && own.every((a) => Number(a.balance) === 0);
     const topUpRow = (a) => a.id !== topUpAccountId ? '' : `<tr class="inline-form"><td colspan="5">
-            <div class="row"><div><label>Top up ${esc(a.currency)} …${esc(a.number.slice(-6))} with</label>
+            <div class="row"><div><label>${t('overview.topUpWith', { account: `${esc(a.currency)} …${esc(a.number.slice(-6))}` })}</label>
             <input id="quickTopUpAmount" value="${a.currency === 'UAH' ? '60000' : '1000'}"></div>
-            <div class="fit"><button onclick="quickTopUp('${a.id}')">💵 Top up</button></div>
-            <div class="fit"><button class="secondary" onclick="topUpAccountId = null; render()">Cancel</button></div></div>
-            <p class="hint below">Money from outside the bank, e.g. a card of another bank. Free.</p></td></tr>`;
-    return page('🏠 Overview', 'Your accounts and cards. Every balance is read from the double-entry ledger.',
-        empty ? `<div class="notice">💡 Your account is empty. Press <b>💵 Top up</b> next to it to bring in money, then try transfers, bills and exchange.</div>` : '',
-        card('💰 Accounts', table(['Currency', 'Type', 'IBAN', 'Balance', ''], accounts.map((a) => `<tr>
+            <div class="fit"><button onclick="quickTopUp('${a.id}')">💵 ${t('overview.topUp')}</button></div>
+            <div class="fit"><button class="secondary" onclick="topUpAccountId = null; render()">${t('common.cancel')}</button></div></div>
+            <p class="hint below">${t('overview.topUpHint')}</p></td></tr>`;
+    return page(`🏠 ${t('nav.overview')}`, t('overview.lead'),
+        empty ? `<div class="notice">${t('overview.emptyNotice')}</div>` : '',
+        card(`💰 ${t('overview.accounts')}`, table([t('col.currency'), t('col.type'), 'IBAN', t('col.balance'), ''], accounts.map((a) => `<tr>
                 <td><b>${a.currency}</b></td><td>${badge(a.type)}</td><td class="mono">${esc(a.number)}</td>
-                <td class="num"><b>${money(a.balance, a.currency)}</b>${a.creditLimit ? `<br><small>limit ${money(a.creditLimit)}</small>` : ''}</td>
-                <td class="buttons">${a.type === 'CLIENT' ? `<button class="small" onclick="topUpAccountId = '${a.id}'; render()">💵 Top up</button>` : ''}
-                    <button class="small secondary" onclick="showStatement('${a.id}')">Statement</button></td></tr>${topUpRow(a)}`),
-            'No accounts yet: open one below') +
-            `<div class="row" style="margin-top:12px"><div><label>Open an account in</label>
+                <td class="num"><b>${money(a.balance, a.currency)}</b>${a.creditLimit ? `<br><small>${t('overview.limit')} ${money(a.creditLimit, 'UAH')}</small>` : ''}</td>
+                <td class="buttons">${a.type === 'CLIENT' ? `<button class="small" onclick="topUpAccountId = '${a.id}'; render()">💵 ${t('overview.topUp')}</button>` : ''}
+                    <button class="small secondary" onclick="showStatement('${a.id}')">${t('overview.statement')}</button></td></tr>${topUpRow(a)}`),
+            t('overview.noAccounts')) +
+            `<div class="row" style="margin-top:12px"><div><label>${t('overview.openIn')}</label>
              <select id="newCurrency">${CURRENCIES.map((c) => `<option>${c}</option>`).join('')}</select></div>
-             <div class="fit"><button onclick="openAccount()">Open account</button></div></div>
+             <div class="fit"><button onclick="openAccount()">${t('overview.openAccount')}</button></div></div>
              <div id="statement"></div>`),
-        card('💳 Cards', cards.length ? `<div class="wallet">${cards.map((c) => cardVisual(c, accounts)).join('')}</div>`
-            : '<div class="empty">No cards yet: issue one on the Cards page</div>'));
+        card(`💳 ${t('nav.cards')}`, cards.length ? `<div class="wallet">${cards.map((c) => cardVisual(c, accounts)).join('')}</div>`
+            : `<div class="empty">${t('overview.noCards')}</div>`));
 };
 
 async function openAccount() {
-    await act(() => api('POST', '/accounts', { currency: val('newCurrency') }), (a) => `Account ${a.currency} opened`);
+    await act(() => api('POST', '/accounts', { currency: val('newCurrency') }), (a) => t('toast.accountOpened', { currency: a.currency }));
 }
 
 async function quickTopUp(accountId) {
-    const payment = await pay('/payments/top-up', { accountId, amount: val('quickTopUpAmount') }, 'Top-up');
+    const payment = await pay('/payments/top-up', { accountId, amount: val('quickTopUpAmount') }, t('payment.topUp'));
     if (payment) {
         topUpAccountId = null;
         render();
@@ -381,53 +408,53 @@ async function quickTopUp(accountId) {
 async function showStatement(accountId) {
     try {
         const { content } = await api('GET', `/accounts/${accountId}/transactions?size=20`);
-        document.getElementById('statement').innerHTML = `<h2 style="margin-top:16px">📜 Statement</h2>` + table(
-            ['When', 'Operation', 'Amount', 'Balance after'],
+        document.getElementById('statement').innerHTML = `<h2 style="margin-top:16px">📜 ${t('overview.statement')}</h2>` + table(
+            [t('col.when'), t('col.operation'), t('col.amount'), t('col.balanceAfter')],
             content.map((e) => `<tr><td>${when(e.createdAt)}</td><td>${badge(e.type)} ${esc(e.description)}</td>
                 <td class="num ${e.direction === 'CREDIT' ? 'plus' : 'minus'}">${e.direction === 'CREDIT' ? '+' : '−'}${money(e.amount)}</td>
                 <td class="num">${money(e.balanceAfter)}</td></tr>`),
-            'No operations yet');
+            t('overview.noOperations'));
     } catch (e) { toast(e.message, 'bad'); }
 }
 
-// ---------- 🔁 Payments ----------
+// ---------- 🔁 Transfers ----------
 
 views.payments = async () => {
     const accounts = (await api('GET', '/accounts')).filter((a) => a.type !== 'CREDIT');
-    const spending = await api('GET', '/accounts');
     const cards = await api('GET', '/cards');
     const accountOptions = options(accounts, accountLabel);
-    return page('🔁 Transfers', 'Every payment carries a new Idempotency-Key: pressing a button twice can never pay twice. Utility bills are under 🧾 Bills & utilities.',
+    return page(`🔁 ${t('nav.payments')}`, t('payments.lead'),
         `<div class="grid">`,
-        card('💵 Top up', `<label>Account</label><select id="topUpAccount">${accountOptions}</select>
-            <label>Amount</label><input id="topUpAmount" value="60000">
-            <div class="actions"><button onclick="topUp()">Top up</button></div>`, 'Money from outside the bank. Free.'),
-        card('➡️ Transfer by IBAN', `<label>From</label><select id="trFrom">${accountOptions}</select>
-            <label>Recipient IBAN</label><input id="trTo" placeholder="UA…">
-            <label>Amount</label><input id="trAmount" value="500">
-            <label>Description</label><input id="trDesc" value="Rent">
-            <div class="actions"><button onclick="transfer()">Send</button></div>`, '0.5%, at least 5.00 ₴.'),
-        card('💳 Card to card', `<label>From card</label><select id="ctFrom">${options(cards, (c) => `${c.type} ${c.maskedNumber}`)}</select>
-            <label>Recipient card number</label><input id="ctTo" placeholder="16 digits">
-            <label>Amount</label><input id="ctAmount" value="250">
-            <div class="actions"><button onclick="cardTransfer()">Send</button></div>`, 'Fee by card type: universal and payroll 0.5%, student 0%, virtual 1%, credit 2%.'),
+        card(`💵 ${t('overview.topUp')}`, `<label>${t('col.account')}</label><select id="topUpAccount">${accountOptions}</select>
+            <label>${t('col.amount')}</label><input id="topUpAmount" value="60000">
+            <div class="actions"><button onclick="topUp()">${t('overview.topUp')}</button></div>`, t('payments.topUpHint')),
+        card(`➡️ ${t('payments.byIban')}`, `<label>${t('payments.from')}</label><select id="trFrom">${accountOptions}</select>
+            <label>${t('payments.recipientIban')}</label><input id="trTo" placeholder="UA…">
+            <label>${t('col.amount')}</label><input id="trAmount" value="500">
+            <label>${t('payments.description')}</label><input id="trDesc" value="${esc(t('payments.descriptionDefault'))}">
+            <div class="actions"><button onclick="transfer()">${t('common.send')}</button></div>`, t('payments.byIbanHint')),
+        card(`💳 ${t('payments.cardToCard')}`, `<label>${t('payments.fromCard')}</label><select id="ctFrom">${options(cards, (c) => `${label(c.type)} ${c.maskedNumber}`)}</select>
+            <label>${t('payments.recipientCard')}</label><input id="ctTo" placeholder="${esc(t('payments.sixteenDigits'))}">
+            <label>${t('col.amount')}</label><input id="ctAmount" value="250">
+            <div class="actions"><button onclick="cardTransfer()">${t('common.send')}</button></div>`, t('payments.cardToCardHint')),
         `</div>`,
-        card('🧾 Payments of this session', table(['When', 'Type', 'Amount', 'Fee', 'Status', ''], state.payments.map((p) => `<tr>
+        card(`🧾 ${t('payments.session')}`, table([t('col.when'), t('col.type'), t('col.amount'), t('col.fee'), t('col.status'), ''], state.payments.map((p) => `<tr>
                 <td>${when(p.createdAt)}</td><td>${badge(p.type)}<br><small>${esc(p.description)}</small></td>
-                <td class="num">${money(p.amount, p.currency)}</td><td class="num">${money(p.fee)}</td>
+                <td class="num">${money(p.amount, p.currency)}</td><td class="num">${money(p.fee, p.currency)}</td>
                 <td>${badge(p.status)}${p.failureReason ? `<br><small>${esc(p.failureReason)}</small>` : ''}</td>
-                <td><button class="small secondary" onclick="checkPayment('${p.id}')">Refresh</button>
+                <td><button class="small secondary" onclick="checkPayment('${p.id}')">${t('common.refresh')}</button>
                     <button class="small secondary" onclick="receipt('${p.id}')">PDF</button>
                     <button class="small secondary" onclick="emailReceipt('${p.id}')">Email</button></td></tr>`),
-            'Make a payment above'), 'The bank keeps every payment; this list is only what you did in this browser tab.'));
+            t('payments.sessionEmpty')), t('payments.sessionHint')));
 };
 
-const pay = (path, body, label) => act(async () => rememberPayment(await api('POST', path, body, { idempotent: true })),
-    (p) => `${label}: ${p.status}${Number(p.fee) > 0 ? `, fee ${money(p.fee, p.currency)}` : ''}`);
+const pay = (path, body, what) => act(async () => rememberPayment(await api('POST', path, body, { idempotent: true })),
+    (p) => `${what}: ${label(p.status)}${Number(p.fee) > 0 ? `, ${t('payment.fee')} ${money(p.fee, p.currency)}` : ''}`);
 
-const topUp = () => pay('/payments/top-up', { accountId: val('topUpAccount'), amount: val('topUpAmount') }, 'Top-up');
-const transfer = () => pay('/payments/transfers', { fromAccountId: val('trFrom'), toAccountNumber: val('trTo'), amount: val('trAmount'), description: val('trDesc') }, 'Transfer');
-const cardTransfer = () => pay('/payments/card-transfers', { fromCardId: val('ctFrom'), toCardNumber: val('ctTo'), amount: val('ctAmount') }, 'Card transfer');
+const topUp = () => pay('/payments/top-up', { accountId: val('topUpAccount'), amount: val('topUpAmount') }, t('payment.topUp'));
+const transfer = () => pay('/payments/transfers', { fromAccountId: val('trFrom'), toAccountNumber: val('trTo'), amount: val('trAmount'), description: val('trDesc') }, t('payment.transfer'));
+const cardTransfer = () => pay('/payments/card-transfers', { fromCardId: val('ctFrom'), toCardNumber: val('ctTo'), amount: val('ctAmount') }, t('payment.cardTransfer'));
+
 // ---------- 🧾 Bills & utilities ----------
 
 const PROVIDER_ICONS = { ELECTRICITY: '⚡', WATER: '💧', GAS: '🔥', HEATING: '♨️', INTERNET: '🌐', MOBILE: '📱' };
@@ -435,33 +462,33 @@ let selectedProvider = null;
 
 views.bills = async () => {
     const providers = await api('GET', '/bill-payments/providers');
-    const accounts = (await api('GET', '/accounts')).filter((a) => a.currency === 'UAH' && a.type !== 'SAVINGS');
+    const accounts = (await api('GET', '/accounts')).filter((a) => a.currency === 'UAH' && a.type !== 'SAVINGS' && a.type !== 'TAX_RESERVE');
     const provider = providers.find((p) => p.id === selectedProvider) || providers[0];
     selectedProvider = provider?.id;
     const mobile = provider?.category === 'MOBILE';
     const bills = state.payments.filter((p) => p.type === 'BILL_PAYMENT');
 
     const form = !accounts.length
-        ? `<div class="empty-state"><div class="big">🧾</div><p>Bills are paid from a UAH account.</p>
-            <button onclick="openUahAccount()">Open a UAH account</button></div>`
-        : `<label>From</label><select id="billFrom">${options(accounts, accountLabel)}</select>
-            <label>${mobile ? 'Phone number' : 'Your account number at the provider'}</label>
+        ? `<div class="empty-state"><div class="big">🧾</div><p>${t('bills.needUah')}</p>
+            <button onclick="openUahAccount()">${t('bills.openUah')}</button></div>`
+        : `<label>${t('payments.from')}</label><select id="billFrom">${options(accounts, accountLabel)}</select>
+            <label>${mobile ? t('bills.phone') : t('bills.providerAccount')}</label>
             <input id="billAccount" value="${mobile ? '+380671234567' : '4410012345'}">
-            <label>Amount, UAH</label><input id="billAmount" value="${mobile ? '200' : '300'}">
-            <div class="actions"><button onclick="payBill()">Pay ${esc(provider?.name || '')}</button></div>`;
+            <label>${t('bills.amountUah')}</label><input id="billAmount" value="${mobile ? '200' : '300'}">
+            <div class="actions"><button onclick="payBill()">${t('bills.pay', { provider: esc(provider?.name || '') })}</button></div>`;
 
-    return page('🧾 Bills & utilities', 'Paid asynchronously: the bank holds the money at once (PROCESSING), a background worker calls the provider, and the payment becomes COMPLETED or FAILED. Watch it in the API log.',
-        card('1. Choose a provider', `<div class="providers">${providers.map((p) => `
+    return page(`🧾 ${t('nav.bills')}`, t('bills.lead'),
+        card(t('bills.choose'), `<div class="providers">${providers.map((p) => `
             <button type="button" class="provider ${p.id === selectedProvider ? 'selected' : ''}" onclick="selectProvider('${p.id}')">
-                <span class="ico">${PROVIDER_ICONS[p.category] || '🧾'}</span><span>${esc(p.name)}</span><span class="cat">${esc(p.category)}</span>
+                <span class="ico">${PROVIDER_ICONS[p.category] || '🧾'}</span><span>${esc(p.name)}</span><span class="cat">${esc(label(p.category))}</span>
             </button>`).join('')}</div>`),
-        card('2. Pay', `<div class="narrow">${form}</div>`, 'Fee: 0.5% for utilities and internet, 1% for mobile, at least 1.00 ₴. Cashback comes once the provider accepts.'),
-        card('🧾 My bill payments', table(['When', 'Provider', 'Amount', 'Status', ''], bills.map((p) => `<tr>
+        card(t('bills.payStep'), `<div class="narrow">${form}</div>`, t('bills.feeHint')),
+        card(`🧾 ${t('bills.mine')}`, table([t('col.when'), t('col.provider'), t('col.amount'), t('col.status'), ''], bills.map((p) => `<tr>
                 <td>${when(p.createdAt)}</td><td>${esc(providers.find((x) => x.id === p.providerId)?.name || p.description)}</td>
                 <td class="num">${money(p.amount, p.currency)}</td>
                 <td>${badge(p.status)}${p.failureReason ? `<br><small>${esc(p.failureReason)}</small>` : ''}</td>
                 <td><button class="small secondary" onclick="receipt('${p.id}')">PDF</button></td></tr>`),
-            'Nothing paid in this tab yet'), 'Only what you paid in this browser tab.'));
+            t('bills.mineEmpty')), t('bills.mineHint')));
 };
 
 function selectProvider(id) {
@@ -469,10 +496,10 @@ function selectProvider(id) {
     render();
 }
 
-const openUahAccount = () => act(() => api('POST', '/accounts', { currency: 'UAH' }), 'UAH account opened');
+const openUahAccount = () => act(() => api('POST', '/accounts', { currency: 'UAH' }), t('toast.accountOpened', { currency: 'UAH' }));
 
 async function payBill() {
-    const payment = await pay('/bill-payments', { providerId: selectedProvider, accountNumber: val('billAccount'), fromAccountId: val('billFrom'), amount: val('billAmount') }, 'Bill payment');
+    const payment = await pay('/bill-payments', { providerId: selectedProvider, accountNumber: val('billAccount'), fromAccountId: val('billFrom'), amount: val('billAmount') }, t('payment.bill'));
     if (payment) followPayment(payment.id);
 }
 
@@ -482,7 +509,7 @@ async function followPayment(id) {
         await new Promise((resolve) => setTimeout(resolve, 1500));
         const p = rememberPayment(await api('GET', `/payments/${id}`, undefined, { quiet: true }));
         if (p.status !== 'PROCESSING' && p.status !== 'UNKNOWN') {
-            toast(`Bill payment ${p.status}${p.failureReason ? `: ${p.failureReason}` : ''}`, p.status === 'COMPLETED' ? 'ok' : 'bad');
+            toast(`${t('payment.bill')}: ${label(p.status)}${p.failureReason ? `: ${p.failureReason}` : ''}`, p.status === 'COMPLETED' ? 'ok' : 'bad');
             if (state.view === 'payments' || state.view === 'bills') render();
             return;
         }
@@ -490,7 +517,7 @@ async function followPayment(id) {
 }
 
 async function checkPayment(id) {
-    await act(async () => rememberPayment(await api('GET', `/payments/${id}`)), (p) => `Payment is ${p.status}`);
+    await act(async () => rememberPayment(await api('GET', `/payments/${id}`)), (p) => t('toast.paymentIs', { status: label(p.status) }));
 }
 
 async function receipt(id) {
@@ -501,7 +528,7 @@ async function receipt(id) {
 }
 
 async function emailReceipt(id) {
-    await act(() => api('POST', `/payments/${id}/receipt/email`), 'Receipt sent: see it in Mailpit (localhost:8025)');
+    await act(() => api('POST', `/payments/${id}/receipt/email`), t('toast.receiptSent'));
 }
 
 // ---------- 💳 Cards ----------
@@ -516,53 +543,54 @@ const cardVisual = (c, accounts = []) => {
         <div class="chip"></div>
         <div class="number" id="num-${c.id}">${esc(c.maskedNumber)}</div>
         <div class="secret" id="cvv-${c.id}">${!account ? '' : account.creditLimit
-            ? `Own ${money(Math.max(Number(account.balance), 0), account.currency)} · limit ${money(account.creditLimit, account.currency)}`
+            ? t('cards.ownAndLimit', { own: money(Math.max(Number(account.balance), 0), account.currency), limit: money(account.creditLimit, account.currency) })
             : `${account.currency} · ${money(account.balance, account.currency)}`}</div>
         <div class="bottom"><span>${esc(holder)}</span><span>${esc(c.expiry)}</span><span class="kind">${esc(c.type)}</span></div>
-        ${off ? `<div class="stamp">${esc(c.status.replace('_', ' '))}</div>` : ''}</div>`;
+        ${off ? `<div class="stamp">${esc(label(c.status))}</div>` : ''}</div>`;
 };
 
 views.cards = async () => {
     const all = await api('GET', '/accounts');
     const accounts = all.filter((a) => a.type === 'CLIENT');
     const cards = await api('GET', '/cards');
-    return page('💳 Cards', 'Card numbers are stored encrypted (AES-256-GCM), the PIN as a keyed hash, the CVV not at all.',
-        card('➕ Issue a card', `<div class="row">
-            <div><label>Account</label><select id="cardAccount">${options(accounts, accountLabel)}</select></div>
-            <div><label>Type</label><select id="cardType"><option>UNIVERSAL</option><option>PAYROLL</option><option>STUDENT</option><option>VIRTUAL</option></select></div>
-            <div class="fit"><button onclick="issueCard()">Issue</button></div></div>`,
-            'Universal: the main everyday card, 0.5% per card transfer. Payroll 0.5%, student 0%, virtual 1% (no plastic, so no chip). A credit limit lives on the UNIVERSAL card: see 💳 Credit limit in the menu.'),
-        card('👛 My cards', cards.length ? `<div class="wallet">${cards.map((c) => `<div class="slot">${cardVisual(c, all)}
+    const types = ['UNIVERSAL', 'PAYROLL', 'STUDENT', 'VIRTUAL'];
+    return page(`💳 ${t('nav.cards')}`, t('cards.lead'),
+        card(`➕ ${t('cards.issueTitle')}`, `<div class="row">
+            <div><label>${t('col.account')}</label><select id="cardAccount">${options(accounts, accountLabel)}</select></div>
+            <div><label>${t('col.type')}</label><select id="cardType">${types.map((k) => `<option value="${k}">${esc(label(k))}</option>`).join('')}</select></div>
+            <div class="fit"><button onclick="issueCard()">${t('cards.issue')}</button></div></div>`,
+            t('cards.issueHint')),
+        card(`👛 ${t('cards.mine')}`, cards.length ? `<div class="wallet">${cards.map((c) => `<div class="slot">${cardVisual(c, all)}
             <div class="actions">
-                ${c.status !== 'CLOSED' ? `<button class="small secondary" onclick="cardDetails('${c.id}')">Show number</button>` : ''}
-                ${c.status === 'ACTIVE' ? `<button class="small secondary" onclick="setPin('${c.id}', ${c.pinSet})">${c.pinSet ? 'Change' : 'Set'} PIN</button>` : ''}
-                ${c.pinSet && c.status === 'ACTIVE' ? `<button class="small secondary" onclick="verifyPin('${c.id}')">Try PIN</button>` : ''}
-                ${c.status === 'ACTIVE' ? `<button class="small secondary" onclick="cardAction('${c.id}','block')">Block</button>` : ''}
-                ${c.status === 'BLOCKED' ? `<button class="small secondary" onclick="cardAction('${c.id}','unblock')">Unblock</button>` : ''}
-                ${c.status !== 'CLOSED' ? `<button class="small danger" onclick="cardAction('${c.id}','close')">Close</button>` : ''}
-            </div></div>`).join('')}</div>` : '<div class="empty">No cards yet</div>'));
+                ${c.status !== 'CLOSED' ? `<button class="small secondary" onclick="cardDetails('${c.id}')">${t('cards.showNumber')}</button>` : ''}
+                ${c.status === 'ACTIVE' ? `<button class="small secondary" onclick="setPin('${c.id}', ${c.pinSet})">${c.pinSet ? t('cards.changePin') : t('cards.setPin')}</button>` : ''}
+                ${c.pinSet && c.status === 'ACTIVE' ? `<button class="small secondary" onclick="verifyPin('${c.id}')">${t('cards.tryPin')}</button>` : ''}
+                ${c.status === 'ACTIVE' ? `<button class="small secondary" onclick="cardAction('${c.id}','block')">${t('cards.block')}</button>` : ''}
+                ${c.status === 'BLOCKED' ? `<button class="small secondary" onclick="cardAction('${c.id}','unblock')">${t('cards.unblock')}</button>` : ''}
+                ${c.status !== 'CLOSED' ? `<button class="small danger" onclick="cardAction('${c.id}','close')">${t('cards.close')}</button>` : ''}
+            </div></div>`).join('')}</div>` : `<div class="empty">${t('cards.none')}</div>`));
 };
 
-const issueCard = () => act(() => api('POST', '/cards', { accountId: val('cardAccount'), type: val('cardType') }), (c) => `${c.type} card issued`);
-const cardAction = (id, action) => act(() => api('POST', `/cards/${id}/${action}`), `Card: ${action}`);
+const issueCard = () => act(() => api('POST', '/cards', { accountId: val('cardAccount'), type: val('cardType') }), (c) => t('toast.cardIssued', { type: label(c.type) }));
+const cardAction = (id, action) => act(() => api('POST', `/cards/${id}/${action}`), t(`toast.card.${action}`));
 
 async function cardDetails(id) {
     try {
         const d = await api('GET', `/cards/${id}/details`);
         document.getElementById(`num-${id}`).textContent = d.number;
-        document.getElementById(`cvv-${id}`).textContent = `CVV ${d.cvv} · copy the number into "Card to card"`;
+        document.getElementById(`cvv-${id}`).textContent = t('cards.cvvHint', { cvv: d.cvv });
     } catch (e) { toast(e.message, 'bad'); }
 }
 
 async function setPin(id, pinSet) {
-    const currentPin = pinSet ? window.prompt('Current PIN') : null;
-    const newPin = window.prompt('New PIN (4 digits; 1111, 1234 and the like are refused)');
-    if (newPin) await act(() => api('PUT', `/cards/${id}/pin`, { currentPin, newPin }), 'PIN saved');
+    const currentPin = pinSet ? window.prompt(t('prompt.currentPin')) : null;
+    const newPin = window.prompt(t('prompt.newPin'));
+    if (newPin) await act(() => api('PUT', `/cards/${id}/pin`, { currentPin, newPin }), t('toast.pinSaved'));
 }
 
 async function verifyPin(id) {
-    const pin = window.prompt('PIN, as at a terminal. Three wrong ones lock the card.');
-    if (pin) await act(() => api('POST', `/cards/${id}/pin/verification`, { pin }), 'PIN is correct');
+    const pin = window.prompt(t('prompt.tryPin'));
+    if (pin) await act(() => api('POST', `/cards/${id}/pin/verification`, { pin }), t('toast.pinCorrect'));
 }
 
 // ---------- 💱 Exchange ----------
@@ -572,25 +600,25 @@ let currentQuote = null;
 views.exchange = async () => {
     const rates = await api('GET', '/exchange-rates');
     const accounts = (await api('GET', '/accounts')).filter((a) => a.type === 'CLIENT');
-    return page('💱 Exchange', 'Ask for a quote, then accept it: the price holds for 30 seconds, even if the rate changes meanwhile.',
-        card('📈 Rates', table(['Currency', 'NBU', 'Bank buys', 'Bank sells', 'Mode'], rates.map((r) => `<tr>
+    return page(`💱 ${t('nav.exchange')}`, t('exchange.lead'),
+        card(`📈 ${t('exchange.rates')}`, table([t('col.currency'), t('exchange.nbu'), t('exchange.bankBuys'), t('exchange.bankSells'), t('exchange.mode')], rates.map((r) => `<tr>
             <td><b>${r.currency}</b></td><td class="num">${r.officialRate ?? '—'}${r.stale ? ' ⚠️' : ''}</td>
             <td class="num">${r.buy ?? '—'}</td><td class="num">${r.sell ?? '—'}</td><td>${badge(r.mode || '—')}</td></tr>`),
-            'No rates yet: the bank loads them from the NBU at start-up')),
-        card('🔄 Exchange between my accounts', `<div class="row">
-            <div><label>Sell from</label><select id="fxFrom">${options(accounts, accountLabel)}</select></div>
-            <div><label>Buy into</label><select id="fxTo">${options([...accounts].reverse(), accountLabel)}</select></div>
-            <div><label>Amount to sell</label><input id="fxAmount" value="1000"></div>
-            <div class="fit"><button onclick="quote()">Get a quote</button></div></div>
-            <div id="quoteBox">${currentQuote ? quoteHtml(currentQuote) : ''}</div>`, 'You need accounts in two currencies.'));
+            t('exchange.noRates'))),
+        card(`🔄 ${t('exchange.between')}`, `<div class="row">
+            <div><label>${t('exchange.sellFrom')}</label><select id="fxFrom">${options(accounts, accountLabel)}</select></div>
+            <div><label>${t('exchange.buyInto')}</label><select id="fxTo">${options([...accounts].reverse(), accountLabel)}</select></div>
+            <div><label>${t('exchange.amountToSell')}</label><input id="fxAmount" value="1000"></div>
+            <div class="fit"><button onclick="quote()">${t('exchange.getQuote')}</button></div></div>
+            <div id="quoteBox">${currentQuote ? quoteHtml(currentQuote) : ''}</div>`, t('exchange.needTwo')));
 };
 
 const quoteHtml = (q) => `<div class="stats" style="margin-top:12px">
-    <div class="stat"><div class="k">You sell</div><div class="v">${money(q.sellAmount, q.fromCurrency)}</div></div>
-    <div class="stat"><div class="k">You get</div><div class="v">${money(q.buyAmount, q.toCurrency)}</div></div>
-    <div class="stat"><div class="k">Rate</div><div class="v">${q.rate}</div></div>
-    <div class="stat"><div class="k">Price holds</div><div class="v countdown" id="quoteLeft">…</div></div></div>
-    <div class="actions"><button id="acceptQuote" onclick="acceptQuote('${q.id}')">Accept this price</button></div>`;
+    <div class="stat"><div class="k">${t('exchange.youSell')}</div><div class="v">${money(q.sellAmount, q.fromCurrency)}</div></div>
+    <div class="stat"><div class="k">${t('exchange.youGet')}</div><div class="v">${money(q.buyAmount, q.toCurrency)}</div></div>
+    <div class="stat"><div class="k">${t('exchange.rate')}</div><div class="v">${q.rate}</div></div>
+    <div class="stat"><div class="k">${t('exchange.priceHolds')}</div><div class="v countdown" id="quoteLeft">…</div></div></div>
+    <div class="actions"><button id="acceptQuote" onclick="acceptQuote('${q.id}')">${t('exchange.accept')}</button></div>`;
 
 let quoteTimer;
 function startCountdown(q) {
@@ -599,7 +627,7 @@ function startCountdown(q) {
         const left = Math.max(0, Math.round((new Date(q.expiresAt) - Date.now()) / 1000));
         const el = document.getElementById('quoteLeft');
         if (!el) return clearInterval(quoteTimer);
-        el.textContent = left > 0 ? `${left} s` : 'expired';
+        el.textContent = left > 0 ? t('exchange.seconds', { seconds: left }) : t('exchange.expired');
         document.getElementById('acceptQuote').disabled = left === 0;
         if (left === 0) clearInterval(quoteTimer);
     };
@@ -620,7 +648,7 @@ async function acceptQuote(quoteId) {
         const p = rememberPayment(await api('POST', '/exchange', { quoteId }, { idempotent: true }));
         currentQuote = null;
         return p;
-    }, (p) => `Exchanged: got ${money(p.creditedAmount)}`);
+    }, (p) => t('toast.exchanged', { amount: money(p.creditedAmount) }));
 }
 
 // ---------- 🐷 Jars & cashback ----------
@@ -629,37 +657,31 @@ views.savings = async () => {
     const jars = await api('GET', '/savings');
     const accounts = (await api('GET', '/accounts')).filter((a) => a.type === 'CLIENT');
     const cashback = await api('GET', '/cashback');
-    return page('🐷 Jars & cashback', 'A jar (банка) keeps savings apart from your account and earns interest every day, paid monthly. Cashback comes from mobile, internet and utility bills.',
-        card('🐷 My jars', table(['Currency', 'Balance', 'Rate', 'Accrued, not paid yet'], jars.map((j) => `<tr>
+    return page(`🐷 ${t('nav.savings')}`, t('savings.lead'),
+        card(`🐷 ${t('savings.mine')}`, table([t('col.currency'), t('col.balance'), t('savings.rate'), t('savings.accrued')], jars.map((j) => `<tr>
                 <td><b>${j.currency}</b></td><td class="num">${money(j.balance, j.currency)}</td>
-                <td class="num">${j.annualRate}% / year</td><td class="num">${money(j.accruedInterest, j.currency)}</td></tr>`), 'No jars yet') +
+                <td class="num">${t('savings.perYear', { rate: j.annualRate })}</td><td class="num">${money(j.accruedInterest, j.currency)}</td></tr>`), t('savings.none')) +
             `<div class="row" style="margin-top:12px">
-                <div><label>Open a jar in</label><select id="jarCurrency">${CURRENCIES.map((c) => `<option>${c}</option>`).join('')}</select></div>
-                <div class="fit"><button onclick="openJar()">Open jar</button></div></div>
+                <div><label>${t('savings.openIn')}</label><select id="jarCurrency">${CURRENCIES.map((c) => `<option>${c}</option>`).join('')}</select></div>
+                <div class="fit"><button onclick="openJar()">${t('savings.open')}</button></div></div>
              <div class="row" style="margin-top:8px">
-                <div><label>Jar</label><select id="jarId">${options(jars, (j) => `${j.currency} jar · ${money(j.balance, j.currency)}`)}</select></div>
-                <div><label>Current account</label><select id="jarAccount">${options(accounts, accountLabel)}</select></div>
-                <div><label>Amount</label><input id="jarAmount" value="1000"></div></div>
-             <div class="actions"><button onclick="jarMove('deposits')">Put in</button><button class="secondary" onclick="jarMove('withdrawals')">Take out</button></div>`),
-        card(`🎁 Cashback for ${esc(cashback.period)}`, `<div class="stats">
-                <div class="stat"><div class="k">Earned</div><div class="v">${money(cashback.earned, 'UAH')}</div></div>
-                <div class="stat"><div class="k">Monthly cap</div><div class="v">${money(cashback.monthlyCap, 'UAH')}</div></div>
-                <div class="stat"><div class="k">Left this month</div><div class="v">${money(cashback.remaining, 'UAH')}</div></div></div>
-            <p class="hint" style="margin-top:10px">Rates: ${Object.entries(cashback.rates || {}).map(([k, v]) => `${k} ${v}%`).join(' · ')}</p>`,
-            'Earned when a bill payment completes, paid on the 1st of next month.'));
+                <div><label>${t('savings.jar')}</label><select id="jarId">${options(jars, (j) => t('savings.jarOption', { currency: j.currency, balance: money(j.balance, j.currency) }))}</select></div>
+                <div><label>${t('savings.currentAccount')}</label><select id="jarAccount">${options(accounts, accountLabel)}</select></div>
+                <div><label>${t('col.amount')}</label><input id="jarAmount" value="1000"></div></div>
+             <div class="actions"><button onclick="jarMove('deposits')">${t('savings.putIn')}</button><button class="secondary" onclick="jarMove('withdrawals')">${t('savings.takeOut')}</button></div>`),
+        card(`🎁 ${t('savings.cashbackFor', { period: esc(cashback.period) })}`, `<div class="stats">
+                <div class="stat"><div class="k">${t('savings.earned')}</div><div class="v">${money(cashback.earned, 'UAH')}</div></div>
+                <div class="stat"><div class="k">${t('savings.cap')}</div><div class="v">${money(cashback.monthlyCap, 'UAH')}</div></div>
+                <div class="stat"><div class="k">${t('savings.left')}</div><div class="v">${money(cashback.remaining, 'UAH')}</div></div></div>
+            <p class="hint" style="margin-top:10px">${t('savings.rates')}: ${Object.entries(cashback.rates || {}).map(([k, v]) => `${esc(label(k))} ${v}%`).join(' · ')}</p>`,
+            t('savings.cashbackHint')));
 };
 
-const openJar = () => act(() => api('POST', '/savings', { currency: val('jarCurrency') }), 'Jar opened');
+const openJar = () => act(() => api('POST', '/savings', { currency: val('jarCurrency') }), t('toast.jarOpened'));
 const jarMove = (kind) => act(async () => rememberPayment(await api('POST', `/savings/${val('jarId')}/${kind}`,
-    { accountId: val('jarAccount'), amount: val('jarAmount') }, { idempotent: true })), kind === 'deposits' ? 'Put into the jar' : 'Taken out of the jar');
+    { accountId: val('jarAccount'), amount: val('jarAmount') }, { idempotent: true })), kind === 'deposits' ? t('toast.jarIn') : t('toast.jarOut'));
 
 // ---------- 💼 Sole proprietor (ФОП) ----------
-
-const TAX_GROUPS = {
-    GROUP_1: 'Group 1: fixed tax monthly (retail at markets, household services)',
-    GROUP_2: 'Group 2: fixed tax monthly (services and goods to people and single tax payers)',
-    GROUP_3: 'Group 3: 5% of every income, or 3% for a VAT payer',
-};
 
 views.business = async () => {
     let business = null;
@@ -668,17 +690,17 @@ views.business = async () => {
     if (!business) {
         const name = state.me ? `ФОП ${state.me.lastName} ${state.me.firstName}` : 'ФОП';
         const taxId = String(Math.floor(1e9 + Math.random() * 9e9));
-        return page('💼 Sole proprietor (ФОП)', 'Open a business account for your ФОП: it comes with a BUSINESS card and a tax jar, apart from your own money.',
-            card('📝 Register your ФОП', `<div class="narrow">
-                <label>Name as registered</label><input id="fopName" value="${esc(name)}">
-                <label>РНОКПП (tax number, 10 digits)</label><input id="fopTaxId" value="${taxId}" maxlength="10">
-                <label>КВЕД codes, the main one first</label><input id="fopKved" value="62.01, 63.11">
-                <label>Single tax group</label><select id="fopGroup" onchange="document.getElementById('fopVat').disabled = this.value !== 'GROUP_3'; if (this.value !== 'GROUP_3') document.getElementById('fopVat').checked = false">
-                    ${Object.entries(TAX_GROUPS).map(([k, v]) => `<option value="${k}" ${k === 'GROUP_3' ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>
-                <label class="check"><input type="checkbox" id="fopVat"> VAT payer (group 3 only)</label>
-                <label>Registered on</label><input id="fopDate" type="date" value="${new Date().toISOString().slice(0, 10)}">
-                <div class="actions"><button onclick="openBusiness()">Open ФОП account</button></div></div>`,
-                'Demo: the tax number is made up and only checked to be 10 digits.'));
+        return page(`💼 ${t('nav.business')}`, t('business.leadNew'),
+            card(`📝 ${t('business.register')}`, `<div class="narrow">
+                <label>${t('business.name')}</label><input id="fopName" value="${esc(name)}">
+                <label>${t('business.taxId')}</label><input id="fopTaxId" value="${taxId}" maxlength="10">
+                <label>${t('business.kved')}</label><input id="fopKved" value="62.01, 63.11">
+                <label>${t('business.group')}</label><select id="fopGroup" onchange="document.getElementById('fopVat').disabled = this.value !== 'GROUP_3'; if (this.value !== 'GROUP_3') document.getElementById('fopVat').checked = false">
+                    ${['GROUP_1', 'GROUP_2', 'GROUP_3'].map((k) => `<option value="${k}" ${k === 'GROUP_3' ? 'selected' : ''}>${esc(t(`business.groupDescription.${k}`))}</option>`).join('')}</select>
+                <label class="check"><input type="checkbox" id="fopVat"> ${t('business.vat')}</label>
+                <label>${t('business.registeredOn')}</label><input id="fopDate" type="date" value="${new Date().toISOString().slice(0, 10)}">
+                <div class="actions"><button onclick="openBusiness()">${t('business.open')}</button></div></div>`,
+                t('business.demoHint')));
     }
 
     const incomes = await api('GET', '/business/incomes');
@@ -686,52 +708,56 @@ views.business = async () => {
     const cards = (await api('GET', '/cards')).filter((c) => c.accountId === business.businessAccountId);
     const accounts = await api('GET', '/accounts');
     const percent = Number(business.taxRatePercent) > 0;
-    return page('💼 Sole proprietor (ФОП)', `${esc(business.name)} · РНОКПП ${esc(business.taxId)} · КВЕД ${business.kvedCodes.map(esc).join(', ')}`,
-        card('📊 This quarter, ' + esc(business.quarter), `<div class="stats">
-            <div class="stat"><div class="k">Business account</div><div class="v">${money(business.businessBalance, 'UAH')}</div></div>
-            <div class="stat"><div class="k">🐷 Tax jar</div><div class="v">${money(business.taxReserve, 'UAH')}</div></div>
-            <div class="stat"><div class="k">Income</div><div class="v">${money(business.quarterIncome, 'UAH')}</div></div>
-            <div class="stat"><div class="k">${percent ? 'Tax put aside' : 'Fixed tax for the quarter'}</div><div class="v">${money(business.quarterTax, 'UAH')}</div></div></div>
-            <p class="hint" style="margin-top:10px">${esc(TAX_GROUPS[business.taxGroup])}${business.vatPayer ? ' · VAT payer' : ''}.
-            ${percent ? `<b>${Number(business.taxRatePercent)}% of every income goes into the tax jar the moment it arrives</b>, in the same ledger transaction, so it can never be spent by mistake. Your own money moved in from a personal account is not income.`
-                : `Fixed tax: <b>${money(business.monthlyTax, 'UAH')}</b> a month, whatever the income.`}
-            IBAN for customers: <span class="mono">${esc(business.businessAccountNumber)}</span></p>`),
-        card('🧾 Single tax', `<label class="check"><input type="checkbox" ${business.autoPayTax ? 'checked' : ''} onchange="setTaxAutoPay(this.checked)">
-                <span><b>Auto-pay</b>: on the due date the bank pays from the tax jar (or the business account if the jar is short) and emails the receipt</span></label>
-            <div style="margin-top:12px">` + table(['Period', 'Due by', 'Tax', 'Paid', 'Left', 'Status', ''], periods.map((p) => `<tr>
-                <td>${esc(p.label)}</td><td>${esc(p.dueDate)}</td><td class="num">${money(p.amount, 'UAH')}</td>
+    return page(`💼 ${t('nav.business')}`, `${esc(business.name)} · РНОКПП ${esc(business.taxId)} · КВЕД ${business.kvedCodes.map(esc).join(', ')}`,
+        card(`📊 ${t('business.quarter', { quarter: esc(taxPeriodLabel(business.quarter)) })}`, `<div class="stats">
+            <div class="stat"><div class="k">${t('business.account')}</div><div class="v">${money(business.businessBalance, 'UAH')}</div></div>
+            <div class="stat"><div class="k">🐷 ${t('business.taxJar')}</div><div class="v">${money(business.taxReserve, 'UAH')}</div></div>
+            <div class="stat"><div class="k">${t('business.income')}</div><div class="v">${money(business.quarterIncome, 'UAH')}</div></div>
+            <div class="stat"><div class="k">${percent ? t('business.taxAside') : t('business.fixedQuarter')}</div><div class="v">${money(business.quarterTax, 'UAH')}</div></div></div>
+            <p class="hint" style="margin-top:10px">${esc(t(`business.groupDescription.${business.taxGroup}`))}${business.vatPayer ? ` · ${t('business.vatPayer')}` : ''}.
+            ${percent ? t('business.percentHint', { rate: Number(business.taxRatePercent) }) : t('business.fixedHint', { amount: money(business.monthlyTax, 'UAH') })}
+            ${t('business.iban')}: <span class="mono">${esc(business.businessAccountNumber)}</span></p>`),
+        card(`🧾 ${t('tax.title')}`, `<label class="check"><input type="checkbox" ${business.autoPayTax ? 'checked' : ''} onchange="setTaxAutoPay(this.checked)">
+                <span>${t('tax.autoPay')}</span></label>
+            <div style="margin-top:12px">` + table([t('tax.period'), t('tax.dueBy'), t('tax.tax'), t('tax.paid'), t('tax.left'), t('col.status'), ''], periods.map((p) => `<tr>
+                <td>${esc(taxPeriodLabel(p.period))}</td><td>${day(p.dueDate)}</td><td class="num">${money(p.amount, 'UAH')}</td>
                 <td class="num">${money(p.paid, 'UAH')}</td><td class="num"><b>${money(p.left, 'UAH')}</b></td><td>${badge(p.status)}</td>
-                <td>${Number(p.left) > 0 ? `<button class="small" onclick="payTax('${p.period}')">Pay now</button>` : ''}</td></tr>`),
-                'No tax periods yet') + '</div>',
-            `${business.taxGroup === 'GROUP_3'
-                ? 'Group 3 pays for a quarter within 50 days after it ends; a quarter still going on (ACCRUING) may be paid early for the tax so far.'
-                : 'Groups 1 and 2 pay for each month in advance, by the 20th of that month, whatever the income.'}
-             A reminder comes 5 days before the due date. The bank never pays part of the tax.`),
+                <td>${Number(p.left) > 0 ? `<button class="small" onclick="payTax('${p.period}')">${t('tax.payNow')}</button>` : ''}</td></tr>`),
+                t('tax.none')) + '</div>',
+            `${business.taxGroup === 'GROUP_3' ? t('tax.hintQuarter') : t('tax.hintMonth')} ${t('tax.hintCommon')}`),
         `<div class="grid">`,
-        card('💵 Receive a payment from a customer', `<label>Amount, UAH</label><input id="fopIncome" value="10000">
-            <div class="actions"><button onclick="receiveIncome('${business.businessAccountId}')">Receive</button></div>`,
-            'Money from a customer outside the bank. Or ask another client to pay your IBAN above.'),
-        card('💳 Your BUSINESS card', cards.length ? `<div class="wallet">${cards.map((c) => cardVisual(c, accounts)).join('')}</div>` : '<div class="empty">No card</div>'),
+        card(`💵 ${t('business.receive')}`, `<label>${t('bills.amountUah')}</label><input id="fopIncome" value="10000">
+            <div class="actions"><button onclick="receiveIncome('${business.businessAccountId}')">${t('business.receiveButton')}</button></div>`,
+            t('business.receiveHint')),
+        card(`💳 ${t('business.card')}`, cards.length ? `<div class="wallet">${cards.map((c) => cardVisual(c, accounts)).join('')}</div>` : `<div class="empty">${t('cards.none')}</div>`),
         `</div>`,
-        card('🧾 Recent income', table(['When', 'Income', 'Tax put aside'], incomes.map((i) => `<tr>
+        card(`🧾 ${t('business.recentIncome')}`, table([t('col.when'), t('business.income'), t('business.taxAside')], incomes.map((i) => `<tr>
             <td>${when(i.createdAt)}</td><td class="num">${money(i.amount, 'UAH')}</td><td class="num">${money(i.tax, 'UAH')}</td></tr>`),
-            'No income yet')));
+            t('business.noIncome'))));
 };
+
+/** "2026-11" → "11.2026" / "11/2026"; "2026-Q4" → "IV квартал 2026" / "Q4 2026". */
+function taxPeriodLabel(code) {
+    const quarter = /^(\d{4})-Q([1-4])$/.exec(code);
+    if (quarter) return t('tax.quarterLabel', { year: quarter[1], roman: ['I', 'II', 'III', 'IV'][quarter[2] - 1], number: quarter[2] });
+    const [year, month] = code.split('-');
+    return t('tax.monthLabel', { year, month });
+}
 
 const openBusiness = () => act(() => api('POST', '/business', {
     name: val('fopName'), taxId: val('fopTaxId'),
     kvedCodes: val('fopKved').split(',').map((k) => k.trim()).filter(Boolean),
     taxGroup: val('fopGroup'), vatPayer: document.getElementById('fopVat').checked, registeredOn: val('fopDate'),
-}), 'ФОП account opened, with a BUSINESS card and a tax jar');
+}), t('toast.businessOpened'));
 
 const setTaxAutoPay = (enabled) => act(() => api('PUT', '/business/tax-auto-pay', { enabled }),
-    enabled ? 'Auto-pay on: the bank pays the tax on its due date' : 'Auto-pay off');
+    enabled ? t('toast.autoPayOn') : t('toast.autoPayOff'));
 
 const payTax = (period) => act(async () => rememberPayment(await api('POST', `/tax/periods/${period}/payments`)),
-    (p) => `Tax paid: ${money(p.amount, 'UAH')}. The receipt is under Transfers → Payments of this session`);
+    (p) => t('toast.taxPaid', { amount: money(p.amount, 'UAH') }));
 
 async function receiveIncome(accountId) {
-    await pay('/payments/top-up', { accountId, amount: val('fopIncome') }, 'Income');
+    await pay('/payments/top-up', { accountId, amount: val('fopIncome') }, t('business.income'));
 }
 
 // ---------- 💳 Credit limit ----------
@@ -749,55 +775,53 @@ views.credit = async () => {
     const universal = uah && cards.find((c) => c.type === 'UNIVERSAL' && c.accountId === uah.id && c.status !== 'CLOSED');
 
     const applyCard = line ? '' : !universal
-        ? card('📝 Get a credit limit', `<div class="empty-state"><div class="big">💳</div>
-            <p>The limit lives on your <b>UNIVERSAL</b> card, next to your own money. Issue the card on your UAH account first.</p>
-            <button onclick="go('cards')">Go to Cards</button></div>`)
-        : card('📝 Get a credit limit on your UNIVERSAL card', `<div class="row"><div><label>Limit, UAH</label><input id="creditLimit" value="8000"></div>
-            <div class="fit"><button onclick="applyCredit()">Apply</button></div></div>`,
-            'Limit = 50% of your monthly income (top-ups and transfers from others, last 90 days). Up to 10 000 ₴ within it: approved at once; up to 1.5×: a person decides.');
+        ? card(`📝 ${t('credit.get')}`, `<div class="empty-state"><div class="big">💳</div>
+            <p>${t('credit.needCard')}</p>
+            <button onclick="go('cards')">${t('credit.goToCards')}</button></div>`)
+        : card(`📝 ${t('credit.getOnCard')}`, `<div class="row"><div><label>${t('credit.limitUah')}</label><input id="creditLimit" value="8000"></div>
+            <div class="fit"><button onclick="applyCredit()">${t('credit.apply')}</button></div></div>`,
+            t('credit.applyHint'));
 
-    const lineCard = !line ? '' : card('💳 Credit limit on your UNIVERSAL card', `<div class="stats">
-            <div class="stat"><div class="k">Own money</div><div class="v">${money(line.ownFunds, 'UAH')}</div></div>
-            <div class="stat"><div class="k">Credit limit</div><div class="v">${money(line.creditLimit, 'UAH')}</div></div>
-            <div class="stat"><div class="k">Available</div><div class="v">${money(line.available, 'UAH')}</div></div>
-            <div class="stat"><div class="k">Debt</div><div class="v">${money(line.debt, 'UAH')}</div></div>
-            <div class="stat"><div class="k">Last statement</div><div class="v">${money(line.statementDebt, 'UAH')}</div></div>
-            <div class="stat"><div class="k">To pay no interest</div><div class="v">${money(line.leftToRepayInterestFree, 'UAH')}</div></div>
-            <div class="stat"><div class="k">Minimum payment left</div><div class="v">${money(line.leftForMinimumPayment, 'UAH')}</div></div></div>
-        <p class="hint" style="margin-top:10px">Your own money is spent first, then the limit. Card payments and bills may use the limit;
-           transfers by IBAN, jars and exchange use only your own money. <b>Any money that arrives on the account repays the debt</b>,
-           so there is no separate repay button: just top up (Overview → 💵 Top up).<br>
-           Last statement interest-free until <b>${esc(line.statementInterestFreeUntil)}</b>; spending this month until <b>${esc(line.newSpendingInterestFreeUntil)}</b>.</p>
-        <h2 style="margin-top:16px">📅 Statements</h2>` + table(['Month', 'Debt', 'Minimum', 'Due', 'Status', 'Charged'], statements.map((s) => `<tr>
-            <td>${esc(s.period)}</td><td class="num">${money(s.closingDebt)}</td><td class="num">${money(s.minimumPayment)}</td>
-            <td>${esc(s.dueDate)}</td><td>${badge(s.status)}</td><td class="num">${s.interest == null ? '—' : money(Number(s.interest) + Number(s.lateFee))}</td></tr>`),
-        'The first statement closes on the 1st of next month'));
+    const lineCard = !line ? '' : card(`💳 ${t('credit.onCard')}`, `<div class="stats">
+            <div class="stat"><div class="k">${t('credit.own')}</div><div class="v">${money(line.ownFunds, 'UAH')}</div></div>
+            <div class="stat"><div class="k">${t('credit.limit')}</div><div class="v">${money(line.creditLimit, 'UAH')}</div></div>
+            <div class="stat"><div class="k">${t('credit.available')}</div><div class="v">${money(line.available, 'UAH')}</div></div>
+            <div class="stat"><div class="k">${t('credit.debt')}</div><div class="v">${money(line.debt, 'UAH')}</div></div>
+            <div class="stat"><div class="k">${t('credit.lastStatement')}</div><div class="v">${money(line.statementDebt, 'UAH')}</div></div>
+            <div class="stat"><div class="k">${t('credit.noInterest')}</div><div class="v">${money(line.leftToRepayInterestFree, 'UAH')}</div></div>
+            <div class="stat"><div class="k">${t('credit.minimumLeft')}</div><div class="v">${money(line.leftForMinimumPayment, 'UAH')}</div></div></div>
+        <p class="hint" style="margin-top:10px">${t('credit.rules')}<br>
+           ${t('credit.graceDates', { statement: day(line.statementInterestFreeUntil), spending: day(line.newSpendingInterestFreeUntil) })}</p>
+        <h2 style="margin-top:16px">📅 ${t('credit.statements')}</h2>` + table([t('credit.month'), t('credit.debt'), t('credit.minimum'), t('credit.due'), t('col.status'), t('credit.charged')], statements.map((s) => `<tr>
+            <td>${esc(s.period)}</td><td class="num">${money(s.closingDebt, 'UAH')}</td><td class="num">${money(s.minimumPayment, 'UAH')}</td>
+            <td>${day(s.dueDate)}</td><td>${badge(s.status)}</td><td class="num">${s.interest == null ? '—' : money(Number(s.interest) + Number(s.lateFee), 'UAH')}</td></tr>`),
+        t('credit.firstStatement')));
 
-    return page('💳 Credit limit', 'Like monobank: one UNIVERSAL card holds your own money and the bank\'s credit limit. Rules decide the clear cases at once; the grey zone waits for a bank employee.',
+    return page(`💳 ${t('nav.credit')}`, t('credit.lead'),
         lineCard, applyCard,
-        card('🗂️ My applications', table(['When', 'Asked', 'Affordable', 'Approved', 'Decision', 'Why'], applications.map((x) => `<tr>
-            <td>${when(x.createdAt)}</td><td class="num">${money(x.requestedLimit)}</td><td class="num">${money(x.affordableLimit)}</td>
-            <td class="num">${money(x.approvedLimit)}</td><td>${badge(x.status)}<br><small>${esc(x.decisionSource || '')}</small></td>
-            <td><small>${(x.reasons || []).map(esc).join('<br>')}${x.decisionComment ? `<br>💬 ${esc(x.decisionComment)}` : ''}</small></td></tr>`), 'No applications yet')));
+        card(`🗂️ ${t('credit.applications')}`, table([t('col.when'), t('credit.asked'), t('credit.affordable'), t('credit.approved'), t('credit.decision'), t('credit.why')], applications.map((x) => `<tr>
+            <td>${when(x.createdAt)}</td><td class="num">${money(x.requestedLimit, 'UAH')}</td><td class="num">${money(x.affordableLimit, 'UAH')}</td>
+            <td class="num">${money(x.approvedLimit, 'UAH')}</td><td>${badge(x.status)}<br><small>${esc(x.decisionSource ? label(x.decisionSource) : '')}</small></td>
+            <td><small>${(x.reasons || []).map(esc).join('<br>')}${x.decisionComment ? `<br>💬 ${esc(x.decisionComment)}` : ''}</small></td></tr>`), t('credit.noApplications'))));
 };
 
 const applyCredit = () => act(() => api('POST', '/credit-applications', { requestedLimit: val('creditLimit') }),
-    (x) => `Application: ${x.status}${x.status === 'MANUAL_REVIEW' ? ' (log in as the demo admin to decide)' : ''}`);
+    (x) => `${t('toast.application')}: ${label(x.status)}${x.status === 'MANUAL_REVIEW' ? ` ${t('toast.askAdmin')}` : ''}`);
 
 // ---------- 🔔 Notifications ----------
 
 views.notifications = async () => {
     const { content } = await api('GET', '/notifications?size=50');
-    return page('🔔 Notifications', 'Made from the bank\'s events (outbox → RabbitMQ → consumer). Important ones also go by email.',
-        card('Inbox', table(['When', 'What', ''], content.map((n) => `<tr style="${n.readAt ? 'opacity:.6' : ''}">
+    return page(`🔔 ${t('nav.notifications')}`, t('notifications.lead'),
+        card(t('notifications.inbox'), table([t('col.when'), t('notifications.what'), ''], content.map((n) => `<tr style="${n.readAt ? 'opacity:.6' : ''}">
             <td>${when(n.createdAt)}</td><td><b>${esc(n.title)}</b><br>${esc(n.body)}<br><small class="mono">${esc(n.eventType)}</small></td>
-            <td>${n.readAt ? '✓' : `<button class="small secondary" onclick="readNotification('${n.id}')">Read</button>`}</td></tr>`),
-            'Nothing yet: make a payment and wait a second') +
-        `<div class="actions"><button class="secondary" onclick="readAll()">Mark all as read</button><button class="secondary" onclick="render()">Refresh</button></div>`));
+            <td>${n.readAt ? '✓' : `<button class="small secondary" onclick="readNotification('${n.id}')">${t('notifications.read')}</button>`}</td></tr>`),
+            t('notifications.none')) +
+        `<div class="actions"><button class="secondary" onclick="readAll()">${t('notifications.readAll')}</button><button class="secondary" onclick="render()">${t('common.refresh')}</button></div>`));
 };
 
 const readNotification = (id) => act(() => api('POST', `/notifications/${id}/read`));
-const readAll = () => act(() => api('POST', '/notifications/read-all'), 'All read');
+const readAll = () => act(() => api('POST', '/notifications/read-all'), t('toast.allRead'));
 
 // ---------- 🎧 Support ----------
 
@@ -806,44 +830,44 @@ let openTicketId = null;
 views.support = async () => {
     const tickets = await api('GET', '/support/tickets');
     const opened = openTicketId ? await api('GET', `/support/tickets/${openTicketId}`) : null;
-    return page('🎧 Support', 'Ask the bank; an employee takes your ticket and answers here (and by email).',
+    return page(`🎧 ${t('nav.support')}`, t('support.lead'),
         `<div class="grid">`,
-        card('✉️ New ticket', `<label>Subject</label><input id="tSubject" value="Transfer did not arrive">
-            <label>Message</label><textarea id="tMessage">I sent 500 UAH yesterday and the recipient does not see it.</textarea>
-            <div class="actions"><button onclick="openTicket()">Send</button></div>`),
-        card('🗂️ My tickets', table(['Subject', 'Status', ''], tickets.map((t) => `<tr>
-            <td>${esc(t.subject)}<br><small>${when(t.createdAt)}</small></td><td>${badge(t.status)}</td>
-            <td><button class="small secondary" onclick="showTicket('${t.id}')">Open</button></td></tr>`), 'No tickets yet')),
+        card(`✉️ ${t('support.newTicket')}`, `<label>${t('support.subject')}</label><input id="tSubject" value="${esc(t('support.subjectDefault'))}">
+            <label>${t('support.message')}</label><textarea id="tMessage">${esc(t('support.messageDefault'))}</textarea>
+            <div class="actions"><button onclick="openTicket()">${t('common.send')}</button></div>`),
+        card(`🗂️ ${t('support.mine')}`, table([t('support.subject'), t('col.status'), ''], tickets.map((x) => `<tr>
+            <td>${esc(x.subject)}<br><small>${when(x.createdAt)}</small></td><td>${badge(x.status)}</td>
+            <td><button class="small secondary" onclick="showTicket('${x.id}')">${t('common.open')}</button></td></tr>`), t('support.none'))),
         `</div>`,
         opened ? card(`💬 ${esc(opened.ticket.subject)} ${badge(opened.ticket.status)}`, conversation(opened.messages) +
-            (opened.ticket.status !== 'RESOLVED' ? `<label>Reply</label><textarea id="tReply"></textarea>
-            <div class="actions"><button onclick="replyTicket('${opened.ticket.id}')">Send</button></div>` : '')) : '');
+            (opened.ticket.status !== 'RESOLVED' ? `<label>${t('support.reply')}</label><textarea id="tReply"></textarea>
+            <div class="actions"><button onclick="replyTicket('${opened.ticket.id}')">${t('common.send')}</button></div>` : '')) : '');
 };
 
 const conversation = (messages) => messages.map((m) => `<div style="margin:6px 0;padding:8px 10px;border-radius:10px;max-width:80%;
     ${m.fromStaff ? 'background:var(--brand-soft);margin-left:auto' : 'background:var(--bg)'}">
-    <small>${m.fromStaff ? '🏦 Support' : '👤 Client'} · ${when(m.createdAt)}</small><br>${esc(m.body)}</div>`).join('');
+    <small>${m.fromStaff ? `🏦 ${t('support.bank')}` : `👤 ${t('support.client')}`} · ${when(m.createdAt)}</small><br>${esc(m.body)}</div>`).join('');
 
-const openTicket = () => act(async () => { const t = await api('POST', '/support/tickets', { subject: val('tSubject'), message: val('tMessage') }); openTicketId = t.ticket.id; return t; }, 'Ticket sent');
+const openTicket = () => act(async () => { const x = await api('POST', '/support/tickets', { subject: val('tSubject'), message: val('tMessage') }); openTicketId = x.ticket.id; return x; }, t('toast.ticketSent'));
 const showTicket = (id) => { openTicketId = id; return render(); };
-const replyTicket = (id) => act(() => api('POST', `/support/tickets/${id}/messages`, { message: val('tReply') }), 'Sent');
+const replyTicket = (id) => act(() => api('POST', `/support/tickets/${id}/messages`, { message: val('tReply') }), t('toast.sent'));
 
 // ---------- 👀 Staff: credit queue ----------
 
 views.staffCredit = async () => {
     const { content } = await api('GET', '/admin/credit-applications?size=50');
-    return page('👀 Credit queue', 'Applications the rules left for a person. Nobody decides on their own application (four-eyes).',
-        card('Waiting for a decision', table(['When', 'Client', 'Asked', 'Affordable', 'Why it is here', 'Decision'], content.map((a) => `<tr>
-            <td>${when(a.createdAt)}</td><td class="mono">${short(a.userId)}</td><td class="num">${money(a.requestedLimit)}</td>
-            <td class="num">${money(a.affordableLimit)}</td><td><small>${(a.reasons || []).map(esc).join('<br>')}</small></td>
+    return page(`👀 ${t('nav.staffCredit')}`, t('staffCredit.lead'),
+        card(t('staffCredit.waiting'), table([t('col.when'), t('staffCredit.client'), t('credit.asked'), t('credit.affordable'), t('staffCredit.whyHere'), t('credit.decision')], content.map((a) => `<tr>
+            <td>${when(a.createdAt)}</td><td class="mono">${short(a.userId)}</td><td class="num">${money(a.requestedLimit, 'UAH')}</td>
+            <td class="num">${money(a.affordableLimit, 'UAH')}</td><td><small>${(a.reasons || []).map(esc).join('<br>')}</small></td>
             <td><input id="lim-${a.id}" value="${a.affordableLimit}" style="width:110px">
-                <input id="cmt-${a.id}" placeholder="comment (required)" style="width:170px;margin-top:4px">
-                <div class="actions" style="margin-top:6px"><button class="small" onclick="decide('${a.id}','approve')">Approve</button>
-                <button class="small danger" onclick="decide('${a.id}','decline')">Decline</button></div></td></tr>`), 'The queue is empty')));
+                <input id="cmt-${a.id}" placeholder="${esc(t('staffCredit.comment'))}" style="width:170px;margin-top:4px">
+                <div class="actions" style="margin-top:6px"><button class="small" onclick="decide('${a.id}','approve')">${t('staffCredit.approve')}</button>
+                <button class="small danger" onclick="decide('${a.id}','decline')">${t('staffCredit.decline')}</button></div></td></tr>`), t('staffCredit.empty'))));
 };
 
 const decide = (id, decision) => act(() => api('POST', `/admin/credit-applications/${id}/${decision}`,
-    { approvedLimit: decision === 'approve' ? val(`lim-${id}`) : null, comment: val(`cmt-${id}`) }), `Application: ${decision}d`);
+    { approvedLimit: decision === 'approve' ? val(`lim-${id}`) : null, comment: val(`cmt-${id}`) }), t(`toast.decided.${decision}`));
 
 // ---------- 🎧 Staff: support queue ----------
 
@@ -857,53 +881,53 @@ views.staffSupport = async () => {
     if (opened && opened.ticket.assigneeId === state.me.id) {
         const view = await api('GET', `/admin/support/tickets/${staffTicketId}/client`);
         client = card(`👤 ${esc(view.client.firstName)} ${esc(view.client.lastName)} · ${esc(view.client.email)}`,
-            table(['Currency', 'Type', 'Balance'], view.accounts.map((a) => `<tr><td>${a.currency}</td><td>${badge(a.type)}</td><td class="num">${money(a.balance, a.currency)}</td></tr>`)),
-            'Visible only because this ticket is yours, read-only, and this view is written to the audit log.');
+            table([t('col.currency'), t('col.type'), t('col.balance')], view.accounts.map((a) => `<tr><td>${a.currency}</td><td>${badge(a.type)}</td><td class="num">${money(a.balance, a.currency)}</td></tr>`)),
+            t('staffSupport.clientHint'));
     }
-    return page('🎧 Support queue', 'Take a ticket: from then on only you answer it, resolve it, and see the client\'s accounts.',
-        card('Tickets', `<div class="actions" style="margin:0 0 10px">${['OPEN', 'IN_PROGRESS', 'RESOLVED'].map((s) =>
-            `<button class="small ${s === staffStatus ? '' : 'secondary'}" onclick="staffFilter('${s}')">${s}</button>`).join('')}</div>` +
-            table(['When', 'Subject', 'Status', ''], content.map((t) => `<tr><td>${when(t.createdAt)}</td><td>${esc(t.subject)}</td><td>${badge(t.status)}</td>
-            <td>${t.status === 'OPEN' ? `<button class="small" onclick="takeTicket('${t.id}')">Take</button>` : ''}
-                <button class="small secondary" onclick="staffOpen('${t.id}')">Open</button></td></tr>`), 'Nothing here')),
+    return page(`🎧 ${t('nav.staffSupport')}`, t('staffSupport.lead'),
+        card(t('staffSupport.tickets'), `<div class="actions" style="margin:0 0 10px">${['OPEN', 'IN_PROGRESS', 'RESOLVED'].map((s) =>
+            `<button class="small ${s === staffStatus ? '' : 'secondary'}" onclick="staffFilter('${s}')">${esc(label(s))}</button>`).join('')}</div>` +
+            table([t('col.when'), t('support.subject'), t('col.status'), ''], content.map((x) => `<tr><td>${when(x.createdAt)}</td><td>${esc(x.subject)}</td><td>${badge(x.status)}</td>
+            <td>${x.status === 'OPEN' ? `<button class="small" onclick="takeTicket('${x.id}')">${t('staffSupport.take')}</button>` : ''}
+                <button class="small secondary" onclick="staffOpen('${x.id}')">${t('common.open')}</button></td></tr>`), t('staffSupport.empty'))),
         opened ? card(`💬 ${esc(opened.ticket.subject)} ${badge(opened.ticket.status)}`, conversation(opened.messages) +
-            (opened.ticket.status === 'IN_PROGRESS' && opened.ticket.assigneeId === state.me.id ? `<label>Answer</label><textarea id="sReply">Hello! Thanks for waiting: the transfer is on its way and will arrive today.</textarea>
-            <div class="actions"><button onclick="staffAnswer('${opened.ticket.id}')">Answer</button>
-            <button class="secondary" onclick="staffResolve('${opened.ticket.id}')">Resolve</button></div>` : '')) : '',
+            (opened.ticket.status === 'IN_PROGRESS' && opened.ticket.assigneeId === state.me.id ? `<label>${t('staffSupport.answer')}</label><textarea id="sReply">${esc(t('staffSupport.answerDefault'))}</textarea>
+            <div class="actions"><button onclick="staffAnswer('${opened.ticket.id}')">${t('staffSupport.answer')}</button>
+            <button class="secondary" onclick="staffResolve('${opened.ticket.id}')">${t('staffSupport.resolve')}</button></div>` : '')) : '',
         client);
 };
 
 const staffFilter = (s) => { staffStatus = s; return render(); };
 const staffOpen = (id) => { staffTicketId = id; return render(); };
-const takeTicket = (id) => act(async () => { await api('POST', `/admin/support/tickets/${id}/take`); staffTicketId = id; staffStatus = 'IN_PROGRESS'; }, 'The ticket is yours');
-const staffAnswer = (id) => act(() => api('POST', `/admin/support/tickets/${id}/messages`, { message: val('sReply') }), 'Answered: the client gets a notification and an email');
-const staffResolve = (id) => act(() => api('POST', `/admin/support/tickets/${id}/resolve`), 'Resolved');
+const takeTicket = (id) => act(async () => { await api('POST', `/admin/support/tickets/${id}/take`); staffTicketId = id; staffStatus = 'IN_PROGRESS'; }, t('toast.ticketYours'));
+const staffAnswer = (id) => act(() => api('POST', `/admin/support/tickets/${id}/messages`, { message: val('sReply') }), t('toast.answered'));
+const staffResolve = (id) => act(() => api('POST', `/admin/support/tickets/${id}/resolve`), t('toast.resolved'));
 
 // ---------- 💱 Staff: bank rates ----------
 
 views.staffRates = async () => {
     const rates = await api('GET', '/exchange-rates');
-    return page('💱 Bank rates', 'ADMIN only. The bank\'s buy/sell rates: a spread around the NBU rate, or set by hand (within ±10% of it).',
-        card('Current', table(['Currency', 'NBU', 'Buy', 'Sell', 'Mode', 'Spread'], rates.map((r) => `<tr><td><b>${r.currency}</b></td>
+    return page(`💱 ${t('nav.staffRates')}`, t('staffRates.lead'),
+        card(t('staffRates.current'), table([t('col.currency'), t('exchange.nbu'), t('staffRates.buy'), t('staffRates.sell'), t('exchange.mode'), t('staffRates.spread')], rates.map((r) => `<tr><td><b>${r.currency}</b></td>
             <td class="num">${r.officialRate ?? '—'}</td><td class="num">${r.buy ?? '—'}</td><td class="num">${r.sell ?? '—'}</td>
             <td>${badge(r.mode || '—')}</td><td class="num">${r.spreadPercent ?? '—'}</td></tr>`)) +
-            `<div class="actions"><button class="secondary" onclick="syncRates()">Sync NBU rates now</button></div>`),
-        card('Set a rate', `<div class="row">
-            <div><label>Currency</label><select id="rCur"><option>USD</option><option>EUR</option></select></div>
-            <div><label>Mode</label><select id="rMode"><option>SPREAD</option><option>MANUAL</option></select></div>
-            <div><label>Spread % (SPREAD)</label><input id="rSpread" value="2.00"></div>
-            <div><label>Buy (MANUAL)</label><input id="rBuy"></div><div><label>Sell (MANUAL)</label><input id="rSell"></div></div>
-            <label>Comment</label><input id="rComment" value="Weekend spread">
-            <div class="actions"><button onclick="setRate()">Save</button></div>`, 'Every change keeps its author and is written to the audit log.'));
+            `<div class="actions"><button class="secondary" onclick="syncRates()">${t('staffRates.sync')}</button></div>`),
+        card(t('staffRates.set'), `<div class="row">
+            <div><label>${t('col.currency')}</label><select id="rCur"><option>USD</option><option>EUR</option></select></div>
+            <div><label>${t('exchange.mode')}</label><select id="rMode"><option value="SPREAD">${esc(label('SPREAD'))}</option><option value="MANUAL">${esc(label('MANUAL'))}</option></select></div>
+            <div><label>${t('staffRates.spreadField')}</label><input id="rSpread" value="2.00"></div>
+            <div><label>${t('staffRates.buyField')}</label><input id="rBuy"></div><div><label>${t('staffRates.sellField')}</label><input id="rSell"></div></div>
+            <label>${t('staffRates.comment')}</label><input id="rComment" value="${esc(t('staffRates.commentDefault'))}">
+            <div class="actions"><button onclick="setRate()">${t('common.save')}</button></div>`, t('staffRates.hint')));
 };
 
-const syncRates = () => act(() => api('POST', '/admin/exchange-rates/sync'), 'NBU rates synced');
+const syncRates = () => act(() => api('POST', '/admin/exchange-rates/sync'), t('toast.ratesSynced'));
 function setRate() {
     const manual = val('rMode') === 'MANUAL';
     return act(() => api('PUT', `/admin/exchange-rates/${val('rCur')}`, {
         mode: val('rMode'), spreadPercent: manual ? null : val('rSpread'),
         buy: manual ? val('rBuy') : null, sell: manual ? val('rSell') : null, comment: val('rComment'),
-    }), 'Rate saved');
+    }), t('toast.rateSaved'));
 }
 
 // ---------- 🕵️ Staff: audit ----------
@@ -913,13 +937,13 @@ let auditAction = '';
 views.staffAudit = async () => {
     const { content } = await api('GET', `/admin/audit?size=50${auditAction ? `&action=${auditAction}` : ''}`);
     const actions = ['', 'CREDIT_APPLICATION_APPROVED', 'CREDIT_APPLICATION_DECLINED', 'BANK_RATE_SET', 'TICKET_TAKEN', 'TICKET_ANSWERED', 'TICKET_RESOLVED', 'CLIENT_ACCOUNTS_VIEWED'];
-    return page('🕵️ Audit log', 'ADMIN only. Every staff action, in the same transaction as the action itself. It cannot be edited, even with SQL.',
-        card('Entries', `<div class="row" style="margin-bottom:10px"><div><label>Action</label>
-            <select onchange="auditAction=this.value;render()">${actions.map((a) => `<option ${a === auditAction ? 'selected' : ''} value="${a}">${a || 'all actions'}</option>`).join('')}</select></div></div>` +
-            table(['When', 'Who', 'Action', 'On', 'Details'], content.map((e) => `<tr><td>${when(e.occurredAt)}</td>
-            <td class="mono">${short(e.actorId)}<br>${badge(e.actorRole)}</td><td>${badge(e.action)}</td>
+    return page(`🕵️ ${t('nav.staffAudit')}`, t('staffAudit.lead'),
+        card(t('staffAudit.entries'), `<div class="row" style="margin-bottom:10px"><div><label>${t('staffAudit.action')}</label>
+            <select onchange="auditAction=this.value;render()">${actions.map((a) => `<option ${a === auditAction ? 'selected' : ''} value="${a}">${a ? esc(label(a)) : t('staffAudit.all')}</option>`).join('')}</select></div></div>` +
+            table([t('col.when'), t('staffAudit.who'), t('staffAudit.action'), t('staffAudit.on'), t('staffAudit.details')], content.map((e) => `<tr><td>${when(e.occurredAt)}</td>
+            <td class="mono">${short(e.actorId)}<br><span class="badge info">${esc(t(`role.${e.actorRole}`))}</span></td><td>${badge(e.action)}</td>
             <td><small>${esc(e.targetType)}</small><br><span class="mono">${short(e.targetId)}</span></td>
-            <td class="mono"><small>${esc(JSON.stringify(e.details))}</small></td></tr>`), 'Nothing audited yet')));
+            <td class="mono"><small>${esc(JSON.stringify(e.details))}</small></td></tr>`), t('staffAudit.empty'))));
 };
 
 // ---------- Start ----------

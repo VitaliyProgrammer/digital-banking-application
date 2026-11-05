@@ -653,6 +653,69 @@ const openJar = () => act(() => api('POST', '/savings', { currency: val('jarCurr
 const jarMove = (kind) => act(async () => rememberPayment(await api('POST', `/savings/${val('jarId')}/${kind}`,
     { accountId: val('jarAccount'), amount: val('jarAmount') }, { idempotent: true })), kind === 'deposits' ? 'Put into the jar' : 'Taken out of the jar');
 
+// ---------- 💼 Sole proprietor (ФОП) ----------
+
+const TAX_GROUPS = {
+    GROUP_1: 'Group 1: fixed tax monthly (retail at markets, household services)',
+    GROUP_2: 'Group 2: fixed tax monthly (services and goods to people and single tax payers)',
+    GROUP_3: 'Group 3: 5% of every income, or 3% for a VAT payer',
+};
+
+views.business = async () => {
+    let business = null;
+    try { business = await api('GET', '/business'); } catch { /* 404: not a sole proprietor yet */ }
+
+    if (!business) {
+        const name = state.me ? `ФОП ${state.me.lastName} ${state.me.firstName}` : 'ФОП';
+        const taxId = String(Math.floor(1e9 + Math.random() * 9e9));
+        return page('💼 Sole proprietor (ФОП)', 'Open a business account for your ФОП: it comes with a BUSINESS card and a tax jar, apart from your own money.',
+            card('📝 Register your ФОП', `<div class="narrow">
+                <label>Name as registered</label><input id="fopName" value="${esc(name)}">
+                <label>РНОКПП (tax number, 10 digits)</label><input id="fopTaxId" value="${taxId}" maxlength="10">
+                <label>КВЕД codes, the main one first</label><input id="fopKved" value="62.01, 63.11">
+                <label>Single tax group</label><select id="fopGroup" onchange="document.getElementById('fopVat').disabled = this.value !== 'GROUP_3'; if (this.value !== 'GROUP_3') document.getElementById('fopVat').checked = false">
+                    ${Object.entries(TAX_GROUPS).map(([k, v]) => `<option value="${k}" ${k === 'GROUP_3' ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>
+                <label class="check"><input type="checkbox" id="fopVat"> VAT payer (group 3 only)</label>
+                <label>Registered on</label><input id="fopDate" type="date" value="${new Date().toISOString().slice(0, 10)}">
+                <div class="actions"><button onclick="openBusiness()">Open ФОП account</button></div></div>`,
+                'Demo: the tax number is made up and only checked to be 10 digits.'));
+    }
+
+    const incomes = await api('GET', '/business/incomes');
+    const cards = (await api('GET', '/cards')).filter((c) => c.accountId === business.businessAccountId);
+    const accounts = await api('GET', '/accounts');
+    const percent = Number(business.taxRatePercent) > 0;
+    return page('💼 Sole proprietor (ФОП)', `${esc(business.name)} · РНОКПП ${esc(business.taxId)} · КВЕД ${business.kvedCodes.map(esc).join(', ')}`,
+        card('📊 This quarter, ' + esc(business.quarter), `<div class="stats">
+            <div class="stat"><div class="k">Business account</div><div class="v">${money(business.businessBalance, 'UAH')}</div></div>
+            <div class="stat"><div class="k">🐷 Tax jar</div><div class="v">${money(business.taxReserve, 'UAH')}</div></div>
+            <div class="stat"><div class="k">Income</div><div class="v">${money(business.quarterIncome, 'UAH')}</div></div>
+            <div class="stat"><div class="k">${percent ? 'Tax put aside' : 'Fixed tax for the quarter'}</div><div class="v">${money(business.quarterTax, 'UAH')}</div></div></div>
+            <p class="hint" style="margin-top:10px">${esc(TAX_GROUPS[business.taxGroup])}${business.vatPayer ? ' · VAT payer' : ''}.
+            ${percent ? `<b>${Number(business.taxRatePercent)}% of every income goes into the tax jar the moment it arrives</b>, in the same ledger transaction, so it can never be spent by mistake. Your own money moved in from a personal account is not income.`
+                : `Fixed tax: <b>${money(business.monthlyTax, 'UAH')}</b> a month, whatever the income.`}
+            IBAN for customers: <span class="mono">${esc(business.businessAccountNumber)}</span></p>`),
+        `<div class="grid">`,
+        card('💵 Receive a payment from a customer', `<label>Amount, UAH</label><input id="fopIncome" value="10000">
+            <div class="actions"><button onclick="receiveIncome('${business.businessAccountId}')">Receive</button></div>`,
+            'Money from a customer outside the bank. Or ask another client to pay your IBAN above.'),
+        card('💳 Your BUSINESS card', cards.length ? `<div class="wallet">${cards.map((c) => cardVisual(c, accounts)).join('')}</div>` : '<div class="empty">No card</div>'),
+        `</div>`,
+        card('🧾 Recent income', table(['When', 'Income', 'Tax put aside'], incomes.map((i) => `<tr>
+            <td>${when(i.createdAt)}</td><td class="num">${money(i.amount, 'UAH')}</td><td class="num">${money(i.tax, 'UAH')}</td></tr>`),
+            'No income yet')));
+};
+
+const openBusiness = () => act(() => api('POST', '/business', {
+    name: val('fopName'), taxId: val('fopTaxId'),
+    kvedCodes: val('fopKved').split(',').map((k) => k.trim()).filter(Boolean),
+    taxGroup: val('fopGroup'), vatPayer: document.getElementById('fopVat').checked, registeredOn: val('fopDate'),
+}), 'ФОП account opened, with a BUSINESS card and a tax jar');
+
+async function receiveIncome(accountId) {
+    await pay('/payments/top-up', { accountId, amount: val('fopIncome') }, 'Income');
+}
+
 // ---------- 💳 Credit limit ----------
 
 views.credit = async () => {

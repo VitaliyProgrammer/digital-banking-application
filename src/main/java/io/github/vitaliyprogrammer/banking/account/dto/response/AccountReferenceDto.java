@@ -1,6 +1,7 @@
 package io.github.vitaliyprogrammer.banking.account.dto.response;
 
 import io.github.vitaliyprogrammer.banking.account.entity.Account;
+import io.github.vitaliyprogrammer.banking.account.entity.status.AccountType;
 import io.github.vitaliyprogrammer.banking.account.entity.status.Currency;
 import java.util.UUID;
 
@@ -12,10 +13,12 @@ public record AccountReferenceDto(
         UUID id,
         UUID ownerId,
         String number,
-        Currency currency
+        Currency currency,
+        AccountType type
 ) {
 
     public static AccountReferenceDto from(Account account) {
-        return new AccountReferenceDto(account.getId(), account.getOwnerId(), account.getNumber(), account.getCurrency());
+        return new AccountReferenceDto(account.getId(), account.getOwnerId(), account.getNumber(), account.getCurrency(),
+                account.getType());
     }
 }

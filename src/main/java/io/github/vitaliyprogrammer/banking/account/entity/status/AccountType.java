@@ -10,6 +10,10 @@ public enum AccountType {
 
     /** A client's credit line, UAH only: may go below zero down to its credit limit. A negative balance is debt. */
     CREDIT,
+    /** A sole proprietor's (ФОП) business account in UAH: kept apart from the person's own money, like the law asks. */
+    BUSINESS,
+    /** A sole proprietor's tax jar: the tax of every group 3 income lands here; it cannot be spent or transferred. */
+    TAX_RESERVE,
 
     /** The bank's mirror of the outside world: money entering the bank is debited from it, so it may go negative. */
     SETTLEMENT,

@@ -76,6 +76,19 @@ public class Account {
         return account;
     }
 
+    /** Business money is in hryvnias: the single tax is paid in hryvnias. */
+    public static Account openBusinessAccount(UUID ownerId, String number, Instant now) {
+        Account account = openClientAccount(ownerId, number, Currency.UAH, now);
+        account.type = AccountType.BUSINESS;
+        return account;
+    }
+
+    public static Account openTaxReserveAccount(UUID ownerId, String number, Instant now) {
+        Account account = openClientAccount(ownerId, number, Currency.UAH, now);
+        account.type = AccountType.TAX_RESERVE;
+        return account;
+    }
+
     public static Account openSavingsAccount(UUID ownerId, String number, Currency currency, Instant now) {
         Account account = openClientAccount(ownerId, number, currency, now);
         account.type = AccountType.SAVINGS;
@@ -93,9 +106,10 @@ public class Account {
         creditLimit = limit;
     }
 
-    /** Accounts that belong to a client: current, savings and credit. */
+    /** Accounts that belong to a client: current, savings, credit, and a sole proprietor's business account and tax jar. */
     public boolean isClientOwned() {
-        return type == AccountType.CLIENT || type == AccountType.SAVINGS || type == AccountType.CREDIT;
+        return type == AccountType.CLIENT || type == AccountType.SAVINGS || type == AccountType.CREDIT
+                || type == AccountType.BUSINESS || type == AccountType.TAX_RESERVE;
     }
 
     /**

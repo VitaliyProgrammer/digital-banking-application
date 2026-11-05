@@ -19,6 +19,7 @@ public class CardTransferFeePolicy implements FeePolicy {
 
     private static final Map<CardType, BigDecimal> RATE_BY_CARD_TYPE = new EnumMap<>(Map.of(
             CardType.UNIVERSAL, new BigDecimal("0.005"),
+            CardType.BUSINESS, new BigDecimal("0.005"),
             CardType.PAYROLL, new BigDecimal("0.005"),
             CardType.STUDENT, BigDecimal.ZERO,
             CardType.VIRTUAL, new BigDecimal("0.010"),

@@ -165,6 +165,7 @@ The first admin is created at startup from `ADMIN_EMAIL` and `ADMIN_PASSWORD` (f
 | 💰 | [**Ledger**](docs/ledger.md) | Double-entry bookkeeping, an append-only journal, balances as a projection, reconciliation, sharded hot accounts |
 | 🔁 | [**Payments**](docs/payments.md) | Idempotency keys, row locks and deadlock-free ordering, bill payments through a hold, fees, currency exchange |
 | 🏛️ | [**Credit**](docs/credit.md) | Scoring rules, manual review, the credit line, the 62-day grace period, statements, interest and late fees |
+| 💼 | [**Sole proprietors**](docs/business.md) | ФОП accounts, single tax groups, the tax jar filled in the same transaction as the income |
 | 📨 | [**Events & notifications**](docs/events.md) | Transactional outbox, RabbitMQ with publisher confirms, idempotent consumer, dead-letter queue |
 | 🛡️ | [**Security**](docs/security.md) | JWT with refresh-token rotation, roles, four-eyes rule, least privilege, audit log, card data protection |
 | 🧪 | [**Testing**](docs/testing.md) | Testcontainers, one shared context, ArchUnit rules, what each test proves |

@@ -300,3 +300,20 @@ td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: now
     .topbar .spacer { flex: 0 0 0; margin-left: auto; }
     .topbar button.ghost { padding: 6px 9px; }
 }
+
+/* ---- Overview: empty-account hint and the inline top-up row ---- */
+.notice {
+    background: var(--brand-soft); border: 1px solid #c9d7f2; border-radius: 12px;
+    padding: 12px 16px; margin-bottom: 16px; color: var(--ink);
+}
+td.buttons { white-space: nowrap; text-align: right; }
+td.buttons button + button { margin-left: 6px; }
+tr.inline-form td { background: var(--bg); }
+
+/* ---- The bank's mark on a card: the logo's three rising bars ---- */
+.bank-card .top .bank { display: flex; align-items: center; gap: 7px; font-size: 11px; letter-spacing: .6px; white-space: nowrap; }
+.bank-card .mark { display: inline-flex; align-items: flex-end; gap: 2px; height: 14px; }
+.bank-card .mark i { display: block; width: 4px; border-radius: 1.5px; }
+.bank-card .mark i:nth-child(1) { height: 50%; background: linear-gradient(#d9f99d, #a3e635); }
+.bank-card .mark i:nth-child(2) { height: 75%; background: linear-gradient(#86efac, #22c55e); }
+.bank-card .mark i:nth-child(3) { height: 100%; background: linear-gradient(#4ade80, #16a34a); }

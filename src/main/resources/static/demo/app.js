@@ -336,14 +336,27 @@ const CURRENCIES = ['UAH', 'USD', 'EUR'];
 
 // ---------- 🏠 Overview ----------
 
+// The account whose "Top up" row is open on the overview, if any.
+let topUpAccountId = null;
+
 views.overview = async () => {
     const accounts = await api('GET', '/accounts');
     const cards = await api('GET', '/cards');
+    const own = accounts.filter((a) => a.type === 'CLIENT');
+    const empty = own.length > 0 && own.every((a) => Number(a.balance) === 0);
+    const topUpRow = (a) => a.id !== topUpAccountId ? '' : `<tr class="inline-form"><td colspan="5">
+            <div class="row"><div><label>Top up ${esc(a.currency)} …${esc(a.number.slice(-6))} with</label>
+            <input id="quickTopUpAmount" value="${a.currency === 'UAH' ? '60000' : '1000'}"></div>
+            <div class="fit"><button onclick="quickTopUp('${a.id}')">💵 Top up</button></div>
+            <div class="fit"><button class="secondary" onclick="topUpAccountId = null; render()">Cancel</button></div></div>
+            <p class="hint below">Money from outside the bank, e.g. a card of another bank. Free.</p></td></tr>`;
     return page('🏠 Overview', 'Your accounts and cards. Every balance is read from the double-entry ledger.',
+        empty ? `<div class="notice">💡 Your account is empty. Press <b>💵 Top up</b> next to it to bring in money, then try transfers, bills and exchange.</div>` : '',
         card('💰 Accounts', table(['Currency', 'Type', 'IBAN', 'Balance', ''], accounts.map((a) => `<tr>
                 <td><b>${a.currency}</b></td><td>${badge(a.type)}</td><td class="mono">${esc(a.number)}</td>
                 <td class="num"><b>${money(a.balance, a.currency)}</b>${a.creditLimit ? `<br><small>limit ${money(a.creditLimit)}</small>` : ''}</td>
-                <td><button class="small secondary" onclick="showStatement('${a.id}')">Statement</button></td></tr>`),
+                <td class="buttons">${a.type === 'CLIENT' ? `<button class="small" onclick="topUpAccountId = '${a.id}'; render()">💵 Top up</button>` : ''}
+                    <button class="small secondary" onclick="showStatement('${a.id}')">Statement</button></td></tr>${topUpRow(a)}`),
             'No accounts yet: open one below') +
             `<div class="row" style="margin-top:12px"><div><label>Open an account in</label>
              <select id="newCurrency">${CURRENCIES.map((c) => `<option>${c}</option>`).join('')}</select></div>
@@ -355,6 +368,14 @@ views.overview = async () => {
 
 async function openAccount() {
     await act(() => api('POST', '/accounts', { currency: val('newCurrency') }), (a) => `Account ${a.currency} opened`);
+}
+
+async function quickTopUp(accountId) {
+    const payment = await pay('/payments/top-up', { accountId, amount: val('quickTopUpAmount') }, 'Top-up');
+    if (payment) {
+        topUpAccountId = null;
+        render();
+    }
 }
 
 async function showStatement(accountId) {
@@ -491,7 +512,7 @@ const cardVisual = (c, accounts = []) => {
     const holder = state.me ? `${state.me.firstName} ${state.me.lastName}`.toUpperCase() : '';
     const off = c.status !== 'ACTIVE';
     return `<div class="bank-card ${c.type.toLowerCase()} ${off ? 'off' : ''}">
-        <div class="top"><span class="bank">TABOROVETS BANK</span><span class="kind">${esc(c.type)}</span></div>
+        <div class="top"><span class="bank"><span class="mark" aria-hidden="true"><i></i><i></i><i></i></span>TABOROVETS UNIVERSAL BANK</span><span class="kind">${esc(c.type)}</span></div>
         <div class="chip"></div>
         <div class="number" id="num-${c.id}">${esc(c.maskedNumber)}</div>
         <div class="secret" id="cvv-${c.id}">${account ? `${account.currency} · ${money(account.balance, account.currency)}` : ''}</div>
@@ -600,13 +621,13 @@ async function acceptQuote(quoteId) {
     }, (p) => `Exchanged: got ${money(p.creditedAmount)}`);
 }
 
-// ---------- 🐷 Savings & cashback ----------
+// ---------- 🐷 Jars & cashback ----------
 
 views.savings = async () => {
     const jars = await api('GET', '/savings');
     const accounts = (await api('GET', '/accounts')).filter((a) => a.type === 'CLIENT');
     const cashback = await api('GET', '/cashback');
-    return page('🐷 Savings & cashback', 'Jars earn interest every day (paid monthly). Cashback comes from mobile, internet and utility bills.',
+    return page('🐷 Jars & cashback', 'A jar (банка) keeps savings apart from your account and earns interest every day, paid monthly. Cashback comes from mobile, internet and utility bills.',
         card('🐷 My jars', table(['Currency', 'Balance', 'Rate', 'Accrued, not paid yet'], jars.map((j) => `<tr>
                 <td><b>${j.currency}</b></td><td class="num">${money(j.balance, j.currency)}</td>
                 <td class="num">${j.annualRate}% / year</td><td class="num">${money(j.accruedInterest, j.currency)}</td></tr>`), 'No jars yet') +

@@ -1,8 +1,8 @@
 # 🧪 Testing
 
-![tests](https://img.shields.io/badge/tests-123%20passing-success)
+![tests](https://img.shields.io/badge/tests-253%20passing-success)
 ![real infrastructure](https://img.shields.io/badge/integration-real%20PostgreSQL%20·%20Redis%20·%20RabbitMQ%20·%20SMTP-291A3D)
-![ArchUnit](https://img.shields.io/badge/architecture-25%20rules-blueviolet)
+![ArchUnit](https://img.shields.io/badge/architecture-28%20rules-blueviolet)
 ![k6](https://img.shields.io/badge/load-k6-7D64FF?logo=k6&logoColor=white)
 
 > **In one sentence:** the tests run against the same kinds of servers as production, they prove the dangerous cases (races, retries, outages), and the architecture itself is a test that fails the build.
@@ -15,15 +15,31 @@
 
 | Level | Count | Speed | What it covers |
 |---|---|---|---|
-| 🧮 Unit | 5 classes | milliseconds | pure rules: scoring, credit terms, grace period, backoff, notification texts |
-| 🏛️ Architecture | 25 rules | seconds | layers and table ownership ([ArchUnit](../src/test/java/io/github/vitaliyprogrammer/banking/ArchitectureTests.java)) |
-| 🐘 Integration | 21 classes | ~3 minutes in all | services and HTTP on real PostgreSQL, Redis, RabbitMQ, an SMTP server and HTTP fakes |
+| 🧮 Unit | 17 classes | milliseconds | rules of money, cards and payments; scoring, credit terms, grace period, backoff, notification texts |
+| 🏛️ Architecture | 28 rules | seconds | layers and table ownership ([ArchUnit](../src/test/java/io/github/vitaliyprogrammer/banking/ArchitectureTests.java)) |
+| 🐘 Integration | 24 classes | ~3 minutes in all | services and HTTP on real PostgreSQL, Redis, RabbitMQ, an SMTP server and HTTP fakes |
 | 🔥 Load | 3 scenarios | minutes, on demand | [k6](../load-tests/README.md) against the running stack |
 
 ```bash
 ./mvnw verify                          # everything except load tests; needs Docker
 ./mvnw test -Dtest=CreditScoringTests  # one class
 ```
+
+## 🧮 Unit tests: the rules, in milliseconds
+
+An integration test proves that the pieces work together on real servers, but it starts the whole bank and checks
+one path at a time. The rules themselves (how far a balance may go below zero, which status change is allowed, what
+a transfer costs) have many cases each, so they are checked without Spring and without a database:
+
+| What | How | Example |
+|---|---|---|
+| Entities: balance, card, payment | plain objects, no mocks | [`AccountTests`](../src/test/java/io/github/vitaliyprogrammer/banking/account/AccountTests.java): a card payment may use the credit limit, a transfer by IBAN may not |
+| Tariffs | one table row per case | [`FeeTests`](../src/test/java/io/github/vitaliyprogrammer/banking/payment/FeeTests.java): 1025.00 → 5.13 (half up), 100.00 → the 5.00 minimum |
+| Services | Mockito for the other modules, real logic inside | [`TransferServiceTests`](../src/test/java/io/github/vitaliyprogrammer/banking/payment/TransferServiceTests.java): the exact three ledger lines of a transfer with its fee |
+| Card secrets | the real cryptography with test keys | [`CardCryptographyTests`](../src/test/java/io/github/vitaliyprogrammer/banking/card/CardCryptographyTests.java): a changed byte of a stored number is refused |
+
+Mockito runs as a Java agent from the start (`maven-surefire-plugin` in [`pom.xml`](../pom.xml)) instead of
+attaching itself during the run, which the JDK already warns will stop working.
 
 ## 🐳 Real infrastructure, one shared context
 
@@ -61,6 +77,8 @@ A bug that leaks one kopiyka anywhere fails the next test that runs.
 | An event about a payment that rolled back | `anEventIsWrittenOnlyTogetherWithItsPayment` |
 | A duplicate message makes two notifications | `theSameEventDeliveredTwiceMakesOneNotification` |
 | Mail down loses an email | `aMailServerThatIsDownDelaysTheEmailButNeverLosesTheNotification` |
+| A slow mail server loses the "password changed" warning | `oneFailedTryIsRetried` |
+| A third PIN guess on a locked card | `lockedCardRefusesEvenTheRightPin` |
 | Two employees take one ticket | `ofSeveralEmployeesTakingTheSameTicketAtOnceExactlyOneWins` |
 | A stolen refresh token is replayed | [`AuthenticationFlowIntegrationTests`](../src/test/java/io/github/vitaliyprogrammer/banking/identity/AuthenticationFlowIntegrationTests.java) |
 | The audit log is rewritten | `theAuditLogCannotBeRewrittenEvenWithPlainSql` |
@@ -69,7 +87,7 @@ Races are tested for real: tasks wait at a start gate (`CountDownLatch`) and are
 
 ## 🏛️ Architecture as a test
 
-[`ArchitectureTests`](../src/test/java/io/github/vitaliyprogrammer/banking/ArchitectureTests.java) runs 25 rules on every build. A broken rule fails with the exact class and line:
+[`ArchitectureTests`](../src/test/java/io/github/vitaliyprogrammer/banking/ArchitectureTests.java) runs 28 rules on every build. A broken rule fails with the exact class and line:
 
 | Rule | Example |
 |---|---|

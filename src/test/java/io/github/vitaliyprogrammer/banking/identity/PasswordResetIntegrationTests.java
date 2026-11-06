@@ -130,9 +130,13 @@ class PasswordResetIntegrationTests extends IntegrationTest {
         return link.group(1);
     }
 
-    /** The email leaves on its own thread after commit: give it a few seconds. */
+    /**
+     * The email leaves on its own thread after commit. Usually it arrives in a moment, but a busy Docker can keep the
+     * mail server silent until the SMTP timeout (20 s) and the mailer then tries again, so wait up to a minute.
+     * Polling returns as soon as the email is there: the long limit costs nothing when everything is fast.
+     */
     private static void waitUntil(IntSupplier count, int expected) throws InterruptedException {
-        for (int attempt = 0; attempt < 50 && count.getAsInt() < expected; attempt++) {
+        for (int attempt = 0; attempt < 300 && count.getAsInt() < expected; attempt++) {
             Thread.sleep(200);
         }
         assertThat(count.getAsInt()).as("emails received").isGreaterThanOrEqualTo(expected);

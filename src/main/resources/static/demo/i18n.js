@@ -849,6 +849,12 @@ function formatMoney(amount, currency = '') {
     return currency ? `${number} ${CURRENCY_SIGNS[currency] || currency}` : number;
 }
 
+/** "41,47" / "41.47": a rate always with two decimals, like on an exchange board. */
+function formatRate(rate) {
+    if (rate == null) return '—';
+    return Number(rate).toLocaleString(LOCALES[lang], { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 /** Puts the dictionary into the static page: data-i18n (content), data-i18n-title, data-i18n-placeholder. */
 function applyStaticTexts() {
     document.documentElement.lang = lang;

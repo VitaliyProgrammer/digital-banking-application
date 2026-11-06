@@ -27,7 +27,8 @@ import org.hibernate.annotations.UuidGenerator;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class BankRate {
 
-    public static final int SCALE = 4;
+    /** Kopiykas, like on any exchange board: 41.85, not 41.8508. */
+    public static final int SCALE = 2;
 
     private static final BigDecimal HUNDRED = BigDecimal.valueOf(100);
 

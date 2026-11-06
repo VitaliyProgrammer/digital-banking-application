@@ -53,8 +53,8 @@ class CurrencyExchangeIntegrationTests extends IntegrationTest {
     void clientWithThreeAccountsAndFixedRates() {
         // Round numbers make the expected amounts easy to check by hand.
         jdbcTemplate.update("DELETE FROM bank_rates");
-        setBankRate(Currency.USD, "40.0000", "41.0000");
-        setBankRate(Currency.EUR, "45.0000", "46.0000");
+        setBankRate(Currency.USD, "40.00", "41.00");
+        setBankRate(Currency.EUR, "45.00", "46.00");
 
         clientId = createUser();
         uahAccount = accountService.open(clientId, new OpenAccountRequestDto(Currency.UAH)).id();
@@ -97,7 +97,7 @@ class CurrencyExchangeIntegrationTests extends IntegrationTest {
     void theQuotedPriceHoldsEvenIfTheRateChangesBeforeTheClientAccepts() {
         ExchangeQuoteResponseDto quote = quote(usdAccount, uahAccount, "100.00");
 
-        setBankRate(Currency.USD, "30.0000", "31.0000");
+        setBankRate(Currency.USD, "30.00", "31.00");
         exchange(quote.id());
 
         assertThat(balanceOf(uahAccount)).isEqualByComparingTo("14000.00");

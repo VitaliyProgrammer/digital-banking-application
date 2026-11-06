@@ -7,6 +7,6 @@ import org.springframework.http.HttpStatus;
 public class NotTicketAssigneeException extends ApplicationException {
 
     public NotTicketAssigneeException() {
-        super(HttpStatus.FORBIDDEN, "Only the employee who took this ticket may do this");
+        super(HttpStatus.FORBIDDEN, "not-ticket-assignee", "Only the employee who took this ticket may do this");
     }
 }

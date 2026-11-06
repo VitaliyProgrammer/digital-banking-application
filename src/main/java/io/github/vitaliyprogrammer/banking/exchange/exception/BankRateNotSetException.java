@@ -7,6 +7,6 @@ import org.springframework.http.HttpStatus;
 public class BankRateNotSetException extends ApplicationException {
 
     public BankRateNotSetException(String currency) {
-        super(HttpStatus.SERVICE_UNAVAILABLE, "The bank rate for " + currency + " is not set yet");
+        super(HttpStatus.SERVICE_UNAVAILABLE, "bank-rate-not-set", "The bank rate for {0} is not set yet", currency);
     }
 }

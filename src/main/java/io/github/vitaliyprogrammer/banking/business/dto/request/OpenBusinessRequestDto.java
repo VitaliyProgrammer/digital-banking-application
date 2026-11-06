@@ -19,13 +19,13 @@ public record OpenBusinessRequestDto(
 
         /* РНОКПП: 10 digits. */
         @NotBlank
-        @Pattern(regexp = "\\d{10}", message = "must be 10 digits")
+        @Pattern(regexp = "\\d{10}", message = "{validation.ten-digits}")
         String taxId,
 
         /* КВЕД codes such as 62.01, the main one first. */
         @NotEmpty
         @Size(max = 10)
-        List<@Pattern(regexp = "\\d{2}\\.\\d{2}", message = "must look like 62.01") String> kvedCodes,
+        List<@Pattern(regexp = "\\d{2}\\.\\d{2}", message = "{validation.kved}") String> kvedCodes,
 
         @NotNull
         TaxGroup taxGroup,

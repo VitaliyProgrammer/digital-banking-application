@@ -7,6 +7,6 @@ import org.springframework.http.HttpStatus;
 public class IdempotencyKeyReusedException extends ApplicationException {
 
     public IdempotencyKeyReusedException() {
-        super(HttpStatus.UNPROCESSABLE_CONTENT, "Idempotency-Key was already used with a different request");
+        super(HttpStatus.UNPROCESSABLE_CONTENT, "idempotency-key-reused", "Idempotency-Key was already used with a different request");
     }
 }

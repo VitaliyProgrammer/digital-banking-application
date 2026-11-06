@@ -7,6 +7,6 @@ import org.springframework.http.HttpStatus;
 public class CardAlreadyExistsException extends ApplicationException {
 
     public CardAlreadyExistsException(CardType type) {
-        super(HttpStatus.CONFLICT, "This account already has an open " + type + " card");
+        super(HttpStatus.CONFLICT, "card-already-exists", "This account already has an open {0} card", type);
     }
 }

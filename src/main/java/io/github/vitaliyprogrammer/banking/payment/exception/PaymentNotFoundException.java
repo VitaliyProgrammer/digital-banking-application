@@ -6,6 +6,6 @@ import org.springframework.http.HttpStatus;
 public class PaymentNotFoundException extends ApplicationException {
 
     public PaymentNotFoundException() {
-        super(HttpStatus.NOT_FOUND, "Payment not found");
+        super(HttpStatus.NOT_FOUND, "payment-not-found", "Payment not found");
     }
 }

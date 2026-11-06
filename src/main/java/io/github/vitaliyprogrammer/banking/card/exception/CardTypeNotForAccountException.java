@@ -8,8 +8,11 @@ import org.springframework.http.HttpStatus;
 public class CardTypeNotForAccountException extends ApplicationException {
 
     public CardTypeNotForAccountException(CardType type) {
-        super(HttpStatus.UNPROCESSABLE_CONTENT, type == CardType.BUSINESS
-                ? "A BUSINESS card goes on a sole proprietor's business account"
-                : "A " + type + " card goes on a personal current account");
+        super(HttpStatus.UNPROCESSABLE_CONTENT,
+                type == CardType.BUSINESS ? "business-card-needs-business-account" : "card-needs-current-account",
+                type == CardType.BUSINESS
+                        ? "A BUSINESS card goes on a sole proprietor''s business account"
+                        : "A {0} card goes on a personal current account",
+                type);
     }
 }

@@ -7,6 +7,6 @@ import org.springframework.http.HttpStatus;
 public class CreditApplicationAlreadyDecidedException extends ApplicationException {
 
     public CreditApplicationAlreadyDecidedException() {
-        super(HttpStatus.CONFLICT, "The credit application has already been decided");
+        super(HttpStatus.CONFLICT, "credit-application-already-decided", "The credit application has already been decided");
     }
 }

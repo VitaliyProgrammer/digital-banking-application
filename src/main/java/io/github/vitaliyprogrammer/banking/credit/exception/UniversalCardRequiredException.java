@@ -7,7 +7,6 @@ import org.springframework.http.HttpStatus;
 public class UniversalCardRequiredException extends ApplicationException {
 
     public UniversalCardRequiredException() {
-        super(HttpStatus.UNPROCESSABLE_CONTENT,
-                "A credit limit lives on your UNIVERSAL card: issue one on your UAH account first");
+        super(HttpStatus.UNPROCESSABLE_CONTENT, "universal-card-required", "A credit limit lives on your UNIVERSAL card: issue one on your UAH account first");
     }
 }

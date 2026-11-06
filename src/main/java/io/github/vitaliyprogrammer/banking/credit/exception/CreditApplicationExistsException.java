@@ -7,6 +7,6 @@ import org.springframework.http.HttpStatus;
 public class CreditApplicationExistsException extends ApplicationException {
 
     public CreditApplicationExistsException() {
-        super(HttpStatus.CONFLICT, "You already have a credit limit or an application under review");
+        super(HttpStatus.CONFLICT, "credit-application-exists", "You already have a credit limit or an application under review");
     }
 }

@@ -7,6 +7,6 @@ import org.springframework.http.HttpStatus;
 public class InsufficientFundsException extends ApplicationException {
 
     public InsufficientFundsException() {
-        super(HttpStatus.UNPROCESSABLE_CONTENT, "Insufficient funds");
+        super(HttpStatus.UNPROCESSABLE_CONTENT, "insufficient-funds", "Insufficient funds");
     }
 }

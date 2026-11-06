@@ -7,6 +7,6 @@ import org.springframework.http.HttpStatus;
 public class InvalidPasswordResetTokenException extends ApplicationException {
 
     public InvalidPasswordResetTokenException() {
-        super(HttpStatus.BAD_REQUEST, "This link is invalid or has expired. Ask for a new one");
+        super(HttpStatus.BAD_REQUEST, "invalid-password-reset-token", "This link is invalid or has expired. Ask for a new one");
     }
 }

@@ -48,7 +48,7 @@ public class NbuRateClient implements OfficialRateClient {
             return rates == null ? List.of() : rates;
         } catch (RestClientException e) {
             // Covers timeouts, 5xx and a body that is not the expected JSON.
-            throw new OfficialRatesUnavailableException("NBU rates are unavailable: " + e.getMessage());
+            throw new OfficialRatesUnavailableException("nbu-unavailable", "NBU rates are unavailable: {0}", e.getMessage());
         }
     }
 }

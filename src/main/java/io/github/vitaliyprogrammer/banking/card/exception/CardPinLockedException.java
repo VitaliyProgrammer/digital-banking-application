@@ -7,6 +7,6 @@ import org.springframework.http.HttpStatus;
 public class CardPinLockedException extends ApplicationException {
 
     public CardPinLockedException() {
-        super(HttpStatus.LOCKED, "Card is locked after too many wrong PIN attempts. Contact support");
+        super(HttpStatus.LOCKED, "card-pin-locked", "Card is locked after too many wrong PIN attempts. Contact support");
     }
 }

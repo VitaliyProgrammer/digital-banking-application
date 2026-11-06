@@ -7,7 +7,6 @@ import org.springframework.http.HttpStatus;
 public class RepaymentNotNeededException extends ApplicationException {
 
     public RepaymentNotNeededException() {
-        super(HttpStatus.UNPROCESSABLE_CONTENT,
-                "Your credit limit is on this account: any money that arrives on it repays the debt by itself");
+        super(HttpStatus.UNPROCESSABLE_CONTENT, "repayment-not-needed", "Your credit limit is on this account: any money that arrives on it repays the debt by itself");
     }
 }

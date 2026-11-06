@@ -6,6 +6,6 @@ import org.springframework.http.HttpStatus;
 public class ReceiptEmailFailedException extends ApplicationException {
 
     public ReceiptEmailFailedException() {
-        super(HttpStatus.SERVICE_UNAVAILABLE, "The receipt could not be sent right now. Please try again later");
+        super(HttpStatus.SERVICE_UNAVAILABLE, "receipt-email-failed", "The receipt could not be sent right now. Please try again later");
     }
 }

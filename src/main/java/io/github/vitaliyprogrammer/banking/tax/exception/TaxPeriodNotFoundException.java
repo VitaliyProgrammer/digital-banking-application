@@ -7,6 +7,6 @@ import org.springframework.http.HttpStatus;
 public class TaxPeriodNotFoundException extends ApplicationException {
 
     public TaxPeriodNotFoundException() {
-        super(HttpStatus.NOT_FOUND, "No such tax period");
+        super(HttpStatus.NOT_FOUND, "tax-period-not-found", "No such tax period");
     }
 }

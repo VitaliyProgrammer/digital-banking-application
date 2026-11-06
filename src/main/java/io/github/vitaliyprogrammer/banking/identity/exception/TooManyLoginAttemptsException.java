@@ -6,6 +6,6 @@ import org.springframework.http.HttpStatus;
 public class TooManyLoginAttemptsException extends ApplicationException {
 
     public TooManyLoginAttemptsException() {
-        super(HttpStatus.TOO_MANY_REQUESTS, "Too many login attempts. Try again in 15 minutes");
+        super(HttpStatus.TOO_MANY_REQUESTS, "too-many-login-attempts", "Too many login attempts. Try again in 15 minutes");
     }
 }

@@ -7,6 +7,6 @@ import org.springframework.http.HttpStatus;
 public class ExchangeQuoteExpiredException extends ApplicationException {
 
     public ExchangeQuoteExpiredException() {
-        super(HttpStatus.CONFLICT, "The quote has expired. Request a new one");
+        super(HttpStatus.CONFLICT, "exchange-quote-expired", "The quote has expired. Request a new one");
     }
 }

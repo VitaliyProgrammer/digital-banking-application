@@ -7,6 +7,6 @@ import org.springframework.http.HttpStatus;
 public class ReceiptNotAvailableException extends ApplicationException {
 
     public ReceiptNotAvailableException() {
-        super(HttpStatus.CONFLICT, "A receipt is available only for a completed payment");
+        super(HttpStatus.CONFLICT, "receipt-not-available", "A receipt is available only for a completed payment");
     }
 }

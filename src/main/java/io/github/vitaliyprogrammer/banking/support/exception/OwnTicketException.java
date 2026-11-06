@@ -7,6 +7,6 @@ import org.springframework.http.HttpStatus;
 public class OwnTicketException extends ApplicationException {
 
     public OwnTicketException() {
-        super(HttpStatus.FORBIDDEN, "You cannot handle your own ticket");
+        super(HttpStatus.FORBIDDEN, "own-ticket", "You cannot handle your own ticket");
     }
 }

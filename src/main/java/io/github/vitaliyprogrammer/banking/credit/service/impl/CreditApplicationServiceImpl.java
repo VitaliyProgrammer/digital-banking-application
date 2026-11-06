@@ -148,10 +148,11 @@ public class CreditApplicationServiceImpl implements CreditApplicationService {
     public CreditApplicationResponseDto approve(UUID reviewerId, UUID applicationId, CreditDecisionRequestDto request) {
 
         if (request.approvedLimit() == null) {
-            throw new InvalidCreditDecisionException("approvedLimit is required to approve");
+            throw new InvalidCreditDecisionException("approved-limit-required", "approvedLimit is required to approve");
         }
         if (request.approvedLimit().compareTo(properties.maxLimit()) > 0) {
-            throw new InvalidCreditDecisionException("approvedLimit must not exceed " + properties.maxLimit());
+            throw new InvalidCreditDecisionException("approved-limit-too-high", "approvedLimit must not exceed {0,number,#,##0.00}",
+                    properties.maxLimit());
         }
 
         CreditApplication application = lockForDecision(reviewerId, applicationId);

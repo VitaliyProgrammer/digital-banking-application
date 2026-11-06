@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 public class RepaymentExceedsDebtException extends ApplicationException {
 
     public RepaymentExceedsDebtException(BigDecimal debt) {
-        super(HttpStatus.UNPROCESSABLE_CONTENT, "The repayment is larger than the debt of " + debt.toPlainString());
+        super(HttpStatus.UNPROCESSABLE_CONTENT, "repayment-exceeds-debt", "The repayment is larger than the debt of {0,number,#,##0.00}",
+                debt);
     }
 }

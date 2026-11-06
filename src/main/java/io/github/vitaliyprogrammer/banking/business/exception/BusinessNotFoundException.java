@@ -7,6 +7,6 @@ import org.springframework.http.HttpStatus;
 public class BusinessNotFoundException extends ApplicationException {
 
     public BusinessNotFoundException() {
-        super(HttpStatus.NOT_FOUND, "You have no sole proprietor's account yet");
+        super(HttpStatus.NOT_FOUND, "business-not-found", "You have no sole proprietor's account yet");
     }
 }

@@ -7,6 +7,6 @@ import org.springframework.http.HttpStatus;
 public class CurrencyMismatchException extends ApplicationException {
 
     public CurrencyMismatchException() {
-        super(HttpStatus.UNPROCESSABLE_CONTENT, "Both accounts must be in the same currency");
+        super(HttpStatus.UNPROCESSABLE_CONTENT, "currency-mismatch", "Both accounts must be in the same currency");
     }
 }

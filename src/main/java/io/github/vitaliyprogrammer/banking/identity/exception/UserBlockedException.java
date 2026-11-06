@@ -6,6 +6,6 @@ import org.springframework.http.HttpStatus;
 public class UserBlockedException extends ApplicationException {
 
     public UserBlockedException() {
-        super(HttpStatus.FORBIDDEN, "User is blocked");
+        super(HttpStatus.FORBIDDEN, "user-blocked", "User is blocked");
     }
 }

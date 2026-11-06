@@ -7,6 +7,6 @@ import org.springframework.http.HttpStatus;
 public class AccountNotFoundException extends ApplicationException {
 
     public AccountNotFoundException() {
-        super(HttpStatus.NOT_FOUND, "Account not found");
+        super(HttpStatus.NOT_FOUND, "account-not-found", "Account not found");
     }
 }

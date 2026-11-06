@@ -7,6 +7,6 @@ import org.springframework.http.HttpStatus;
 public class UnsupportedCurrencyException extends ApplicationException {
 
     public UnsupportedCurrencyException() {
-        super(HttpStatus.BAD_REQUEST, "UAH is the base currency and has no exchange rate");
+        super(HttpStatus.BAD_REQUEST, "unsupported-currency", "UAH is the base currency and has no exchange rate");
     }
 }

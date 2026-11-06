@@ -7,6 +7,6 @@ import org.springframework.http.HttpStatus;
 public class NotificationNotFoundException extends ApplicationException {
 
     public NotificationNotFoundException() {
-        super(HttpStatus.NOT_FOUND, "Notification not found");
+        super(HttpStatus.NOT_FOUND, "notification-not-found", "Notification not found");
     }
 }

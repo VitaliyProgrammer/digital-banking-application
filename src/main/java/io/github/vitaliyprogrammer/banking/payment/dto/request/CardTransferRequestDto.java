@@ -18,7 +18,7 @@ public record CardTransferRequestDto(
         String toCardNumber,
 
         @NotNull
-        @DecimalMin(value = "1.00", message = "must be at least 1.00")
+        @DecimalMin("1.00")
         @Digits(integer = 13, fraction = 2)
         BigDecimal amount,
 

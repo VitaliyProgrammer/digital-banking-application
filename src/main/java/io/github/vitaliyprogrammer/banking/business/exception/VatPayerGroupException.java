@@ -7,6 +7,6 @@ import org.springframework.http.HttpStatus;
 public class VatPayerGroupException extends ApplicationException {
 
     public VatPayerGroupException() {
-        super(HttpStatus.UNPROCESSABLE_CONTENT, "Only a group 3 sole proprietor may be a VAT payer");
+        super(HttpStatus.UNPROCESSABLE_CONTENT, "vat-payer-group", "Only a group 3 sole proprietor may be a VAT payer");
     }
 }

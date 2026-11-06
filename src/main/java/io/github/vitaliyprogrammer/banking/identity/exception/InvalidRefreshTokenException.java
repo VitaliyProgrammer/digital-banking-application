@@ -6,6 +6,6 @@ import org.springframework.http.HttpStatus;
 public class InvalidRefreshTokenException extends ApplicationException {
 
     public InvalidRefreshTokenException() {
-        super(HttpStatus.UNAUTHORIZED, "Refresh token is invalid or expired");
+        super(HttpStatus.UNAUTHORIZED, "invalid-refresh-token", "Refresh token is invalid or expired");
     }
 }

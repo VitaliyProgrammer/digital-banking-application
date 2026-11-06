@@ -7,6 +7,6 @@ import org.springframework.http.HttpStatus;
 public class NothingToPayException extends ApplicationException {
 
     public NothingToPayException() {
-        super(HttpStatus.UNPROCESSABLE_CONTENT, "Nothing to pay for this period");
+        super(HttpStatus.UNPROCESSABLE_CONTENT, "nothing-to-pay", "Nothing to pay for this period");
     }
 }

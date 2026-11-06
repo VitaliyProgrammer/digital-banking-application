@@ -7,6 +7,6 @@ import org.springframework.http.HttpStatus;
 public class CreditLineAlreadyExistsException extends ApplicationException {
 
     public CreditLineAlreadyExistsException() {
-        super(HttpStatus.CONFLICT, "This account already has a credit limit");
+        super(HttpStatus.CONFLICT, "credit-line-already-exists", "This account already has a credit limit");
     }
 }

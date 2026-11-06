@@ -7,6 +7,6 @@ import org.springframework.http.HttpStatus;
 public class CardNotFoundException extends ApplicationException {
 
     public CardNotFoundException() {
-        super(HttpStatus.NOT_FOUND, "Card not found");
+        super(HttpStatus.NOT_FOUND, "card-not-found", "Card not found");
     }
 }

@@ -6,6 +6,6 @@ import org.springframework.http.HttpStatus;
 public class CurrentPinRequiredException extends ApplicationException {
 
     public CurrentPinRequiredException() {
-        super(HttpStatus.UNPROCESSABLE_CONTENT, "Current PIN is required to change the PIN");
+        super(HttpStatus.UNPROCESSABLE_CONTENT, "current-pin-required", "Current PIN is required to change the PIN");
     }
 }

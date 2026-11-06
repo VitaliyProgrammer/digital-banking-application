@@ -5,7 +5,8 @@ import org.springframework.http.HttpStatus;
 
 public class InvalidBankRateException extends ApplicationException {
 
-    public InvalidBankRateException(String message) {
-        super(HttpStatus.UNPROCESSABLE_CONTENT, message);
+    /** Several cases share this class; each passes its own code, so a client can still tell them apart. */
+    public InvalidBankRateException(String code, String message, Object... args) {
+        super(HttpStatus.UNPROCESSABLE_CONTENT, code, message, args);
     }
 }

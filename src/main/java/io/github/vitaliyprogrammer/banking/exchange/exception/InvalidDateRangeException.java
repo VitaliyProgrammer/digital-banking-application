@@ -5,7 +5,8 @@ import org.springframework.http.HttpStatus;
 
 public class InvalidDateRangeException extends ApplicationException {
 
-    public InvalidDateRangeException(String message) {
-        super(HttpStatus.BAD_REQUEST, message);
+    /** Several cases share this class; each passes its own code, so a client can still tell them apart. */
+    public InvalidDateRangeException(String code, String message, Object... args) {
+        super(HttpStatus.BAD_REQUEST, code, message, args);
     }
 }

@@ -6,6 +6,6 @@ import org.springframework.http.HttpStatus;
 public class CreditApplicationNotFoundException extends ApplicationException {
 
     public CreditApplicationNotFoundException() {
-        super(HttpStatus.NOT_FOUND, "Credit application not found");
+        super(HttpStatus.NOT_FOUND, "credit-application-not-found", "Credit application not found");
     }
 }

@@ -61,7 +61,7 @@ public class SupportTicket {
         if (clientId.equals(staffId)) {
             throw new OwnTicketException();
         }
-        requireStatus(TicketStatus.OPEN, "already taken");
+        requireStatus(TicketStatus.OPEN, "ticket-already-taken", "already taken");
         assigneeId = staffId;
         status = TicketStatus.IN_PROGRESS;
         updatedAt = now;
@@ -70,20 +70,20 @@ public class SupportTicket {
     /** Only the employee who took the ticket answers it. */
     public void recordStaffReply(UUID staffId, Instant now) {
         requireAssignee(staffId);
-        requireStatus(TicketStatus.IN_PROGRESS, "not in progress");
+        requireStatus(TicketStatus.IN_PROGRESS, "ticket-not-in-progress", "not in progress");
         updatedAt = now;
     }
 
     public void recordClientReply(Instant now) {
         if (status == TicketStatus.RESOLVED) {
-            throw new InvalidTicketStateException("The ticket is resolved; open a new one");
+            throw new InvalidTicketStateException("ticket-resolved", "The ticket is resolved; open a new one");
         }
         updatedAt = now;
     }
 
     public void resolve(UUID staffId, Instant now) {
         requireAssignee(staffId);
-        requireStatus(TicketStatus.IN_PROGRESS, "not in progress");
+        requireStatus(TicketStatus.IN_PROGRESS, "ticket-not-in-progress", "not in progress");
         status = TicketStatus.RESOLVED;
         resolvedAt = now;
         updatedAt = now;
@@ -95,9 +95,9 @@ public class SupportTicket {
         }
     }
 
-    private void requireStatus(TicketStatus expected, String problem) {
+    private void requireStatus(TicketStatus expected, String code, String problem) {
         if (status != expected) {
-            throw new InvalidTicketStateException("The ticket is " + problem + ": " + status);
+            throw new InvalidTicketStateException(code, "The ticket is " + problem + ": {0}", status);
         }
     }
 }

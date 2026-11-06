@@ -7,6 +7,6 @@ import org.springframework.http.HttpStatus;
 public class OwnCreditApplicationException extends ApplicationException {
 
     public OwnCreditApplicationException() {
-        super(HttpStatus.FORBIDDEN, "You cannot decide on your own credit application");
+        super(HttpStatus.FORBIDDEN, "own-credit-application", "You cannot decide on your own credit application");
     }
 }

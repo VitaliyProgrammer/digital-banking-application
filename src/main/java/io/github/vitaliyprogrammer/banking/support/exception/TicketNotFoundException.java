@@ -7,6 +7,6 @@ import org.springframework.http.HttpStatus;
 public class TicketNotFoundException extends ApplicationException {
 
     public TicketNotFoundException() {
-        super(HttpStatus.NOT_FOUND, "Ticket not found");
+        super(HttpStatus.NOT_FOUND, "ticket-not-found", "Ticket not found");
     }
 }

@@ -7,6 +7,6 @@ import org.springframework.http.HttpStatus;
 public class CreditLineNotFoundException extends ApplicationException {
 
     public CreditLineNotFoundException() {
-        super(HttpStatus.NOT_FOUND, "You have no credit line");
+        super(HttpStatus.NOT_FOUND, "credit-line-not-found", "You have no credit line");
     }
 }

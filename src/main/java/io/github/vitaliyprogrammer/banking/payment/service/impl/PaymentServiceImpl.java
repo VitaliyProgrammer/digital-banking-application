@@ -321,13 +321,13 @@ public class PaymentServiceImpl implements PaymentService {
 
         CardReferenceDto fromCard = cardService.getOwnedCardReference(userId, request.fromCardId());
         if (!fromCard.usable()) {
-            throw new CardNotUsableException("Your card");
+            throw CardNotUsableException.ownCard();
         }
 
         CardReferenceDto toCard = cardService.findCardByNumber(recipientCardNumber)
                 .orElseThrow(RecipientNotFoundException::new);
         if (!toCard.usable()) {
-            throw new CardNotUsableException("Recipient's card");
+            throw CardNotUsableException.recipientCard();
         }
 
         AccountReferenceDto from = accountService.getOwnedSpendingAccountReference(userId, fromCard.accountId());

@@ -7,6 +7,6 @@ import org.springframework.http.HttpStatus;
 public class AccountAlreadyExistsException extends ApplicationException {
 
     public AccountAlreadyExistsException(Currency currency) {
-        super(HttpStatus.CONFLICT, "You already have an account in " + currency);
+        super(HttpStatus.CONFLICT, "account-already-exists", "You already have an account in {0}", currency);
     }
 }

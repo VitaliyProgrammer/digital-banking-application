@@ -20,7 +20,7 @@ class ExchangeRateSchedulerTests {
     @Test
     void aFailedStartupSyncIsRetriedUntilItWorksAndThenNoMore() {
         when(exchangeRateService.syncOfficialRates())
-                .thenThrow(new OfficialRatesUnavailableException("NBU rates are unavailable"))
+                .thenThrow(new OfficialRatesUnavailableException("nbu-unavailable", "NBU rates are unavailable"))
                 .thenReturn(null);
 
         scheduler.syncOnStartup();          // fails: the network is not up yet

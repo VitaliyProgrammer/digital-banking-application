@@ -5,11 +5,11 @@ import jakarta.validation.constraints.Pattern;
 
 public record ChangePinRequestDto(
         /* Required when the card already has a PIN. */
-        @Pattern(regexp = "\\d{4}", message = "must be 4 digits")
+        @Pattern(regexp = "\\d{4}", message = "{validation.four-digits}")
         String currentPin,
 
         @NotNull
-        @Pattern(regexp = "\\d{4}", message = "must be 4 digits")
+        @Pattern(regexp = "\\d{4}", message = "{validation.four-digits}")
         String newPin
 ) {
 }

@@ -6,6 +6,6 @@ import org.springframework.http.HttpStatus;
 public class EmailAlreadyTakenException extends ApplicationException {
 
     public EmailAlreadyTakenException() {
-        super(HttpStatus.CONFLICT, "Email is already registered");
+        super(HttpStatus.CONFLICT, "email-already-taken", "Email is already registered");
     }
 }

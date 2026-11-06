@@ -6,6 +6,6 @@ import org.springframework.http.HttpStatus;
 public class RecipientNotFoundException extends ApplicationException {
 
     public RecipientNotFoundException() {
-        super(HttpStatus.NOT_FOUND, "Recipient account not found");
+        super(HttpStatus.NOT_FOUND, "recipient-not-found", "Recipient account not found");
     }
 }

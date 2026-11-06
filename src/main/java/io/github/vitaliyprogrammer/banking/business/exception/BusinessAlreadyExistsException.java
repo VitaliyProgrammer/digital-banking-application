@@ -7,6 +7,6 @@ import org.springframework.http.HttpStatus;
 public class BusinessAlreadyExistsException extends ApplicationException {
 
     public BusinessAlreadyExistsException() {
-        super(HttpStatus.CONFLICT, "A sole proprietor is already registered for this client or tax number");
+        super(HttpStatus.CONFLICT, "business-already-exists", "A sole proprietor is already registered for this client or tax number");
     }
 }

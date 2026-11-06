@@ -22,6 +22,15 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
 
+  # Error texts in the client's language (Accept-Language): messages.properties is English, messages_uk.properties
+  # Ukrainian. Without the header, or for a language the bank does not speak, the answer is English: never the
+  # language of the server the bank happens to run on.
+  messages:
+    basename: messages
+    fallback-to-system-locale: false
+  web:
+    locale: en
+
   # Locally: Mailpit from docker-compose.yml catches every email; see them at http://localhost:8025.
   mail:
     host: ${MAIL_HOST:localhost}

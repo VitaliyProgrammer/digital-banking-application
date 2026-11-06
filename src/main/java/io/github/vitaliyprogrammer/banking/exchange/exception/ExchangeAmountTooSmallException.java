@@ -7,6 +7,6 @@ import org.springframework.http.HttpStatus;
 public class ExchangeAmountTooSmallException extends ApplicationException {
 
     public ExchangeAmountTooSmallException() {
-        super(HttpStatus.UNPROCESSABLE_CONTENT, "The amount is too small to exchange");
+        super(HttpStatus.UNPROCESSABLE_CONTENT, "exchange-amount-too-small", "The amount is too small to exchange");
     }
 }

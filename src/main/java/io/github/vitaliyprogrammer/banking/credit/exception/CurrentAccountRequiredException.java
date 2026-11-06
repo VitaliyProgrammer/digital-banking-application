@@ -7,6 +7,6 @@ import org.springframework.http.HttpStatus;
 public class CurrentAccountRequiredException extends ApplicationException {
 
     public CurrentAccountRequiredException() {
-        super(HttpStatus.UNPROCESSABLE_CONTENT, "Open a UAH current account before applying for a credit limit");
+        super(HttpStatus.UNPROCESSABLE_CONTENT, "current-account-required", "Open a UAH current account before applying for a credit limit");
     }
 }

@@ -6,6 +6,6 @@ import org.springframework.http.HttpStatus;
 public class ExchangeQuoteNotFoundException extends ApplicationException {
 
     public ExchangeQuoteNotFoundException() {
-        super(HttpStatus.NOT_FOUND, "Exchange quote not found");
+        super(HttpStatus.NOT_FOUND, "exchange-quote-not-found", "Exchange quote not found");
     }
 }

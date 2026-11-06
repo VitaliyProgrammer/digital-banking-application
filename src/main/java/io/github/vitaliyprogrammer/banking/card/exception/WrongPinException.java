@@ -6,6 +6,6 @@ import org.springframework.http.HttpStatus;
 public class WrongPinException extends ApplicationException {
 
     public WrongPinException(long attemptsLeft) {
-        super(HttpStatus.UNPROCESSABLE_CONTENT, "Wrong PIN. Attempts left: " + attemptsLeft);
+        super(HttpStatus.UNPROCESSABLE_CONTENT, "wrong-pin", "Wrong PIN. Attempts left: {0}", attemptsLeft);
     }
 }

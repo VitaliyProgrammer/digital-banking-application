@@ -5,7 +5,7 @@ import jakarta.validation.constraints.Pattern;
 
 public record VerifyPinRequestDto(
         @NotNull
-        @Pattern(regexp = "\\d{4}", message = "must be 4 digits")
+        @Pattern(regexp = "\\d{4}", message = "{validation.four-digits}")
         String pin
 ) {
 }

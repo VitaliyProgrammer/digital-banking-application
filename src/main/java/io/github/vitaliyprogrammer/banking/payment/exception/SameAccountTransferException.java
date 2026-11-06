@@ -6,6 +6,6 @@ import org.springframework.http.HttpStatus;
 public class SameAccountTransferException extends ApplicationException {
 
     public SameAccountTransferException() {
-        super(HttpStatus.UNPROCESSABLE_CONTENT, "Cannot transfer money to the same account");
+        super(HttpStatus.UNPROCESSABLE_CONTENT, "same-account-transfer", "Cannot transfer money to the same account");
     }
 }

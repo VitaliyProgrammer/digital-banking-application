@@ -6,6 +6,6 @@ import org.springframework.http.HttpStatus;
 public class ProviderNotFoundException extends ApplicationException {
 
     public ProviderNotFoundException() {
-        super(HttpStatus.NOT_FOUND, "Provider not found");
+        super(HttpStatus.NOT_FOUND, "provider-not-found", "Provider not found");
     }
 }

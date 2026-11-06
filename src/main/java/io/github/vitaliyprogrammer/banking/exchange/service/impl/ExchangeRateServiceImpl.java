@@ -135,10 +135,10 @@ public class ExchangeRateServiceImpl implements ExchangeRateService {
         LocalDate start = from != null ? from : end.minusDays(DEFAULT_HISTORY_DAYS - 1);
 
         if (start.isAfter(end)) {
-            throw new InvalidDateRangeException("'from' must not be after 'to'");
+            throw new InvalidDateRangeException("date-range-reversed", "'from' must not be after 'to'");
         }
         if (ChronoUnit.DAYS.between(start, end) >= MAX_HISTORY_DAYS) {
-            throw new InvalidDateRangeException("The range must not exceed " + MAX_HISTORY_DAYS + " days");
+            throw new InvalidDateRangeException("date-range-too-long", "The range must not exceed {0} days", MAX_HISTORY_DAYS);
         }
 
         return officialRateRepository.findAllByCurrencyAndRateDateBetweenOrderByRateDate(currency, start, end)
@@ -153,8 +153,8 @@ public class ExchangeRateServiceImpl implements ExchangeRateService {
 
         requireQuoted(currency);
         OfficialRate official = officialRateRepository.findFirstByCurrencyOrderByRateDateDesc(currency)
-                .orElseThrow(() -> new OfficialRatesUnavailableException(
-                        "No NBU rate for " + currency + " has been loaded yet"));
+                .orElseThrow(() -> new OfficialRatesUnavailableException("nbu-rate-not-loaded",
+                        "No NBU rate for {0} has been loaded yet", currency));
 
         lockBankRate(currency);
         Instant now = clock.instant();
@@ -162,7 +162,7 @@ public class ExchangeRateServiceImpl implements ExchangeRateService {
         BankRate rate = switch (request.mode()) {
             case SPREAD -> {
                 if (request.spreadPercent() == null || request.buy() != null || request.sell() != null) {
-                    throw new InvalidBankRateException("SPREAD mode takes spreadPercent only");
+                    throw new InvalidBankRateException("spread-mode-fields", "SPREAD mode takes spreadPercent only");
                 }
                 yield BankRate.fromSpread(currency, official.getRate(), request.spreadPercent(),
                         adminId, request.comment(), now);
@@ -291,17 +291,17 @@ public class ExchangeRateServiceImpl implements ExchangeRateService {
     private void validateManual(SetBankRateRequestDto request, BigDecimal officialRate) {
 
         if (request.buy() == null || request.sell() == null || request.spreadPercent() != null) {
-            throw new InvalidBankRateException("MANUAL mode takes buy and sell only");
+            throw new InvalidBankRateException("manual-mode-fields", "MANUAL mode takes buy and sell only");
         }
         if (request.buy().compareTo(request.sell()) >= 0) {
-            throw new InvalidBankRateException("Buy rate must be lower than sell rate");
+            throw new InvalidBankRateException("buy-not-below-sell", "Buy rate must be lower than sell rate");
         }
 
         BigDecimal maxDeviation = properties.maxManualDeviationPercent();
         if (deviationPercent(request.buy(), officialRate).compareTo(maxDeviation) > 0
                 || deviationPercent(request.sell(), officialRate).compareTo(maxDeviation) > 0) {
-            throw new InvalidBankRateException("Rates must be within " + maxDeviation + "% of the NBU rate "
-                    + officialRate);
+            throw new InvalidBankRateException("rate-too-far-from-nbu", "Rates must be within {0}% of the NBU rate {1}",
+                    maxDeviation, officialRate);
         }
     }
 

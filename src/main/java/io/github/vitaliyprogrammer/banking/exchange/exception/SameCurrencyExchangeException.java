@@ -6,6 +6,6 @@ import org.springframework.http.HttpStatus;
 public class SameCurrencyExchangeException extends ApplicationException {
 
     public SameCurrencyExchangeException() {
-        super(HttpStatus.UNPROCESSABLE_CONTENT, "Exchange needs two accounts in different currencies");
+        super(HttpStatus.UNPROCESSABLE_CONTENT, "same-currency-exchange", "Exchange needs two accounts in different currencies");
     }
 }

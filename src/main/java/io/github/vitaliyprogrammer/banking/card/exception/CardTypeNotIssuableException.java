@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 public class CardTypeNotIssuableException extends ApplicationException {
 
     public CardTypeNotIssuableException(CardType type) {
-        super(HttpStatus.UNPROCESSABLE_CONTENT, type + " cards are issued only after a credit decision");
+        super(HttpStatus.UNPROCESSABLE_CONTENT, "card-type-not-issuable", "{0} cards are issued only after a credit decision",
+                type);
     }
 }

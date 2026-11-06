@@ -6,6 +6,6 @@ import org.springframework.http.HttpStatus;
 public class AccountNotActiveException extends ApplicationException {
 
     public AccountNotActiveException(String accountNumber) {
-        super(HttpStatus.CONFLICT, "Account " + accountNumber + " is not active");
+        super(HttpStatus.CONFLICT, "account-not-active", "Account {0} is not active", accountNumber);
     }
 }

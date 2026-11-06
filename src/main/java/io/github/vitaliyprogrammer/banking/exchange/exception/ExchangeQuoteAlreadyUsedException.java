@@ -6,6 +6,6 @@ import org.springframework.http.HttpStatus;
 public class ExchangeQuoteAlreadyUsedException extends ApplicationException {
 
     public ExchangeQuoteAlreadyUsedException() {
-        super(HttpStatus.CONFLICT, "The quote has already been used");
+        super(HttpStatus.CONFLICT, "exchange-quote-already-used", "The quote has already been used");
     }
 }

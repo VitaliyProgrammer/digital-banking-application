@@ -12,7 +12,7 @@
 ![Redis](https://img.shields.io/badge/Redis-8-DC382D?logo=redis&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)
 
-![Tests](https://img.shields.io/badge/tests-123%20passing-success)
+![Tests](https://img.shields.io/badge/tests-253%20passing-success)
 ![Testcontainers](https://img.shields.io/badge/integration%20tests-Testcontainers-291A3D)
 ![ArchUnit](https://img.shields.io/badge/architecture%20rules-25%20ArchUnit-blueviolet)
 ![k6](https://img.shields.io/badge/load%20tested-k6-7D64FF?logo=k6&logoColor=white)

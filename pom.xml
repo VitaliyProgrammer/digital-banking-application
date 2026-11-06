@@ -177,6 +177,27 @@
                     </annotationProcessorPaths>
                 </configuration>
             </plugin>
+            <!-- Sets ${org.mockito:mockito-core:jar} to the path of the Mockito jar, for the agent below. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>properties</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Mockito as a Java agent from the start, instead of attaching itself while the tests run:
+                 the JDK warns that loading agents at runtime will be disallowed in a future release. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>-javaagent:${org.mockito:mockito-core:jar}</argLine>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>

@@ -1,6 +1,6 @@
 # 🧪 Testing
 
-![tests](https://img.shields.io/badge/tests-264%20passing-success)
+![tests](https://img.shields.io/badge/tests-274%20passing-success)
 ![real infrastructure](https://img.shields.io/badge/integration-real%20PostgreSQL%20·%20Redis%20·%20RabbitMQ%20·%20SMTP-291A3D)
 ![ArchUnit](https://img.shields.io/badge/architecture-28%20rules-blueviolet)
 ![k6](https://img.shields.io/badge/load-k6-7D64FF?logo=k6&logoColor=white)
@@ -15,7 +15,7 @@
 
 | Level | Count | Speed | What it covers |
 |---|---|---|---|
-| 🧮 Unit | 18 classes | milliseconds | rules of money, cards and payments; scoring, credit terms, grace period, backoff, notification texts |
+| 🧮 Unit | 19 classes | milliseconds | rules of money, cards and payments; scoring, credit terms, grace period, backoff, notification texts |
 | 🏛️ Architecture | 28 rules | seconds | layers and table ownership ([ArchUnit](../src/test/java/io/github/vitaliyprogrammer/banking/ArchitectureTests.java)) |
 | 🐘 Integration | 25 classes | ~3 minutes in all | services and HTTP on real PostgreSQL, Redis, RabbitMQ, an SMTP server and HTTP fakes |
 | 🔥 Load | 3 scenarios | minutes, on demand | [k6](../load-tests/README.md) against the running stack |
@@ -79,6 +79,7 @@ A bug that leaks one kopiyka anywhere fails the next test that runs.
 | Mail down loses an email | `aMailServerThatIsDownDelaysTheEmailButNeverLosesTheNotification` |
 | A slow mail server loses the "password changed" warning | `oneFailedTryIsRetried` |
 | A third PIN guess on a locked card | `lockedCardRefusesEvenTheRightPin` |
+| A provider answers "200" with a body that cannot be read | `unreadableAnswerIsUnclear` |
 | Two employees take one ticket | `ofSeveralEmployeesTakingTheSameTicketAtOnceExactlyOneWins` |
 | A stolen refresh token is replayed | [`AuthenticationFlowIntegrationTests`](../src/test/java/io/github/vitaliyprogrammer/banking/identity/AuthenticationFlowIntegrationTests.java) |
 | The audit log is rewritten | `theAuditLogCannotBeRewrittenEvenWithPlainSql` |

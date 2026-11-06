@@ -15,9 +15,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 /**
  * Translates HTTP into business meaning. The key distinction is between "the request never left"
@@ -61,7 +60,9 @@ public class HttpProviderClient implements ProviderClient {
         } catch (HttpClientErrorException e) {
             // 4xx: the provider received the request and refused it, e.g. an unknown personal account.
             return new ProviderCallResult(ProviderOutcome.REJECTED, "Provider refused the payment: " + e.getStatusCode());
-        } catch (HttpServerErrorException | ResourceAccessException e) {
+        } catch (RestClientException e) {
+            // Everything else: a 5xx, a timeout, or an answer cut off halfway (the provider said 200, then the
+            // connection dropped). The provider may have taken the money, so this is never a crash and never a "no".
             return unclear(e, request.reference());
         }
     }
@@ -81,7 +82,7 @@ public class HttpProviderClient implements ProviderClient {
                 return ProviderCallResult.of(ProviderOutcome.NOT_FOUND);
             }
             return new ProviderCallResult(ProviderOutcome.NO_ANSWER, "Status check refused: " + e.getStatusCode());
-        } catch (HttpServerErrorException | ResourceAccessException e) {
+        } catch (RestClientException e) {
             return unclear(e, reference);
         }
     }
@@ -100,7 +101,10 @@ public class HttpProviderClient implements ProviderClient {
         return new ProviderCallResult(ProviderOutcome.NO_ANSWER, "Unexpected provider response: " + response);
     }
 
-    /** A refused connection means nothing was sent; a timeout or 5xx means the request may have been processed. */
+    /**
+     * A refused connection means nothing was sent; a timeout, a 5xx or a broken answer means the request may have
+     * been processed.
+     */
     private static ProviderCallResult unclear(RuntimeException e, UUID reference) {
 
         if (e.getCause() instanceof ConnectException || e.getCause() instanceof HttpConnectTimeoutException) {

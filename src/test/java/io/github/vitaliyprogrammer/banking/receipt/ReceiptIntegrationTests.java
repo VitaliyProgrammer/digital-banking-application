@@ -122,7 +122,7 @@ class ReceiptIntegrationTests extends IntegrationTest {
         assertThat(textOf(receiptService.getReceipt(clientId, cardTransfer().id()), "card"))
                 .contains("Переказ з картки на картку", "Картка VIRTUAL ••••");
         assertThat(textOf(receiptService.getReceipt(clientId, exchange().id()), "exchange"))
-                .contains("Обмін валюти між власними рахунками", "1 $ = 41,0000 ₴", "+24,39 $");
+                .contains("Обмін валюти між власними рахунками", "1 $ = 41,00 ₴", "+24,39 $");
     }
 
     @Test

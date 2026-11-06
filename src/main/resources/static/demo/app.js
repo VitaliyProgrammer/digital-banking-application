@@ -170,6 +170,7 @@ const money = (amount, currency = '') => formatMoney(amount, currency);
 const when = (iso) => formatDateTime(iso);
 /** A calendar day (a due date, ...): no time zone, so it never moves to the day before. */
 const day = (isoDate) => formatDate(isoDate);
+const rate = (value) => formatRate(value);
 const short = (id) => id ? String(id).slice(0, 8) : '—';
 /** A status or type: the colour comes from the code, the words from the dictionary. */
 const badge = (code) => {
@@ -602,8 +603,8 @@ views.exchange = async () => {
     const accounts = (await api('GET', '/accounts')).filter((a) => a.type === 'CLIENT');
     return page(`💱 ${t('nav.exchange')}`, t('exchange.lead'),
         card(`📈 ${t('exchange.rates')}`, table([t('col.currency'), t('exchange.nbu'), t('exchange.bankBuys'), t('exchange.bankSells'), t('exchange.mode')], rates.map((r) => `<tr>
-            <td><b>${r.currency}</b></td><td class="num">${r.officialRate ?? '—'}${r.stale ? ' ⚠️' : ''}</td>
-            <td class="num">${r.buy ?? '—'}</td><td class="num">${r.sell ?? '—'}</td><td>${badge(r.mode || '—')}</td></tr>`),
+            <td><b>${r.currency}</b></td><td class="num">${rate(r.officialRate)}${r.stale ? ' ⚠️' : ''}</td>
+            <td class="num">${rate(r.buy)}</td><td class="num">${rate(r.sell)}</td><td>${badge(r.mode || '—')}</td></tr>`),
             t('exchange.noRates'))),
         card(`🔄 ${t('exchange.between')}`, `<div class="row">
             <div><label>${t('exchange.sellFrom')}</label><select id="fxFrom">${options(accounts, accountLabel)}</select></div>
@@ -613,10 +614,21 @@ views.exchange = async () => {
             <div id="quoteBox">${currentQuote ? quoteHtml(currentQuote) : ''}</div>`, t('exchange.needTwo')));
 };
 
+/**
+ * The quote's rate the way people read it: "1 $ = 41,85 ₴", never "1 ₴ = 0,0239 $". The API keeps the exact
+ * rate (8 decimals) because the amounts are computed from it; the screen only shows it.
+ */
+const quoteRate = (q) => {
+    const sign = (c) => CURRENCY_SIGNS[c] || c;
+    return q.fromCurrency === 'UAH'
+        ? `1 ${sign(q.toCurrency)} = ${rate(1 / Number(q.rate))} ${sign(q.fromCurrency)}`
+        : `1 ${sign(q.fromCurrency)} = ${rate(q.rate)} ${sign(q.toCurrency)}`;
+};
+
 const quoteHtml = (q) => `<div class="stats" style="margin-top:12px">
     <div class="stat"><div class="k">${t('exchange.youSell')}</div><div class="v">${money(q.sellAmount, q.fromCurrency)}</div></div>
     <div class="stat"><div class="k">${t('exchange.youGet')}</div><div class="v">${money(q.buyAmount, q.toCurrency)}</div></div>
-    <div class="stat"><div class="k">${t('exchange.rate')}</div><div class="v">${q.rate}</div></div>
+    <div class="stat"><div class="k">${t('exchange.rate')}</div><div class="v">${quoteRate(q)}</div></div>
     <div class="stat"><div class="k">${t('exchange.priceHolds')}</div><div class="v countdown" id="quoteLeft">…</div></div></div>
     <div class="actions"><button id="acceptQuote" onclick="acceptQuote('${q.id}')">${t('exchange.accept')}</button></div>`;
 
@@ -909,7 +921,7 @@ views.staffRates = async () => {
     const rates = await api('GET', '/exchange-rates');
     return page(`💱 ${t('nav.staffRates')}`, t('staffRates.lead'),
         card(t('staffRates.current'), table([t('col.currency'), t('exchange.nbu'), t('staffRates.buy'), t('staffRates.sell'), t('exchange.mode'), t('staffRates.spread')], rates.map((r) => `<tr><td><b>${r.currency}</b></td>
-            <td class="num">${r.officialRate ?? '—'}</td><td class="num">${r.buy ?? '—'}</td><td class="num">${r.sell ?? '—'}</td>
+            <td class="num">${rate(r.officialRate)}</td><td class="num">${rate(r.buy)}</td><td class="num">${rate(r.sell)}</td>
             <td>${badge(r.mode || '—')}</td><td class="num">${r.spreadPercent ?? '—'}</td></tr>`)) +
             `<div class="actions"><button class="secondary" onclick="syncRates()">${t('staffRates.sync')}</button></div>`),
         card(t('staffRates.set'), `<div class="row">

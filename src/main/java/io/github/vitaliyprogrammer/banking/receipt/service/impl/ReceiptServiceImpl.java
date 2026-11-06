@@ -314,16 +314,16 @@ public class ReceiptServiceImpl implements ReceiptService {
 
     /**
      * The rate the way people read it: always "1 unit of the foreign currency = X". For UAH → USD the stored rate
-     * is "USD per 1 UAH" (0.0244), so it is turned around to "1 $ = 41,0000 ₴".
+     * is "USD per 1 UAH" (0.0244), so it is turned around to "1 $ = 41,00 ₴". Two decimals, like the bank's rates.
      */
     private static String rate(Currency from, Currency to, BigDecimal rate) {
 
         if (from == Currency.UAH) {
-            BigDecimal perUnit = BigDecimal.ONE.divide(rate, 4, RoundingMode.HALF_UP);
+            BigDecimal perUnit = BigDecimal.ONE.divide(rate, 2, RoundingMode.HALF_UP);
             return "1 " + symbol(to) + " = " + number(perUnit) + " " + symbol(from);
         }
 
-        return "1 " + symbol(from) + " = " + number(rate.setScale(4, RoundingMode.HALF_UP)) + " " + symbol(to);
+        return "1 " + symbol(from) + " = " + number(rate.setScale(2, RoundingMode.HALF_UP)) + " " + symbol(to);
     }
 
     private static String number(BigDecimal value) {

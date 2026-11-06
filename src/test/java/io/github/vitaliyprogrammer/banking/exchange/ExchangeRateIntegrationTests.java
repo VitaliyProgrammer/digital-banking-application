@@ -70,14 +70,14 @@ class ExchangeRateIntegrationTests extends IntegrationTest {
         // Hourly re-runs and a second instance see the same day and store nothing.
         assertThat(exchangeRateService.syncOfficialRates().savedRates()).isZero();
 
-        // Public: no token. 1.5% default spread, rounded in the bank's favour: buy down, sell up.
+        // Public: no token. 1.5% default spread (40.8508 / 42.0949), in kopiykas and in the bank's favour: buy down, sell up.
         mockMvc.perform(MockMvcRequestBuilders.get("/exchange-rates"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].currency").value("USD"))
                 .andExpect(jsonPath("$[0].officialRate").value(41.4729))
                 .andExpect(jsonPath("$[0].stale").value(false))
-                .andExpect(jsonPath("$[0].buy").value(40.8508))
-                .andExpect(jsonPath("$[0].sell").value(42.0950))
+                .andExpect(jsonPath("$[0].buy").value(40.85))
+                .andExpect(jsonPath("$[0].sell").value(42.10))
                 .andExpect(jsonPath("$[0].mode").value("SPREAD"));
     }
 
@@ -165,6 +165,10 @@ class ExchangeRateIntegrationTests extends IntegrationTest {
         setUsdRate(adminToken, """
                 {"mode": "MANUAL", "buy": 4.15, "sell": 41.90}
                 """).andExpect(status().isUnprocessableContent());
+        // Rates are in kopiykas: a third decimal is a bad request, not a rounding the admin did not ask for.
+        setUsdRate(adminToken, """
+                {"mode": "MANUAL", "buy": 41.105, "sell": 41.90}
+                """).andExpect(status().isBadRequest());
         setUsdRate(adminToken, """
                 {"mode": "SPREAD", "spreadPercent": 1.00, "buy": 41.00}
                 """).andExpect(status().isUnprocessableContent());

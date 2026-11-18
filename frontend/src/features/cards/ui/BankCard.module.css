@@ -1,0 +1,217 @@
+/* The card of the approved mockup: 430 px wide at most, the ISO card proportions 85.6 × 54 mm. */
+.card {
+  display: block;
+  width: 100%;
+  max-width: 430px;
+  aspect-ratio: 1.586;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-card);
+  background: none;
+  perspective: 1400px;
+  cursor: pointer;
+}
+
+.inner {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.8s cubic-bezier(0.2, 0.75, 0.2, 1);
+}
+
+.card:hover .inner:not(.flipped) {
+  transform: rotateY(-6deg) rotateX(3deg);
+}
+
+.flipped {
+  transform: rotateY(180deg);
+}
+
+.face {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  text-align: left;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.front {
+  padding: 24px 26px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: var(--card-front);
+  box-shadow: var(--card-front-shadow);
+  color: var(--color-on-card);
+}
+
+.glow {
+  position: absolute;
+  inset: 0;
+  background: var(--card-front-glow);
+}
+
+.topRow,
+.bottomRow,
+.chip,
+.number {
+  position: relative;
+}
+
+.topRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+/* Measured with a ruler on the approved mockup: the caps line up with "Taborovets", the right edge with VISA. */
+.product {
+  margin-top: 3.25px;
+  margin-right: -2.5px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  white-space: nowrap;
+  opacity: 0.9;
+}
+
+.chip {
+  display: block;
+  width: 50px;
+  height: 38px;
+  border-radius: 7px;
+  background: var(--card-chip);
+  box-shadow: var(--card-chip-edge);
+}
+
+.number {
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 1px;
+  word-spacing: 4px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: var(--card-emboss);
+  text-shadow: var(--card-emboss-shadow);
+}
+
+.bottomRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.holder {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  color: var(--card-emboss);
+  text-shadow: var(--card-emboss-shadow);
+}
+
+.network {
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.5px;
+  color: var(--color-surface);
+  text-shadow: var(--card-network-shadow);
+}
+
+.back {
+  display: flex;
+  flex-direction: column;
+  background: var(--card-back);
+  color: var(--card-back-text);
+  transform: rotateY(180deg);
+}
+
+.stripe {
+  display: block;
+  height: 46px;
+  margin-top: 24px;
+  background: var(--card-stripe);
+}
+
+.details {
+  padding: 16px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.signatureRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.signature {
+  flex: 1;
+  height: 36px;
+  border-radius: 6px;
+  background: var(--card-signature);
+}
+
+.cvv {
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: var(--color-surface);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.fullNumber {
+  font-family: var(--font-mono);
+  font-size: 21px;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  word-spacing: 4px;
+  text-shadow: var(--card-emboss-shadow);
+}
+
+.detailsFooter {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.muted {
+  opacity: 0.75;
+}
+
+.expiry {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.detailsError {
+  padding: 16px 26px;
+  font-size: 14px;
+}
+
+/* On a narrow phone the embossed number keeps one line. */
+@media (max-width: 420px) {
+  .front {
+    padding: 18px 20px;
+  }
+
+  .number {
+    font-size: 22px;
+  }
+
+  .product {
+    font-size: 10.5px;
+    letter-spacing: 1.2px;
+  }
+}

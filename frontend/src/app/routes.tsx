@@ -5,6 +5,7 @@ import { RegisterPage } from '@/features/auth/pages/RegisterPage';
 import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage';
 import { GuestOnly } from '@/features/auth/routes/GuestOnly';
 import { RequireAuth } from '@/features/auth/routes/RequireAuth';
+import { HomePage } from '@/features/home/pages/HomePage';
 import { SectionPlaceholder } from '@/pages/SectionPlaceholder';
 import { AppLayout } from './layout/AppLayout';
 import { NAVIGATION } from './layout/navigation';
@@ -12,7 +13,8 @@ import type { RouteHandle } from './layout/PageHeading';
 
 const sections: RouteObject[] = NAVIGATION.map((item) => {
   const handle: RouteHandle = item.path === '/' ? {} : { title: item.label };
-  return { path: item.path, element: <SectionPlaceholder />, handle };
+  const element = item.path === '/' ? <HomePage /> : <SectionPlaceholder />;
+  return { path: item.path, element, handle };
 });
 
 export const routes: RouteObject[] = [

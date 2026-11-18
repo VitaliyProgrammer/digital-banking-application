@@ -1,6 +1,6 @@
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { json, mockFetch } from '@/test/fetchMock';
+import { json, mockFetch, problem } from '@/test/fetchMock';
 import { renderApp, TEST_USER } from '@/test/renderApp';
 
 const NOTIFICATIONS = {
@@ -29,8 +29,13 @@ function mockBank(unread: number) {
       url === '/notifications/read-all' && method === 'POST'
         ? new Response(null, { status: 204 })
         : undefined,
+    // The home screen asks for much more; this test is only about the frame around it.
+    () => problem(404, 'not-found', 'Not found'),
   );
 }
+
+/** The name declension library is loaded on demand: the first test of a run waits for it to load. */
+const LAZY_LOAD = { timeout: 5000 };
 
 describe('AppLayout', () => {
   afterEach(() => {
@@ -44,7 +49,9 @@ describe('AppLayout', () => {
 
     renderApp('/', { loggedIn: true });
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Добрий день, Іване!' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Добрий день, Іване!' }, LAZY_LOAD),
+    ).toBeInTheDocument();
   });
 
   it('wishes a good evening from 17:00 in Kyiv', async () => {
@@ -55,7 +62,7 @@ describe('AppLayout', () => {
     renderApp('/', { loggedIn: true });
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Добрий вечір, Іване!' }),
+      await screen.findByRole('heading', { level: 1, name: 'Добрий вечір, Іване!' }, LAZY_LOAD),
     ).toBeInTheDocument();
   });
 

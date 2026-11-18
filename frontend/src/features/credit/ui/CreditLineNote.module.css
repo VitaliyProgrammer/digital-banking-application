@@ -1,0 +1,20 @@
+.note {
+  width: 100%;
+  max-width: 430px;
+  margin: 0;
+  padding: 12px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border-radius: var(--radius-lg);
+  background: var(--color-tint);
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--color-text-on-tint);
+}
+
+.icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--color-brand);
+}

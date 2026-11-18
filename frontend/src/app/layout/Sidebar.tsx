@@ -15,27 +15,29 @@ export function Sidebar({ open, onNavigate }: SidebarProps) {
 
   return (
     <aside id="sidebar" className={cn(styles.sidebar, open && styles.open)}>
-      <div className={styles.logo}>
-        <Logo />
-      </div>
+      <div className={styles.inner}>
+        <div className={styles.logo}>
+          <Logo />
+        </div>
 
-      <nav aria-label={t('nav.label')}>
-        <ul className={styles.list}>
-          {NAVIGATION.map((item) => (
-            <li key={item.path}>
-              <NavLink
-                to={item.path}
-                end={item.path === '/'}
-                className={({ isActive }) => cn(styles.link, isActive && styles.active)}
-                onClick={onNavigate}
-              >
-                {t(`nav.${item.label}`)}
-                {item.tag && <span className={styles.tag}>{t(`nav.${item.tag}`)}</span>}
-              </NavLink>
-            </li>
-          ))}
-        </ul>
-      </nav>
+        <nav aria-label={t('nav.label')}>
+          <ul className={styles.list}>
+            {NAVIGATION.map((item) => (
+              <li key={item.path}>
+                <NavLink
+                  to={item.path}
+                  end={item.path === '/'}
+                  className={({ isActive }) => cn(styles.link, isActive && styles.active)}
+                  onClick={onNavigate}
+                >
+                  {t(`nav.${item.label}`)}
+                  {item.tag && <span className={styles.tag}>{t(`nav.${item.tag}`)}</span>}
+                </NavLink>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </div>
     </aside>
   );
 }

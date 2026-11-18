@@ -47,6 +47,37 @@
   box-shadow: var(--button-soft-shadow-hover);
 }
 
+/* The small grey action of the mockup ("Заблокувати", "Змінити PIN"). */
+.ghost {
+  min-height: 0;
+  padding: 9px 12px;
+  gap: 7px;
+  border-radius: var(--radius-sm);
+  background: var(--color-page);
+  font-size: 13.5px;
+  color: var(--color-ghost-text);
+}
+
+.ghost:hover:not(:disabled) {
+  transform: none;
+  background: var(--color-ghost-hover);
+  color: var(--color-text);
+}
+
+a.button,
+a.button:hover {
+  text-decoration: none;
+}
+
+.primary:hover,
+a.primary:hover {
+  color: var(--button-primary-text);
+}
+
+a.soft:hover {
+  color: var(--color-text);
+}
+
 .fullWidth {
   width: 100%;
 }

@@ -7,6 +7,8 @@ const LOCALES: Record<Language, string> = { uk: 'uk-UA', en: 'en-GB' };
 
 const EVENING_STARTS_AT_HOUR = 17;
 
+const NBSP = '\u00A0';
+
 export function kyivHour(date: Date): number {
   return Number(
     new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hourCycle: 'h23', timeZone: BANK_TIME_ZONE }).format(
@@ -49,6 +51,59 @@ export function formatShortDateTime(date: Date, language: Language): string {
     hourCycle: 'h23',
     timeZone: BANK_TIME_ZONE,
   }).format(date);
+}
+
+/** A calendar day without time: the way the bank sends dates ("2026-12-31"). */
+export interface CalendarDay {
+  year: number;
+  /** 1–12 */
+  month: number;
+  day: number;
+}
+
+/** Today in Kyiv, wherever the computer is. */
+export function kyivToday(now: Date): CalendarDay {
+  const [year, month, day] = new Intl.DateTimeFormat('en-CA', { timeZone: BANK_TIME_ZONE })
+    .format(now)
+    .split('-')
+    .map(Number);
+  return { year: year ?? 1970, month: month ?? 1, day: day ?? 1 };
+}
+
+/** "2026-11-01" */
+export function isoDate({ year, month, day }: CalendarDay): string {
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+export function parseIsoDate(iso: string): CalendarDay {
+  const [year, month, day] = iso.split('-').map(Number);
+  return { year: year ?? 1970, month: month ?? 1, day: day ?? 1 };
+}
+
+export function lastDayOfMonth(year: number, month: number): number {
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+export function nextMonth({ year, month }: Pick<CalendarDay, 'year' | 'month'>): CalendarDay {
+  return month === 12 ? { year: year + 1, month: 1, day: 1 } : { year, month: month + 1, day: 1 };
+}
+
+/** "31 грудня" / "31 December", never split between two lines. */
+export function formatDayMonth(date: CalendarDay, language: Language): string {
+  return new Intl.DateTimeFormat(LOCALES[language], {
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'UTC',
+  })
+    .format(Date.UTC(date.year, date.month - 1, date.day))
+    .replace(/\s/g, NBSP);
+}
+
+/** "листопад" / "November". */
+export function monthName(month: number, language: Language): string {
+  return new Intl.DateTimeFormat(LOCALES[language], { month: 'long', timeZone: 'UTC' }).format(
+    Date.UTC(2000, month - 1, 1),
+  );
 }
 
 /** How many Kyiv calendar days lie between two moments: 0 for the same day, 1 for yesterday. */

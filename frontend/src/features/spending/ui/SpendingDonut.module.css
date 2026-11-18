@@ -1,0 +1,51 @@
+.ring {
+  width: 270px;
+  height: 270px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  box-shadow: var(--donut-shadow);
+}
+
+.hole {
+  width: 176px;
+  height: 176px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  box-shadow: var(--donut-hole-shadow);
+  text-align: center;
+}
+
+.label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.total {
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+@media (max-width: 420px) {
+  .ring {
+    width: 230px;
+    height: 230px;
+  }
+
+  .hole {
+    width: 150px;
+    height: 150px;
+  }
+
+  .total {
+    font-size: 22px;
+  }
+}

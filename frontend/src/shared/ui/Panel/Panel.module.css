@@ -1,0 +1,18 @@
+.panel {
+  min-width: 0;
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
+}
+
+.title {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.message {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}

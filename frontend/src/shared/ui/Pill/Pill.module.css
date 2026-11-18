@@ -1,0 +1,20 @@
+.pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-pill);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.regular {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+/* The savings rate and the cashback categories of the approved mockup. */
+.large {
+  padding: 5px 12px;
+  font-size: 14.5px;
+}

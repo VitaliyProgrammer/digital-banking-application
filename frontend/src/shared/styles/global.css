@@ -23,10 +23,12 @@ body {
 
 a {
   color: var(--color-brand);
+  text-decoration: none;
 }
 
 a:hover {
   color: var(--color-brand-hover);
+  text-decoration: underline;
 }
 
 :focus-visible {

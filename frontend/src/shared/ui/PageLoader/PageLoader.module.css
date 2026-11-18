@@ -1,0 +1,15 @@
+.loader {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+}
+
+.pulse {
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.45;
+  }
+}

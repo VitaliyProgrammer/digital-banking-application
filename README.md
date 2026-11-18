@@ -45,7 +45,7 @@ What makes it more than CRUD is **what happens when things go wrong**: two reque
 | 🔔 | **Notifications** | In-app notifications for every event, email for the important ones |
 | 🎧 | **Support** | Tickets with a staff queue; employees see a client's accounts only for their own ticket |
 | 🕵️ | **Audit** | Append-only log of every staff action, searchable by admins |
-| 🌐 | **Languages** | Ukrainian and English: the demo client switches at once, the API answers errors in the language of `Accept-Language` |
+| 🌐 | **Languages** | Ukrainian and English: the web client switches at once, the API answers errors in the language of `Accept-Language` |
 
 **69 REST endpoints** (plus 2 of the built-in fake providers for the demo), documented with OpenAPI: <http://localhost:8080/swagger-ui.html>.
 
@@ -222,13 +222,13 @@ About a minute later:
 
 | | |
 |---|---|
-| 🖥️ The demo client: accounts, cards, payments, credit, support, and the staff side | <http://localhost:8080> |
+| 🖥️ The web client | <http://localhost:8080> |
 | 📚 API, try every endpoint in the browser | <http://localhost:8080/swagger-ui.html> |
 | 📧 Emails the bank sends (receipts, notifications) | <http://localhost:8025> |
 | 🧑‍💼 Demo admin (credit queue, rates, audit) | `admin@bank.local` / `demo-admin-password` |
 | 🛑 Stop | `docker compose -f docker-compose.demo.yml down` |
 
-**The demo client** ([`static/demo`](src/main/resources/static/demo)) is a small page of plain JavaScript over the same REST API, in Ukrainian and English (УКР / ENG at the top; dates in Kyiv time, while the API itself speaks ISO 8601), with a live log of every call and a *copy as curl* button: open it, register, top up, and follow the bank from there.
+**The web client** ([`frontend/`](frontend)) is React + TypeScript, served by the bank itself under `/app`, in Ukrainian and English. It is being built screen by screen from the approved design: logging in, registration and password reset are there; the rest of the bank follows.
 
 **Or a first tour in Swagger:** `POST /authentication/register` → `POST /authentication/login` → press **Authorize** and paste the `accessToken` → `POST /accounts` (`{"currency": "UAH"}`) → `POST /payments/top-up` → `GET /accounts/{id}/transactions`.
 

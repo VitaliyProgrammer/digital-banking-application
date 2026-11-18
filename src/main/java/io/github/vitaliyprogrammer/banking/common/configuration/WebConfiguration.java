@@ -9,7 +9,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
  * The web client lives under /app, so its routes never collide with the API (/cards is data, /app/cards is a page).
- * Whoever opens the bank's address in a browser lands on the demo client, not on a 401.
+ * Whoever opens the bank's address in a browser lands on the web client, not on a 401.
  */
 @Configuration(proxyBeanMethods = false)
 public class WebConfiguration implements WebMvcConfigurer {
@@ -19,9 +19,7 @@ public class WebConfiguration implements WebMvcConfigurer {
     @Override
     public void addViewControllers(ViewControllerRegistry registry) {
 
-        registry.addRedirectViewController("/", "/demo/index.html");
-        registry.addRedirectViewController("/demo", "/demo/index.html");
-        registry.addRedirectViewController("/demo/", "/demo/index.html");
+        registry.addRedirectViewController("/", "/app/");
         registry.addRedirectViewController("/app", "/app/");
     }
 

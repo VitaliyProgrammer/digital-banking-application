@@ -1,0 +1,90 @@
+.panel {
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.summary {
+  width: 100%;
+  max-width: 430px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.balance {
+  margin: 0;
+  font-size: 44px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -1px;
+}
+
+.sign {
+  color: var(--color-brand);
+}
+
+.caption {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.available {
+  font-size: 17px;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+
+.cardActions {
+  margin-top: -6px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.status {
+  height: 35px;
+  padding: 0 14px;
+  font-size: 14px;
+}
+
+.noCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.actions {
+  width: 100%;
+  max-width: 430px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 420px) {
+  .panel {
+    padding: 20px;
+  }
+
+  .balance {
+    font-size: 36px;
+  }
+}
+
+/* In the mockup the icon and the text of these buttons start at the left edge. */
+.actions > a {
+  justify-content: flex-start;
+}

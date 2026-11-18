@@ -33,6 +33,7 @@
   --color-indicator: #16a34a;
   --color-ghost-text: #36515f;
   --color-ghost-hover: #e6f2dd;
+  --color-operation-outgoing: #f1f5f0;
 
   /* The client's avatar in the header */
   --avatar-background: linear-gradient(135deg, #a3e635, #16a34a);
@@ -62,6 +63,44 @@
   --color-on-card: #f7fee7;
   --color-on-card-accent: #d9f99d;
 
+  /* The bank card */
+  --card-front: linear-gradient(135deg, #14532d 0%, #15803d 45%, #65a30d 100%);
+  --card-front-glow: radial-gradient(440px 210px at 85% 0%, rgba(255, 255, 255, 0.18), transparent 60%);
+  --card-front-shadow: 0 24px 40px -18px rgba(21, 128, 61, 0.7);
+  --card-back: linear-gradient(135deg, #0f2a44, #14532d);
+  --card-back-text: #f0fdf4;
+  --card-stripe: #0b1b2b;
+  --card-signature: repeating-linear-gradient(90deg, #e7f5dc 0 8px, #d3ebc3 8px 16px);
+  --card-chip: linear-gradient(135deg, #fde68a, #d4a72c);
+  --card-chip-edge: inset 0 0 0 1px rgba(120, 80, 0, 0.35);
+  --card-emboss: #f1f5ee;
+  --card-emboss-shadow: 0 1px 0 rgba(0, 0, 0, 0.45), 0 -1px 0 rgba(255, 255, 255, 0.22);
+  --card-network-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+
+  /* "Where the money went": one colour per category */
+  --spending-transfers: #16a34a;
+  --spending-savings: #a3e635;
+  --spending-utilities: #f59e0b;
+  --spending-mobile: #0ea5e9;
+  --spending-internet: #8b5cf6;
+  --spending-empty: #e3eadf;
+  --donut-shadow:
+    0 20px 28px -12px rgba(0, 0, 0, 0.42), 0 7px 11px -5px rgba(0, 0, 0, 0.2), 0 2px 3px rgba(0, 0, 0, 0.12),
+    inset 0 -4px 8px rgba(0, 0, 0, 0.16), inset 0 3px 4px rgba(255, 255, 255, 0.25);
+  --donut-hole-shadow: inset 0 5px 10px rgba(0, 0, 0, 0.2);
+  --legend-swatch-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+
+  /* Pills of the savings and cashback panels */
+  --pill-savings: #ebf8ce;
+  --pill-savings-text: #3f6212;
+  --pill-mobile: #e2f2fc;
+  --pill-mobile-text: #075985;
+  --pill-internet: #ece7fd;
+  --pill-internet-text: #5b21b6;
+  --pill-utilities: #fdf2cb;
+  --pill-utilities-text: #92400e;
+  --progress-fill: linear-gradient(90deg, #bef264, #22c55e);
+
   /* Logo bars, top to bottom of each gradient */
   --logo-bar-low: linear-gradient(180deg, #d9f99d 0%, #a3e635 100%);
   --logo-bar-mid: linear-gradient(180deg, #86efac 0%, #22c55e 100%);
@@ -86,6 +125,8 @@
   /* Elevation */
   --shadow-panel: 0 20px 40px -28px rgba(15, 42, 68, 0.35), 0 0 0 1px var(--color-border-panel);
   --shadow-control: 0 6px 14px -8px rgba(15, 42, 68, 0.35), 0 0 0 1px var(--color-border-control);
+  --shadow-segment-active: 0 4px 10px -4px rgba(15, 42, 68, 0.35);
+  --shadow-control-hover: 0 8px 18px -8px rgba(15, 42, 68, 0.4), 0 0 0 1px var(--color-border-accent);
   --color-overlay: rgba(15, 42, 68, 0.32);
   --shadow-popover: 0 24px 40px -16px rgba(15, 42, 68, 0.45), 0 0 0 1px var(--color-border-control);
 }

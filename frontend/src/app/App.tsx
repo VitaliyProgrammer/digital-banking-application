@@ -1,10 +1,13 @@
-import { Logo } from '@/shared/ui/Logo/Logo';
-import styles from './App.module.css';
+import { createBrowserRouter, RouterProvider } from 'react-router';
+import { AuthProvider } from '@/features/auth/model/AuthProvider';
+import { routes } from './routes';
+
+const router = createBrowserRouter(routes, { basename: '/app' });
 
 export function App() {
   return (
-    <main className={styles.splash}>
-      <Logo />
-    </main>
+    <AuthProvider>
+      <RouterProvider router={router} />
+    </AuthProvider>
   );
 }

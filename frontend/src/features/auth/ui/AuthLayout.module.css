@@ -1,0 +1,144 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 24px max(16px, env(safe-area-inset-right, 0px)) 48px max(16px, env(safe-area-inset-left, 0px));
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+}
+
+/* On a phone the bank panel is hidden, so the logo moves to the top bar. */
+.compactLogo {
+  display: none;
+}
+
+.layout {
+  flex: 1;
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 440px);
+  align-items: center;
+  gap: 64px;
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 28px;
+}
+
+.brandTitle {
+  margin: 0;
+  max-width: 400px;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+  text-wrap: balance;
+}
+
+.features {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.feature {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.check {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--color-mint);
+  color: var(--color-brand);
+}
+
+.panel {
+  padding: 36px;
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.heading {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.title {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 15px;
+  color: var(--color-text-muted);
+}
+
+.footer {
+  padding-top: 20px;
+  border-top: 1px solid var(--color-border);
+  font-size: 14px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.footer a {
+  font-weight: 700;
+}
+
+@media (max-width: 860px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    align-content: start;
+    gap: 28px;
+    max-width: 480px;
+    padding-top: 12px;
+  }
+
+  .topBar {
+    justify-content: space-between;
+  }
+
+  .compactLogo {
+    display: block;
+  }
+
+  .brand {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .panel {
+    padding: 24px 20px;
+  }
+}

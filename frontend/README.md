@@ -31,12 +31,16 @@ The dev server forwards every API call to `http://localhost:8080`.
 
 ```
 src/
-├── app/            the application shell
+├── app/            the application shell and routes
+├── features/       one folder per part of the bank (auth, …): api, model, pages, ui
+├── pages/          screens that belong to no single feature
 ├── shared/
+│   ├── api/        HTTP client, tokens, API errors
+│   ├── i18n/       Ukrainian and English texts
 │   ├── lib/        small helpers
 │   ├── styles/     design tokens and global styles
-│   └── ui/         reusable components (Logo, …)
-└── test/           test setup
+│   └── ui/         reusable components
+└── test/           test setup and the fake bank for tests
 ```
 
 All colours, sizes, radii and shadows come from `shared/styles/tokens.css`, which follows the approved mockup.

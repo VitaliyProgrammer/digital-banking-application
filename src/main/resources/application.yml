@@ -205,7 +205,7 @@ banking:
   password-reset:
     token-ttl: 30m
     # The page the emailed link opens; in production, the bank's real web address.
-    link-base: ${PASSWORD_RESET_LINK_BASE:http://localhost:8080/demo/reset.html}
+    link-base: ${PASSWORD_RESET_LINK_BASE:http://localhost:8080/app/reset-password}
     mail-from: ${PASSWORD_RESET_MAIL_FROM:Taborovets Universal Bank <no-reply@digital-bank.local>}
     max-requests: 3
     request-window: 1h

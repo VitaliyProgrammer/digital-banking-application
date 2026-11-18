@@ -3,7 +3,7 @@
 #   curl -O https://raw.githubusercontent.com/VitaliyProgrammer/digital-banking-application/main/docker-compose.demo.yml
 #   docker compose -f docker-compose.demo.yml up -d
 #
-# Then: http://localhost:8080 (the demo client), http://localhost:8080/swagger-ui.html (API),
+# Then: http://localhost:8080 (the web client), http://localhost:8080/swagger-ui.html (API),
 # http://localhost:8025 (emails the bank sends).
 # Demo admin: admin@bank.local / demo-admin-password. Stop with: docker compose -f docker-compose.demo.yml down
 #

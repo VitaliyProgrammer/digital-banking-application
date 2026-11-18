@@ -39,7 +39,7 @@ class PasswordResetMailerTests {
     @BeforeEach
     void setUp() {
         mailer = new PasswordResetMailer(mailSender, new PasswordResetProperties(Duration.ofMinutes(30),
-                "http://localhost:8080/demo/reset.html", "no-reply@digital-bank.local", 3, Duration.ofHours(1)));
+                "http://localhost:8080/app/reset-password", "no-reply@digital-bank.local", 3, Duration.ofHours(1)));
         when(mailSender.createMimeMessage()).thenReturn(new MimeMessage((Session) null));
     }
 

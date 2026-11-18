@@ -1,14 +1,22 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { clearTokens, getRefreshToken, onSessionEnd, saveTokens } from '@/shared/api/tokenStore';
 import { authApi, type Credentials } from '../api/authApi';
 import { AuthContext, type AuthState } from './AuthContext';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
   const [state, setState] = useState<AuthState>(() =>
     getRefreshToken() ? { status: 'restoring' } : { status: 'anonymous' },
   );
 
-  useEffect(() => onSessionEnd(() => setState({ status: 'anonymous' })), []);
+  /** Nothing of the previous client may stay on the screen or in the cache for the next one. */
+  const becomeAnonymous = useCallback(() => {
+    setState({ status: 'anonymous' });
+    queryClient.clear();
+  }, [queryClient]);
+
+  useEffect(() => onSessionEnd(becomeAnonymous), [becomeAnonymous]);
 
   useEffect(() => {
     if (state.status !== 'restoring') {
@@ -19,9 +27,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then((user) => setState({ status: 'authenticated', user }))
       .catch(() => {
         clearTokens();
-        setState({ status: 'anonymous' });
+        becomeAnonymous();
       });
-  }, [state.status]);
+  }, [state.status, becomeAnonymous]);
 
   const login = useCallback(async (credentials: Credentials) => {
     saveTokens(await authApi.login(credentials));
@@ -32,12 +40,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     const refreshToken = getRefreshToken();
     clearTokens();
-    setState({ status: 'anonymous' });
+    becomeAnonymous();
     if (refreshToken) {
       // The client is logged out on this device at once; the bank revokes the token in the background.
       await authApi.logout(refreshToken).catch(() => undefined);
     }
-  }, []);
+  }, [becomeAnonymous]);
 
   const value = useMemo(() => ({ state, login, logout }), [state, login, logout]);
 

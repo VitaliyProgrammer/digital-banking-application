@@ -1,0 +1,63 @@
+/* Design tokens of the approved mockup (canvas v36). Components use these and never raw values. */
+:root {
+  /* Text */
+  --color-text: #0f2a44;
+  --color-text-secondary: #3b4b5e;
+  --color-text-muted: #5a6b7b;
+  --color-text-soft: #4b6070;
+  --color-text-on-tint: #26404f;
+
+  /* Surfaces */
+  --color-page: #f3f7f1;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f7faf5;
+  --color-surface-soft: #f6faf3;
+  --color-segment: #eef3ec;
+  --color-tint: #f3fbea;
+  --color-nav-hover: #f1f7ec;
+
+  /* Lines */
+  --color-border: #e3eadf;
+  --color-border-panel: #e6ece3;
+  --color-border-control: #e2e8e0;
+  --color-border-accent: #bbf7d0;
+
+  /* Brand */
+  --color-brand: #15803d;
+  --color-brand-hover: #0f5f2c;
+  --color-brand-dark: #14532d;
+  --color-brand-darkest: #0b3b1e;
+  --color-mint: #dcfce7;
+  --color-lime-soft: #ecfccb;
+  --color-positive: #15803d;
+
+  /* Text on the green bank card */
+  --color-on-card: #f7fee7;
+  --color-on-card-accent: #d9f99d;
+
+  /* Logo bars, top to bottom of each gradient */
+  --logo-bar-low: linear-gradient(180deg, #d9f99d 0%, #a3e635 100%);
+  --logo-bar-mid: linear-gradient(180deg, #86efac 0%, #22c55e 100%);
+  --logo-bar-high: linear-gradient(180deg, #4ade80 0%, #16a34a 100%);
+  --logo-bar-high-on-dark: linear-gradient(180deg, #bbf7d0 0%, #4ade80 100%);
+  --logo-shadow: 0 3px 5px rgba(21, 128, 61, 0.16);
+  --logo-text-shadow: 0 1px 2px rgba(15, 42, 68, 0.22);
+
+  /* Typography */
+  --font-sans: 'Manrope', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, Consolas, monospace;
+
+  /* Radii */
+  --radius-sm: 10px;
+  --radius-md: 12px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-card: 22px;
+  --radius-panel: 24px;
+  --radius-pill: 999px;
+
+  /* Elevation */
+  --shadow-panel: 0 20px 40px -28px rgba(15, 42, 68, 0.35), 0 0 0 1px var(--color-border-panel);
+  --shadow-control: 0 6px 14px -8px rgba(15, 42, 68, 0.35), 0 0 0 1px var(--color-border-control);
+  --shadow-popover: 0 24px 40px -16px rgba(15, 42, 68, 0.45), 0 0 0 1px var(--color-border-control);
+}

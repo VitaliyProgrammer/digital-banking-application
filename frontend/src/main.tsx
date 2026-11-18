@@ -4,6 +4,7 @@ import '@fontsource/manrope/700.css';
 import '@fontsource/manrope/800.css';
 import '@fontsource/ibm-plex-mono/500.css';
 import '@/shared/styles/global.css';
+import '@/shared/i18n/i18n';
 
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';

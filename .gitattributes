@@ -8,5 +8,7 @@
 
 # Binary files are never touched: a "fixed" line ending inside a font or an image corrupts it.
 *.ttf binary
+*.woff binary
+*.woff2 binary
 *.png binary
 *.pdf binary

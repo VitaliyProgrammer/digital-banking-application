@@ -1,6 +1,10 @@
 # Build output
 target/
 
+# Web client: dependencies, and the build that Spring Boot serves (made by "npm run build" or the Docker image)
+frontend/node_modules/
+src/main/resources/static/app/
+
 # IntelliJ IDEA
 .idea/
 *.iml

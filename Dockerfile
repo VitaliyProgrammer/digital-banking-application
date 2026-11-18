@@ -1,6 +1,19 @@
 # syntax=docker/dockerfile:1
 
-# ---- Stage 1: build -------------------------------------------------------------------------------
+# ---- Stage 1: web client --------------------------------------------------------------------------
+# Node lives only here. The result is plain static files that Spring Boot serves under /app.
+FROM --platform=$BUILDPLATFORM node:24-alpine AS web-client
+WORKDIR /workspace/frontend
+
+# Dependencies first, the code later: as long as package-lock.json does not change, this layer comes from the cache.
+COPY frontend/package.json frontend/package-lock.json ./
+RUN --mount=type=cache,target=/root/.npm npm ci
+
+COPY frontend/ ./
+# The build writes to ../src/main/resources/static/app, i.e. /workspace/src/main/resources/static/app.
+RUN npm run build
+
+# ---- Stage 2: build -------------------------------------------------------------------------------
 # The JDK and Maven live only here: none of it reaches the image that runs in production.
 # BUILDPLATFORM: the jar is the same for every CPU, so it is built natively on the build machine even when the image
 # is for another architecture (arm64 for Apple silicon). Only the thin runtime stage is per architecture.
@@ -13,6 +26,7 @@ COPY mvnw pom.xml ./
 RUN --mount=type=cache,target=/root/.m2 ./mvnw -B -q dependency:go-offline
 
 COPY src/ src/
+COPY --from=web-client /workspace/src/main/resources/static/app/ src/main/resources/static/app/
 # Tests run in CI against real containers; here we only package what CI already tested.
 RUN --mount=type=cache,target=/root/.m2 ./mvnw -B -q package -DskipTests
 
@@ -20,7 +34,7 @@ RUN --mount=type=cache,target=/root/.m2 ./mvnw -B -q package -DskipTests
 RUN java -Djarmode=tools -jar target/digital-banking-application-*.jar extract --layers --launcher \
         --destination target/extracted
 
-# ---- Stage 2: run ---------------------------------------------------------------------------------
+# ---- Stage 3: run ---------------------------------------------------------------------------------
 FROM eclipse-temurin:25-jre-alpine
 
 # A dedicated user: whoever breaks into the application is not root in the container.
@@ -38,19 +52,12 @@ USER bank
 
 EXPOSE 8080 8081
 
-EXPOSE 8080
-
-
 # The heap follows the container's memory limit, not the memory of the whole machine.
 ENV JAVA_OPTS="-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError"
 
 # "Running" is not "ready": Docker asks the application itself. Spring needs a while to start, hence start-period.
 HEALTHCHECK --interval=15s --timeout=3s --start-period=60s --retries=3 \
-
-CMD wget -qO- http://localhost:8081/actuator/health | grep -q '"status":"UP"' || exit 1
-
-CMD wget -qO- http://localhost:8080/actuator/health | grep -q '"status":"UP"' || exit 1
-
+    CMD wget -qO- http://localhost:8081/actuator/health | grep -q '"status":"UP"' || exit 1
 
 # exec: java becomes PID 1 and gets SIGTERM directly, so Spring shuts down gracefully on "docker stop".
 ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS org.springframework.boot.loader.launch.JarLauncher"]

@@ -8,8 +8,10 @@ import io.github.vitaliyprogrammer.banking.payment.dto.request.SavingsTransferRe
 import io.github.vitaliyprogrammer.banking.payment.dto.request.TopUpRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.request.TransferRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.response.PaymentResponseDto;
+import io.github.vitaliyprogrammer.banking.payment.dto.response.SpendingResponseDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.response.ProviderResponseDto;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -51,4 +53,7 @@ public interface PaymentService {
     ProviderResponseDto getProvider(UUID providerId);
 
     PaymentResponseDto getPayment(UUID userId, UUID paymentId);
+
+    /** Where the client's money went between two days, both included, in Kyiv time. */
+    SpendingResponseDto getSpending(UUID userId, LocalDate from, LocalDate to);
 }

@@ -6,6 +6,7 @@ import io.github.vitaliyprogrammer.banking.payment.dto.request.CardTransferReque
 import io.github.vitaliyprogrammer.banking.payment.dto.request.TopUpRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.request.TransferRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.response.PaymentResponseDto;
+import io.github.vitaliyprogrammer.banking.payment.dto.response.SpendingResponseDto;
 import io.github.vitaliyprogrammer.banking.payment.service.PaymentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -14,6 +15,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import java.time.LocalDate;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -23,6 +25,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -77,6 +80,18 @@ public class PaymentController {
                                            @Valid @RequestBody CardTransferRequestDto request) {
 
         return paymentService.cardTransfer(userId, idempotencyKey, request);
+    }
+
+    @GetMapping("/spending")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Where my money went",
+            description = "Completed hryvnia payments between two days (both included, Kyiv time), by category: "
+                    + "transfers to other people, savings jars, utilities, mobile, internet. At most 366 days")
+    public SpendingResponseDto getSpending(@CurrentUserId UUID userId,
+                                           @RequestParam LocalDate from,
+                                           @RequestParam LocalDate to) {
+
+        return paymentService.getSpending(userId, from, to);
     }
 
     @GetMapping("/{paymentId}")

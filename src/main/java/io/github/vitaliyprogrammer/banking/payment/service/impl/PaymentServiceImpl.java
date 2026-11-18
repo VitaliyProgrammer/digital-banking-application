@@ -28,6 +28,7 @@ import io.github.vitaliyprogrammer.banking.payment.dto.request.TopUpRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.request.TransferRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.response.PaymentResponseDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.response.ProviderResponseDto;
+import io.github.vitaliyprogrammer.banking.payment.dto.response.SpendingResponseDto;
 import io.github.vitaliyprogrammer.banking.payment.entity.Payment;
 import io.github.vitaliyprogrammer.banking.payment.entity.Provider;
 import io.github.vitaliyprogrammer.banking.payment.entity.status.PaymentType;
@@ -43,6 +44,7 @@ import io.github.vitaliyprogrammer.banking.payment.exception.RepaymentExceedsDeb
 import io.github.vitaliyprogrammer.banking.payment.exception.RepaymentNotNeededException;
 import io.github.vitaliyprogrammer.banking.payment.exception.SameAccountTransferException;
 import io.github.vitaliyprogrammer.banking.payment.repository.PaymentRepository;
+import io.github.vitaliyprogrammer.banking.payment.repository.SpendingRow;
 import io.github.vitaliyprogrammer.banking.payment.repository.ProviderRepository;
 import io.github.vitaliyprogrammer.banking.payment.service.PaymentService;
 import io.github.vitaliyprogrammer.banking.payment.service.impl.fee.FeeCalculator;
@@ -51,14 +53,17 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -214,6 +219,19 @@ public class PaymentServiceImpl implements PaymentService {
         return paymentRepository.findByIdAndInitiatorId(paymentId, userId)
                 .map(PaymentResponseDto::from)
                 .orElseThrow(PaymentNotFoundException::new);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public SpendingResponseDto getSpending(UUID userId, LocalDate from, LocalDate to) {
+
+        SpendingReport.checkPeriod(from, to);
+
+        Map<String, BigDecimal> sumsByKind = paymentRepository
+                .sumSpending(userId, SpendingReport.startOf(from), SpendingReport.endOf(to)).stream()
+                .collect(Collectors.toMap(SpendingRow::getKind, SpendingRow::getAmount));
+
+        return SpendingReport.build(from, to, sumsByKind);
     }
 
     /**

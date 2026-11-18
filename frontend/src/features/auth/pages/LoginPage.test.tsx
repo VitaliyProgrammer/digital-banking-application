@@ -1,33 +1,12 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { createMemoryRouter, RouterProvider } from 'react-router';
-import { routes } from '@/app/routes';
 import { json, mockFetch, problem } from '@/test/fetchMock';
-import { AuthProvider } from '../model/AuthProvider';
-
-const USER = {
-  id: 'u1',
-  email: 'ivan@example.com',
-  firstName: 'Іван',
-  lastName: 'Петренко',
-  role: 'CLIENT',
-  createdAt: '2026-11-01T10:00:00Z',
-};
-
-function openPage(path: string) {
-  const router = createMemoryRouter(routes, { initialEntries: [path] });
-  render(
-    <AuthProvider>
-      <RouterProvider router={router} />
-    </AuthProvider>,
-  );
-  return router;
-}
+import { renderApp, TEST_USER } from '@/test/renderApp';
 
 describe('LoginPage', () => {
   it('points at the empty fields instead of calling the bank', async () => {
     const fetchMock = mockFetch();
-    openPage('/login');
+    renderApp('/login');
 
     await userEvent.click(screen.getByRole('button', { name: 'Увійти' }));
 
@@ -41,7 +20,7 @@ describe('LoginPage', () => {
         ? problem(401, 'invalid-credentials', 'Неправильний email або пароль')
         : undefined,
     );
-    openPage('/login');
+    renderApp('/login');
 
     await userEvent.type(screen.getByLabelText('Email'), 'ivan@example.com');
     await userEvent.type(screen.getByLabelText('Пароль'), 'wrong-password');
@@ -56,15 +35,16 @@ describe('LoginPage', () => {
         url === '/authentication/login'
           ? json({ accessToken: 'access', refreshToken: 'refresh', tokenType: 'Bearer', expiresIn: 900 })
           : undefined,
-      ({ url }) => (url === '/users/me' ? json(USER) : undefined),
+      ({ url }) => (url === '/users/me' ? json(TEST_USER) : undefined),
+      ({ url }) => (url.startsWith('/notifications') ? json({ unread: 0 }) : undefined),
     );
-    const router = openPage('/');
+    const router = renderApp('/cards');
 
     await userEvent.type(await screen.findByLabelText('Email'), 'ivan@example.com');
     await userEvent.type(screen.getByLabelText('Пароль'), 'correct-password');
     await userEvent.click(screen.getByRole('button', { name: 'Увійти' }));
 
-    expect(await screen.findByText('Ви увійшли як Іван Петренко')).toBeInTheDocument();
-    expect(router.state.location.pathname).toBe('/');
+    expect(await screen.findByRole('heading', { level: 1, name: 'Картки' })).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/cards');
   });
 });

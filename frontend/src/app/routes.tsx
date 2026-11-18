@@ -5,7 +5,15 @@ import { RegisterPage } from '@/features/auth/pages/RegisterPage';
 import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage';
 import { GuestOnly } from '@/features/auth/routes/GuestOnly';
 import { RequireAuth } from '@/features/auth/routes/RequireAuth';
-import { HomePage } from '@/pages/HomePage';
+import { SectionPlaceholder } from '@/pages/SectionPlaceholder';
+import { AppLayout } from './layout/AppLayout';
+import { NAVIGATION } from './layout/navigation';
+import type { RouteHandle } from './layout/PageHeading';
+
+const sections: RouteObject[] = NAVIGATION.map((item) => {
+  const handle: RouteHandle = item.path === '/' ? {} : { title: item.label };
+  return { path: item.path, element: <SectionPlaceholder />, handle };
+});
 
 export const routes: RouteObject[] = [
   {
@@ -20,7 +28,7 @@ export const routes: RouteObject[] = [
   { path: '/reset-password', element: <ResetPasswordPage /> },
   {
     element: <RequireAuth />,
-    children: [{ path: '/', element: <HomePage /> }],
+    children: [{ element: <AppLayout />, children: sections }],
   },
   { path: '*', element: <Navigate to="/" replace /> },
 ];

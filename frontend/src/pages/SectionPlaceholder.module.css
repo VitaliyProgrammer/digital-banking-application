@@ -1,0 +1,12 @@
+.panel {
+  padding: 28px;
+  border-radius: var(--radius-panel);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
+}
+
+.text {
+  margin: 0;
+  font-size: 15px;
+  color: var(--color-text-muted);
+}

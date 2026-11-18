@@ -1,5 +1,7 @@
 # Only what the build needs goes into the build context: smaller, faster, and no secrets by accident.
 target/
+frontend/node_modules/
+src/main/resources/static/app/
 .git/
 .github/
 .idea/

@@ -70,7 +70,43 @@ export const uk = {
       toLogin: 'Увійти',
     },
   },
-  home: {
-    signedInAs: 'Ви увійшли як {{name}}',
+  nav: {
+    label: 'Головне меню',
+    open: 'Відкрити меню',
+    close: 'Закрити меню',
+    home: 'Головна',
+    accounts: 'Рахунки',
+    cards: 'Картки',
+    transfers: 'Перекази',
+    payments: 'Платежі',
+    exchange: 'Обмін валют',
+    savings: 'Скарбнички',
+    cashback: 'Кешбек',
+    creditLine: 'Кредитна лінія',
+    business: 'ФОП і податки',
+    businessTag: 'для ФОП',
+    support: 'Підтримка',
+  },
+  greeting: {
+    day: 'Добрий день, {{name}}!',
+    evening: 'Добрий вечір, {{name}}!',
+  },
+  account: {
+    menu: 'Меню профілю',
+  },
+  notifications: {
+    title: 'Сповіщення',
+    bell: 'Сповіщення',
+    bellUnread: 'Сповіщення, непрочитаних: {{count}}',
+    readAll: 'Прочитати всі',
+    empty: 'Поки що сповіщень немає',
+    loadFailed: 'Не вдалося завантажити сповіщення',
+  },
+  time: {
+    today: 'сьогодні, {{time}}',
+    yesterday: 'вчора, {{time}}',
+  },
+  section: {
+    soon: 'Цей розділ з’явиться в наступних оновленнях кабінету.',
   },
 } as const;

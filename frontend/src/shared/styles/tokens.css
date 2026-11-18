@@ -30,6 +30,12 @@
   --color-mint: #dcfce7;
   --color-lime-soft: #ecfccb;
   --color-positive: #15803d;
+  --color-indicator: #16a34a;
+  --color-ghost-text: #36515f;
+  --color-ghost-hover: #e6f2dd;
+
+  /* The client's avatar in the header */
+  --avatar-background: linear-gradient(135deg, #a3e635, #16a34a);
 
   /* Errors */
   --color-danger: #b91c1c;
@@ -80,5 +86,6 @@
   /* Elevation */
   --shadow-panel: 0 20px 40px -28px rgba(15, 42, 68, 0.35), 0 0 0 1px var(--color-border-panel);
   --shadow-control: 0 6px 14px -8px rgba(15, 42, 68, 0.35), 0 0 0 1px var(--color-border-control);
+  --color-overlay: rgba(15, 42, 68, 0.32);
   --shadow-popover: 0 24px 40px -16px rgba(15, 42, 68, 0.45), 0 0 0 1px var(--color-border-control);
 }

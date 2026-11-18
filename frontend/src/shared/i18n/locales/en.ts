@@ -72,7 +72,43 @@ export const en: Messages = {
       toLogin: 'Log in',
     },
   },
-  home: {
-    signedInAs: 'Signed in as {{name}}',
+  nav: {
+    label: 'Main menu',
+    open: 'Open the menu',
+    close: 'Close the menu',
+    home: 'Home',
+    accounts: 'Accounts',
+    cards: 'Cards',
+    transfers: 'Transfers',
+    payments: 'Payments',
+    exchange: 'Exchange',
+    savings: 'Savings jars',
+    cashback: 'Cashback',
+    creditLine: 'Credit line',
+    business: 'Sole proprietor & tax',
+    businessTag: 'business',
+    support: 'Support',
+  },
+  greeting: {
+    day: 'Hello, {{name}}!',
+    evening: 'Good evening, {{name}}!',
+  },
+  account: {
+    menu: 'Profile menu',
+  },
+  notifications: {
+    title: 'Notifications',
+    bell: 'Notifications',
+    bellUnread: 'Notifications, {{count}} unread',
+    readAll: 'Mark all as read',
+    empty: 'No notifications yet',
+    loadFailed: 'Could not load notifications',
+  },
+  time: {
+    today: 'today, {{time}}',
+    yesterday: 'yesterday, {{time}}',
+  },
+  section: {
+    soon: 'This section arrives in the next updates of the internet bank.',
   },
 };

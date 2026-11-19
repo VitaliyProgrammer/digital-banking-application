@@ -26,6 +26,7 @@ import io.github.vitaliyprogrammer.banking.payment.dto.request.FeeRequest;
 import io.github.vitaliyprogrammer.banking.payment.dto.request.SavingsTransferRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.request.TopUpRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.request.TransferRequestDto;
+import io.github.vitaliyprogrammer.banking.payment.dto.response.FeeQuoteResponseDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.response.PaymentResponseDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.response.ProviderResponseDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.response.SpendingResponseDto;
@@ -127,6 +128,25 @@ public class PaymentServiceImpl implements PaymentService {
 
         return executeOnce(userId, idempotencyKey, requestHash,
                 () -> createCardTransfer(userId, idempotencyKey, requestHash, recipientCardNumber, request));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public FeeQuoteResponseDto quoteTransferFee(UUID userId, UUID fromAccountId, BigDecimal amount) {
+
+        AccountReferenceDto from = accountService.getOwnedAccountReference(userId, fromAccountId);
+
+        return FeeQuoteResponseDto.of(from.currency(), amount, transferFee(from, amount));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public FeeQuoteResponseDto quoteCardTransferFee(UUID userId, UUID fromCardId, BigDecimal amount) {
+
+        CardReferenceDto fromCard = usableOwnCard(userId, fromCardId);
+        AccountReferenceDto from = accountService.getOwnedSpendingAccountReference(userId, fromCard.accountId());
+
+        return FeeQuoteResponseDto.of(from.currency(), amount, cardTransferFee(fromCard, from, amount));
     }
 
     @Override
@@ -319,8 +339,7 @@ public class PaymentServiceImpl implements PaymentService {
 
         requireTransferable(from, to);
 
-        BigDecimal fee = feeCalculator.calculate(PaymentType.TRANSFER,
-                FeeRequest.withoutCard(request.amount(), from.currency()));
+        BigDecimal fee = transferFee(from, request.amount());
         String description = request.description() != null ? request.description() : "Переказ на рахунок " + to.number();
 
         Payment payment = paymentRepository.saveAndFlush(Payment.pending(
@@ -337,11 +356,7 @@ public class PaymentServiceImpl implements PaymentService {
                                        String recipientCardNumber,
                                        CardTransferRequestDto request) {
 
-        CardReferenceDto fromCard = cardService.getOwnedCardReference(userId, request.fromCardId());
-        if (!fromCard.usable()) {
-            throw CardNotUsableException.ownCard();
-        }
-
+        CardReferenceDto fromCard = usableOwnCard(userId, request.fromCardId());
         CardReferenceDto toCard = cardService.findCardByNumber(recipientCardNumber)
                 .orElseThrow(RecipientNotFoundException::new);
         if (!toCard.usable()) {
@@ -353,8 +368,7 @@ public class PaymentServiceImpl implements PaymentService {
 
         requireTransferable(from, to);
 
-        BigDecimal fee = feeCalculator.calculate(PaymentType.CARD_TRANSFER,
-                FeeRequest.fromCard(request.amount(), from.currency(), fromCard.type()));
+        BigDecimal fee = cardTransferFee(fromCard, from, request.amount());
         String description = request.description() != null
                 ? request.description()
                 : "Переказ на картку *" + toCard.lastFour();
@@ -528,6 +542,29 @@ public class PaymentServiceImpl implements PaymentService {
 
         payment.complete(ledgerTransactionId, clock.instant());
         return payment;
+    }
+
+    private CardReferenceDto usableOwnCard(UUID userId, UUID cardId) {
+
+        CardReferenceDto card = cardService.getOwnedCardReference(userId, cardId);
+
+        if (!card.usable()) {
+            throw CardNotUsableException.ownCard();
+        }
+
+        return card;
+    }
+
+    /** One place for each tariff call, shared by the payment and its quote: they cannot drift apart. */
+    private BigDecimal transferFee(AccountReferenceDto from, BigDecimal amount) {
+
+        return feeCalculator.calculate(PaymentType.TRANSFER, FeeRequest.withoutCard(amount, from.currency()));
+    }
+
+    private BigDecimal cardTransferFee(CardReferenceDto fromCard, AccountReferenceDto from, BigDecimal amount) {
+
+        return feeCalculator.calculate(PaymentType.CARD_TRANSFER,
+                FeeRequest.fromCard(amount, from.currency(), fromCard.type()));
     }
 
     private static void requireTransferable(AccountReferenceDto from, AccountReferenceDto to) {

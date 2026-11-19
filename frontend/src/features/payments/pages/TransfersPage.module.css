@@ -1,0 +1,60 @@
+/* The grid of every section: three columns, the transfer spans two of them. */
+.page {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: 24px;
+}
+
+.main {
+  grid-column: span 2;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* The title on the left, the kind of transfer on the right; one under another on a phone. */
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  /* As high as the switch, so the title stays put when the switch hides after a transfer. */
+  min-height: 44px;
+}
+
+.kinds {
+  flex: 0 1 300px;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.message {
+  padding: 24px;
+}
+
+@media (max-width: 1200px) {
+  .page {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .main {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .main {
+    padding: 20px;
+  }
+
+  .kinds {
+    flex-basis: 100%;
+  }
+}

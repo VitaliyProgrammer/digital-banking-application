@@ -9,6 +9,7 @@ import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage';
 import { GuestOnly } from '@/features/auth/routes/GuestOnly';
 import { RequireAuth } from '@/features/auth/routes/RequireAuth';
 import { HomePage } from '@/features/home/pages/HomePage';
+import { TransfersPage } from '@/features/payments/pages/TransfersPage';
 import { SectionPlaceholder } from '@/pages/SectionPlaceholder';
 import { AppLayout } from './layout/AppLayout';
 import { NAVIGATION } from './layout/navigation';
@@ -19,6 +20,7 @@ const SCREENS: Partial<Record<string, ReactNode>> = {
   '/': <HomePage />,
   '/accounts': <AccountsPage />,
   '/cards': <CardsPage />,
+  '/transfers': <TransfersPage />,
 };
 
 const sections: RouteObject[] = NAVIGATION.map((item) => {

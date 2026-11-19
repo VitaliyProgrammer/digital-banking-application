@@ -1,0 +1,43 @@
+/* The segmented control of "Куди пішли гроші" (Місяць / Рік), as a radio group. */
+.segments {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius-md);
+  background: var(--color-segment);
+}
+
+.segment {
+  position: relative;
+  flex: 1;
+  padding: 8px 16px;
+  border-radius: 9px;
+  font: 700 14px var(--font-sans);
+  color: var(--color-text-secondary);
+  text-align: center;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.segment:hover {
+  color: var(--color-text);
+}
+
+.segment:has(.radio:focus-visible) {
+  outline: 2px solid var(--color-indicator);
+  outline-offset: 2px;
+}
+
+.chosen {
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-segment-active);
+}
+
+/* The real radio stays for the keyboard and screen readers; the segment is what the eye sees. */
+.radio {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}

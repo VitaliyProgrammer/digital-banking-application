@@ -1,0 +1,100 @@
+.group {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.legend {
+  margin-bottom: 8px;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+/* Tiles of one width in a row, as many as fit: three accounts stand side by side on a wide screen. */
+.options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr));
+  gap: 10px;
+}
+
+/* Name over number on the left; the balance on the last line, so every tile reads the same way. */
+.option {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-lg);
+  box-shadow: inset 0 0 0 1px var(--color-border-control);
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+
+.option:hover {
+  box-shadow: inset 0 0 0 1px var(--color-border-accent);
+}
+
+.option:has(.radio:focus-visible) {
+  outline: 2px solid var(--color-indicator);
+  outline-offset: 2px;
+}
+
+.chosen,
+.chosen:hover {
+  background: var(--color-tint);
+  box-shadow: inset 0 0 0 1.5px var(--color-indicator);
+}
+
+.radio {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.name {
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.number {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.balance {
+  margin-top: 6px;
+  font-size: 17px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* One tile per line on a phone: name and number on the left, the balance on the right, half as tall. */
+@media (max-width: 640px) {
+  .option {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 12px;
+  }
+
+  .name,
+  .number {
+    grid-column: 1;
+  }
+
+  .balance {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    margin-top: 0;
+    font-size: 16px;
+  }
+}

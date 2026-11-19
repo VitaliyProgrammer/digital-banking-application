@@ -1,0 +1,63 @@
+.panel {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 0;
+}
+
+.item:first-child {
+  padding-top: 0;
+}
+
+.item:last-child {
+  padding-bottom: 0;
+}
+
+.item + .item {
+  border-top: 1px solid var(--color-border);
+}
+
+.name {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  /* One line of text high: the copy button sticks out instead of pushing the IBAN down. */
+  height: 1lh;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* Two halves that never break inside: one line in a wide column, two even lines in a narrow one. */
+.iban {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+.half {
+  display: inline-block;
+  white-space: nowrap;
+}

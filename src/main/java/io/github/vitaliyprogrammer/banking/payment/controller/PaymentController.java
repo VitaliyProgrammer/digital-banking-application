@@ -5,6 +5,7 @@ import io.github.vitaliyprogrammer.banking.common.security.CurrentUserId;
 import io.github.vitaliyprogrammer.banking.payment.dto.request.CardTransferRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.request.TopUpRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.request.TransferRequestDto;
+import io.github.vitaliyprogrammer.banking.payment.dto.response.FeeQuoteResponseDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.response.PaymentResponseDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.response.SpendingResponseDto;
 import io.github.vitaliyprogrammer.banking.payment.service.PaymentService;
@@ -13,8 +14,11 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -80,6 +84,30 @@ public class PaymentController {
                                            @Valid @RequestBody CardTransferRequestDto request) {
 
         return paymentService.cardTransfer(userId, idempotencyKey, request);
+    }
+
+    @GetMapping("/transfers/fee")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Fee of a transfer",
+            description = "What a transfer by IBAN from your account will cost, before you send it. Moves no money")
+    public FeeQuoteResponseDto quoteTransferFee(@CurrentUserId UUID userId,
+                                                @RequestParam UUID fromAccountId,
+                                                @RequestParam @DecimalMin("0.01") @Digits(integer = 13, fraction = 2)
+                                                BigDecimal amount) {
+
+        return paymentService.quoteTransferFee(userId, fromAccountId, amount);
+    }
+
+    @GetMapping("/card-transfers/fee")
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Fee of a card-to-card transfer",
+            description = "What a transfer from your card will cost, before you send it. Moves no money")
+    public FeeQuoteResponseDto quoteCardTransferFee(@CurrentUserId UUID userId,
+                                                    @RequestParam UUID fromCardId,
+                                                    @RequestParam @DecimalMin("1.00") @Digits(integer = 13, fraction = 2)
+                                                    BigDecimal amount) {
+
+        return paymentService.quoteCardTransferFee(userId, fromCardId, amount);
     }
 
     @GetMapping("/spending")

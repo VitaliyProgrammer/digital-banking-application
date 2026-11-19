@@ -21,6 +21,9 @@ public class WebConfiguration implements WebMvcConfigurer {
 
         registry.addRedirectViewController("/", "/app/");
         registry.addRedirectViewController("/app", "/app/");
+
+        // The resource handler refuses an empty path before any resolver sees it, so the client's root is forwarded.
+        registry.addViewController("/app/").setViewName("forward:/app/index.html");
     }
 
     @Override

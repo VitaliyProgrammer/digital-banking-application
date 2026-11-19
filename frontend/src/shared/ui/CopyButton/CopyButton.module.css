@@ -1,0 +1,44 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--color-page);
+  font: 700 13.5px var(--font-sans);
+  color: var(--color-ghost-text);
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.button:hover {
+  background: var(--color-ghost-hover);
+  color: var(--color-text);
+}
+
+.withText {
+  width: auto;
+  padding: 0 14px;
+}
+
+.copied,
+.copied:hover {
+  background: var(--color-mint);
+  color: var(--color-positive);
+}
+
+.announcement {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

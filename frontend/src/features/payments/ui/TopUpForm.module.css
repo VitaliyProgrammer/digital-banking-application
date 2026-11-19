@@ -1,0 +1,50 @@
+.panel {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.currency {
+  padding-right: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.quick {
+  display: flex;
+  gap: 8px;
+}
+
+.chip {
+  flex: 1;
+  height: 36px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--color-page);
+  font: 700 14px var(--font-sans);
+  color: var(--color-ghost-text);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.chip:hover {
+  background: var(--color-ghost-hover);
+  color: var(--color-text);
+}

@@ -9,6 +9,8 @@ interface RequestOptions {
   body?: unknown;
   /** false for the calls made before logging in: login, registration, password reset. */
   authenticated?: boolean;
+  /** Extra headers of one call, e.g. the Idempotency-Key of a payment. */
+  headers?: Record<string, string>;
   signal?: AbortSignal;
 }
 
@@ -44,8 +46,15 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   return response.status === 204 ? (undefined as T) : ((await response.json()) as T);
 }
 
-async function send(path: string, { method = 'GET', body, authenticated = true, signal }: RequestOptions) {
-  const headers = new Headers({ Accept: 'application/json', 'Accept-Language': currentLanguage() });
+async function send(
+  path: string,
+  { method = 'GET', body, authenticated = true, headers: extraHeaders, signal }: RequestOptions,
+) {
+  const headers = new Headers({
+    ...extraHeaders,
+    Accept: 'application/json',
+    'Accept-Language': currentLanguage(),
+  });
   const accessToken = getAccessToken();
 
   if (body !== undefined) {

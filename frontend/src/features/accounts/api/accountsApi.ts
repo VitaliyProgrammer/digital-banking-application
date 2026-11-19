@@ -40,6 +40,10 @@ export interface StatementEntry {
 export const accountsApi = {
   list: () => request<Account[]>('/accounts'),
 
-  statement: (accountId: string, size: number) =>
-    request<Page<StatementEntry>>(`/accounts/${accountId}/transactions?page=0&size=${size}`),
+  /** One account per currency: the bank refuses a second one. */
+  open: (currency: Currency) => request<Account>('/accounts', { method: 'POST', body: { currency } }),
+
+  /** Newest first, page 0 is the latest operations. */
+  statement: (accountId: string, page: number, size: number) =>
+    request<Page<StatementEntry>>(`/accounts/${accountId}/transactions?page=${page}&size=${size}`),
 };

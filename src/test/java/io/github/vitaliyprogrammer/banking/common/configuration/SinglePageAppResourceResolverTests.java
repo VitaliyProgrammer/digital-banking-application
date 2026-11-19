@@ -9,7 +9,7 @@ import org.springframework.core.io.Resource;
 
 class SinglePageAppResourceResolverTests {
 
-    private final Resource location = new ClassPathResource("web-client/");
+    private final Resource location = new ClassPathResource("static/app/");
     private final SinglePageAppResourceResolver resolver = new SinglePageAppResourceResolver();
 
     @Test

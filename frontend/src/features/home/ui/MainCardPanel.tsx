@@ -41,7 +41,7 @@ export function MainCardPanel() {
     <Panel className={styles.panel}>
       <div className={styles.summary}>
         <span className={styles.label}>
-          {card ? t(`home.card.types.${card.type}`) : t('home.card.ownFunds')} ·{' '}
+          {card ? t(`cards.types.${card.type}`) : t('home.card.ownFunds')} ·{' '}
           {t(`home.card.currencies.${currency}`)}
         </span>
         <p className={styles.balance}>
@@ -72,13 +72,13 @@ export function MainCardPanel() {
               className={styles.status}
               colors={{ background: 'var(--color-mint)', color: 'var(--color-brand-dark)' }}
             >
-              {t(`home.card.statuses.${card.status}`)}
+              {t(`cards.statuses.${card.status}`)}
             </Pill>
-            <ButtonLink variant="ghost" to="/cards">
+            <ButtonLink variant="ghost" to={`/cards?card=${card.id}`}>
               <LockIcon />
               {t('home.card.block')}
             </ButtonLink>
-            <ButtonLink variant="ghost" to="/cards">
+            <ButtonLink variant="ghost" to={`/cards?card=${card.id}`}>
               <PinIcon />
               {t('home.card.changePin')}
             </ButtonLink>

@@ -47,6 +47,17 @@
   box-shadow: var(--button-soft-shadow-hover);
 }
 
+/* An action that cannot be undone, e.g. closing a card: red, but quiet until it is meant. */
+.danger {
+  background: var(--color-danger-tint);
+  color: var(--color-danger);
+}
+
+.danger:hover:not(:disabled) {
+  transform: none;
+  box-shadow: 0 0 0 1px var(--color-danger-border);
+}
+
 /* The small grey action of the mockup ("Заблокувати", "Змінити PIN"). */
 .ghost {
   min-height: 0;

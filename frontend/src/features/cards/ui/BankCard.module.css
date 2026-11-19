@@ -215,3 +215,9 @@
     letter-spacing: 1.2px;
   }
 }
+
+/* A card that cannot pay (blocked, PIN-locked or closed) loses its colour, so it is never mistaken for a working one. */
+.inactive .front {
+  filter: grayscale(0.9);
+  opacity: 0.75;
+}

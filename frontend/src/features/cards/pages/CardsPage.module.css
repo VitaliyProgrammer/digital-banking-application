@@ -1,0 +1,37 @@
+/* The grid of the accounts page: three columns, the chosen card spans two of them. */
+.page {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: 24px;
+}
+
+.main {
+  grid-column: span 2;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.message {
+  padding: 24px;
+}
+
+@media (max-width: 1200px) {
+  .page {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .main {
+    grid-column: auto;
+  }
+
+  .column {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+    align-items: start;
+  }
+}

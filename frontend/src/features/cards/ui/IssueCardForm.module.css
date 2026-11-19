@@ -1,0 +1,104 @@
+.panel {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.group {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.legend {
+  margin-bottom: 8px;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+/* The real radio stays for the keyboard and screen readers; the whole option is what the eye sees. */
+.radio {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.option {
+  position: relative;
+  display: flex;
+  padding: 12px 14px;
+  border-radius: var(--radius-lg);
+  box-shadow: inset 0 0 0 1px var(--color-border-control);
+  cursor: pointer;
+  transition: box-shadow 0.15s;
+}
+
+.option:hover {
+  box-shadow: inset 0 0 0 1px var(--color-border-accent);
+}
+
+.option:has(.radio:focus-visible),
+.segment:has(.radio:focus-visible) {
+  outline: 2px solid var(--color-indicator);
+  outline-offset: 2px;
+}
+
+.chosen,
+.chosen:hover {
+  background: var(--color-tint);
+  box-shadow: inset 0 0 0 1.5px var(--color-indicator);
+}
+
+.optionText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.optionName {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.optionNote {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* The segmented control of "Куди пішли гроші" (Місяць / Рік). */
+.segments {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--radius-md);
+  background: var(--color-segment);
+}
+
+.segment {
+  position: relative;
+  flex: 1;
+  padding: 8px 16px;
+  border-radius: 9px;
+  font: 700 14px var(--font-sans);
+  color: var(--color-text-secondary);
+  text-align: center;
+  cursor: pointer;
+}
+
+.segmentChosen {
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-segment-active);
+}

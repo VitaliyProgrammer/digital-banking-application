@@ -92,8 +92,8 @@ export const CopyIcon = () => (
   </Icon>
 );
 
-export const CheckIcon = () => (
-  <Icon size={16} strokeWidth={2.6}>
+export const CheckIcon = ({ size = 16 }: IconProps) => (
+  <Icon size={size} strokeWidth={2.6}>
     <path d="M5 12.5l4.5 4.5L19 7.5" />
   </Icon>
 );

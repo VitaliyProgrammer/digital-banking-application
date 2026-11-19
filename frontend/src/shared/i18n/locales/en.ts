@@ -15,6 +15,12 @@ export const en: Messages = {
     amount: 'Enter an amount, e.g. 1500 or 1500.50',
     pin: 'A PIN is 4 digits',
     pinMismatch: 'The PINs do not match',
+    amountPositive: 'The amount must be above zero',
+    cardTransferMin: 'A card can send from 1.00',
+    iban: 'An IBAN is UA and 27 digits',
+    ibanChecksum: 'This IBAN has a typo: check the digits',
+    cardNumber: 'A card number is 16 digits',
+    cardNumberChecksum: 'This card number has a typo: check the digits',
     topUpRange: 'From 0.01 to 100,000 per top-up',
   },
   errors: {
@@ -250,6 +256,53 @@ export const en: Messages = {
         VIRTUAL: 'No plastic, for online shopping · transfers\u00A01%',
       },
     },
+  },
+  transfers: {
+    title: 'New transfer',
+    kind: 'Where to send',
+    kinds: {
+      iban: 'By IBAN',
+      card: 'To a card',
+    },
+    from: 'From',
+    recipient: {
+      iban: 'Recipient’s IBAN',
+      card: 'Recipient’s card number',
+      placeholder: {
+        iban: 'UA00 0000 0000 0000 0000 0000 0000 0',
+        card: '0000 0000 0000 0000',
+      },
+    },
+    amount: 'Amount',
+    description: 'Purpose',
+    descriptionPlaceholder: 'For example, rent',
+    descriptionHint: 'Optional',
+    fee: {
+      fee: 'Fee',
+      free: 'No fee',
+      total: 'Total to be charged',
+      failed: 'The fee could not be priced in advance.',
+      notEnough: 'Not enough money: {{amount}} available',
+    },
+    submit: 'Send',
+    done: {
+      title: 'Money sent',
+      processing: 'The transfer is being processed',
+      from: 'From',
+      to: 'To',
+      description: 'Purpose',
+      another: 'New transfer',
+      toAccount: 'To the account',
+    },
+    noSources: {
+      iban: 'There is no active account to send money from.',
+      card: 'There is no active card. Issue or unblock one in the Cards section.',
+    },
+    requisites: {
+      title: 'Your details',
+      subtitle: 'Send your IBAN to whoever is transferring money to you',
+    },
+    loadFailed: 'Accounts and cards could not be loaded. Refresh the page.',
   },
   months: {
     in: {

@@ -1,0 +1,34 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Amount and purpose side by side while there is room: their labels and fields stand on one line. */
+.pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  align-items: start;
+  gap: 16px;
+}
+
+/* An IBAN or a card number in the bank's mono, the way it is printed everywhere else. */
+.recipient input {
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+}
+
+/* 29 mono characters do not fit a phone's field; the narrower text font keeps the whole IBAN in sight. */
+@media (max-width: 480px) {
+  .recipient input {
+    font-family: inherit;
+    letter-spacing: 0;
+  }
+}
+
+.currency {
+  padding-right: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}

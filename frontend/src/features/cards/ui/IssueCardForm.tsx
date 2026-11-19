@@ -6,6 +6,7 @@ import { useRequestErrorText } from '@/shared/lib/forms';
 import { Button } from '@/shared/ui/Button/Button';
 import { FormAlert } from '@/shared/ui/FormAlert/FormAlert';
 import { Panel, PanelTitle } from '@/shared/ui/Panel/Panel';
+import { SegmentedControl } from '@/shared/ui/SegmentedControl/SegmentedControl';
 import type { Card, IssuableCardType } from '../api/cardsApi';
 import { useIssueCard } from '../model/queries';
 import styles from './IssueCardForm.module.css';
@@ -64,23 +65,12 @@ export function IssueCardForm({ accounts, onIssued }: IssueCardFormProps) {
         {accounts.length > 1 && (
           <fieldset className={styles.group}>
             <legend className={styles.legend}>{t('cards.issue.account')}</legend>
-            <div className={styles.segments}>
-              {accounts.map((account) => (
-                <label
-                  key={account.id}
-                  className={cn(styles.segment, account.id === accountId && styles.segmentChosen)}
-                >
-                  <input
-                    type="radio"
-                    name="account"
-                    className={styles.radio}
-                    checked={account.id === accountId}
-                    onChange={() => setAccountId(account.id)}
-                  />
-                  {account.currency}
-                </label>
-              ))}
-            </div>
+            <SegmentedControl
+              name="account"
+              segments={accounts.map((account) => ({ value: account.id, label: account.currency }))}
+              value={accountId}
+              onChange={setAccountId}
+            />
           </fieldset>
         )}
 

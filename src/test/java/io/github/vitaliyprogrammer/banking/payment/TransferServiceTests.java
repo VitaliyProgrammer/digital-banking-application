@@ -31,6 +31,7 @@ import io.github.vitaliyprogrammer.banking.outbox.event.OutboxEventType;
 import io.github.vitaliyprogrammer.banking.outbox.service.OutboxService;
 import io.github.vitaliyprogrammer.banking.payment.dto.request.CardTransferRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.request.TransferRequestDto;
+import io.github.vitaliyprogrammer.banking.payment.dto.response.FeeQuoteResponseDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.response.PaymentResponseDto;
 import io.github.vitaliyprogrammer.banking.payment.entity.Payment;
 import io.github.vitaliyprogrammer.banking.payment.entity.status.PaymentStatus;
@@ -266,6 +267,42 @@ class TransferServiceTests {
                 .hasMessageContaining("Your card");
 
         nothingMoved();
+    }
+
+    @Test
+    void transferFeeQuoteIsTheTariffTheTransferWillCharge() {
+        when(accountService.getOwnedAccountReference(userId, from.id())).thenReturn(from);
+
+        FeeQuoteResponseDto small = paymentService.quoteTransferFee(userId, from.id(), new BigDecimal("100.00"));
+        FeeQuoteResponseDto large = paymentService.quoteTransferFee(userId, from.id(), new BigDecimal("4000.00"));
+
+        assertThat(small.fee()).isEqualByComparingTo("5.00");      // 0.5% is 0.50, so the minimum applies
+        assertThat(small.total()).isEqualByComparingTo("105.00");
+        assertThat(large.fee()).isEqualByComparingTo("20.00");     // 0.5% of 4000.00
+        assertThat(large.currency()).isEqualTo(Currency.UAH);
+        nothingMoved();
+    }
+
+    @Test
+    void cardTransferFeeQuoteFollowsTheSenderCardType() {
+        CardReferenceDto virtual = card(userId, from.id(), CardType.VIRTUAL, true);
+        when(cardService.getOwnedCardReference(userId, virtual.id())).thenReturn(virtual);
+        when(accountService.getOwnedSpendingAccountReference(userId, from.id())).thenReturn(from);
+
+        FeeQuoteResponseDto quote = paymentService.quoteCardTransferFee(userId, virtual.id(), new BigDecimal("1000.00"));
+
+        assertThat(quote.fee()).isEqualByComparingTo("10.00");     // VIRTUAL: 1%
+        assertThat(quote.total()).isEqualByComparingTo("1010.00");
+        nothingMoved();
+    }
+
+    @Test
+    void blockedCardGetsNoFeeQuote() {
+        CardReferenceDto blocked = card(userId, from.id(), CardType.UNIVERSAL, false);
+        when(cardService.getOwnedCardReference(userId, blocked.id())).thenReturn(blocked);
+
+        assertThatThrownBy(() -> paymentService.quoteCardTransferFee(userId, blocked.id(), BigDecimal.TEN))
+                .isInstanceOf(CardNotUsableException.class);
     }
 
     private void recipientFound() {

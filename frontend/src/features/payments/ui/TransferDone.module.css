@@ -1,0 +1,102 @@
+.done {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0 4px;
+  text-align: center;
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 4px;
+  border-radius: 50%;
+  background: var(--color-mint);
+  color: var(--color-brand-dark);
+}
+
+.title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.amount {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Label on the left, value on the right: the receipt's two columns. */
+.facts {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 4px 16px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-soft);
+}
+
+.fact {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+  font-size: 14px;
+}
+
+.fact + .fact {
+  border-top: 1px solid var(--color-border);
+}
+
+.fact dt {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.fact dd {
+  margin: 0;
+  min-width: 0;
+  font-weight: 700;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+/* Numbers in the receipt's mono at one weight, whether the whole line or a part of it. */
+.fact .mono {
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.buttons > * {
+  flex: 1 1 180px;
+}
+
+/* The IBAN breaks only between its halves: one line when wide, two even ones when narrow. */
+.part {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.part + .part {
+  margin-left: 0.6em;
+}

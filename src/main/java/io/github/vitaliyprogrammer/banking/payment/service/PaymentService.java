@@ -7,6 +7,7 @@ import io.github.vitaliyprogrammer.banking.payment.dto.request.ExchangeRequestDt
 import io.github.vitaliyprogrammer.banking.payment.dto.request.SavingsTransferRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.request.TopUpRequestDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.request.TransferRequestDto;
+import io.github.vitaliyprogrammer.banking.payment.dto.response.FeeQuoteResponseDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.response.PaymentResponseDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.response.SpendingResponseDto;
 import io.github.vitaliyprogrammer.banking.payment.dto.response.ProviderResponseDto;
@@ -22,6 +23,12 @@ public interface PaymentService {
     PaymentResponseDto transfer(UUID userId, String idempotencyKey, TransferRequestDto request);
 
     PaymentResponseDto cardTransfer(UUID userId, String idempotencyKey, CardTransferRequestDto request);
+
+    /** The fee of a transfer by IBAN from one of the client's accounts, before it is sent. Moves no money. */
+    FeeQuoteResponseDto quoteTransferFee(UUID userId, UUID fromAccountId, BigDecimal amount);
+
+    /** The fee of a card-to-card transfer from one of the client's cards: it depends on the card's type. */
+    FeeQuoteResponseDto quoteCardTransferFee(UUID userId, UUID fromCardId, BigDecimal amount);
 
     /** Holds the money and returns at once with status PROCESSING; the provider is called in the background. */
     PaymentResponseDto payBill(UUID userId, String idempotencyKey, BillPaymentRequestDto request);

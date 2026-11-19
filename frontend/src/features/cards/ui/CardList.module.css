@@ -1,0 +1,86 @@
+/* The frame of the statement and of "Останні операції": rows reach 12px from the panel's edge. */
+.panel {
+  padding: 24px 12px 12px;
+}
+
+.title {
+  padding: 0 12px 10px;
+}
+
+.message {
+  padding: 4px 12px 12px;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: none;
+  font: inherit;
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.row:hover {
+  background: var(--color-surface-hover);
+}
+
+.chosen,
+.chosen:hover {
+  background: var(--color-tint);
+  box-shadow: inset 0 0 0 1.5px var(--color-indicator);
+}
+
+/* The bank card in miniature: the same gradient and the same ISO proportions. */
+.thumb {
+  width: 42px;
+  aspect-ratio: 1.586;
+  flex-shrink: 0;
+  border-radius: 5px;
+  background: var(--card-front);
+}
+
+.thumbInactive {
+  filter: grayscale(0.9);
+  opacity: 0.75;
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.name {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.status {
+  font-weight: 700;
+  color: var(--color-danger);
+}

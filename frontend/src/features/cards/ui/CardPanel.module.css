@@ -1,0 +1,144 @@
+.panel {
+  /* The layout follows the panel's own width, not the window: it spans two columns of a grid that changes. */
+  container-type: inline-size;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* The card on the left, its facts on the right; one under another when the panel is narrow. */
+.top {
+  display: grid;
+  grid-template-columns: minmax(0, 430px) minmax(180px, 1fr);
+  align-items: start;
+  gap: 32px;
+}
+
+.cardColumn {
+  /* As wide as the card, so the hint under it is centred on the card, not on the panel. */
+  max-width: 430px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.flipHint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.facts {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fact {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fact dt {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.fact dd {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* The first fact is the card's name with its status: the heading of the column. */
+.fact:first-child dt {
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--color-text);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+
+.note {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-soft);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* Closing is kept apart from the everyday actions, at the far right. */
+.close {
+  margin-left: auto;
+}
+
+.confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  background: var(--color-danger-tint);
+}
+
+.warning {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-danger);
+}
+
+@container (max-width: 640px) {
+  .top {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 22px;
+  }
+}
+
+@media (max-width: 600px) {
+  .panel {
+    padding: 20px;
+  }
+
+  /* Even buttons that share the row: the everyday two side by side, closing on a full row under them. */
+  .buttons > * {
+    flex: 1 1 140px;
+    padding: 0 12px;
+    white-space: nowrap;
+  }
+
+  .close {
+    flex-basis: 100%;
+    margin-left: 0;
+  }
+}
+
+/* The account's name, and its IBAN on its own line under it. */
+.account {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* On the red question the final answer is solid red, so it reads as the button it is. */
+.confirmClose,
+.confirmClose:hover:not(:disabled) {
+  background: var(--color-danger);
+  color: var(--color-surface);
+}

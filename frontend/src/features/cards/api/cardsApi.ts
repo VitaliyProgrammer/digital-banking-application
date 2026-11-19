@@ -23,8 +23,33 @@ export interface CardDetails {
   cvv: string;
 }
 
+/** The cards a client may ask for; UNIVERSAL comes with the account, BUSINESS with the business account. */
+export type IssuableCardType = Extract<CardType, 'PAYROLL' | 'STUDENT' | 'VIRTUAL'>;
+
+export interface IssueCardRequest {
+  accountId: string;
+  type: IssuableCardType;
+}
+
+export interface ChangePinRequest {
+  /** Only when the card already has a PIN. */
+  currentPin?: string;
+  newPin: string;
+}
+
+/** What the client can do with a card in one click. */
+export type CardAction = 'block' | 'unblock' | 'close';
+
 export const cardsApi = {
   list: () => request<Card[]>('/cards'),
 
   details: (cardId: string) => request<CardDetails>(`/cards/${cardId}/details`),
+
+  issue: (issue: IssueCardRequest) => request<Card>('/cards', { method: 'POST', body: issue }),
+
+  act: (cardId: string, action: CardAction) =>
+    request<Card>(`/cards/${cardId}/${action}`, { method: 'POST' }),
+
+  changePin: (cardId: string, pin: ChangePinRequest) =>
+    request<undefined>(`/cards/${cardId}/pin`, { method: 'PUT', body: pin }),
 };

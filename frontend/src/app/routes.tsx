@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Navigate, type RouteObject } from 'react-router';
 import { AccountsPage } from '@/features/accounts/pages/AccountsPage';
+import { CardsPage } from '@/features/cards/pages/CardsPage';
 import { ForgotPasswordPage } from '@/features/auth/pages/ForgotPasswordPage';
 import { LoginPage } from '@/features/auth/pages/LoginPage';
 import { RegisterPage } from '@/features/auth/pages/RegisterPage';
@@ -17,6 +18,7 @@ import type { RouteHandle } from './layout/PageHeading';
 const SCREENS: Partial<Record<string, ReactNode>> = {
   '/': <HomePage />,
   '/accounts': <AccountsPage />,
+  '/cards': <CardsPage />,
 };
 
 const sections: RouteObject[] = NAVIGATION.map((item) => {

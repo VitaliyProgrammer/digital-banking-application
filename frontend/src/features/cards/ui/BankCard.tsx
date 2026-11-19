@@ -43,8 +43,8 @@ export function BankCard({ card, currency, holderName }: BankCardProps) {
   return (
     <button
       type="button"
-      className={styles.card}
-      aria-label={flipped ? t('home.card.hideDetails') : t('home.card.showDetails')}
+      className={cn(styles.card, card.status !== 'ACTIVE' && styles.inactive)}
+      aria-label={flipped ? t('cards.hideDetails') : t('cards.showDetails')}
       aria-pressed={flipped}
       onClick={() => setFlipped((current) => !current)}
     >
@@ -79,16 +79,16 @@ export function BankCard({ card, currency, holderName }: BankCardProps) {
               </span>
               <span className={styles.fullNumber}>{groupedNumber(details.data.number)}</span>
               <span className={styles.detailsFooter}>
-                <span className={styles.muted}>{t('home.card.hideSoon')}</span>
+                <span className={styles.muted}>{t('cards.hideSoon')}</span>
                 <span>
-                  <span className={styles.muted}>{t('home.card.validThru')}</span>{' '}
+                  <span className={styles.muted}>{t('cards.validThru')}</span>{' '}
                   <strong className={styles.expiry}>{details.data.expiry}</strong>
                 </span>
               </span>
             </span>
           )}
           {flipped && details.isError && (
-            <span className={styles.detailsError}>{t('home.card.detailsFailed')}</span>
+            <span className={styles.detailsError}>{t('cards.detailsFailed')}</span>
           )}
         </span>
       </span>

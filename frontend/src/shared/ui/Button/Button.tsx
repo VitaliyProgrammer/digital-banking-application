@@ -2,7 +2,7 @@ import type { ButtonHTMLAttributes } from 'react';
 import { cn } from '@/shared/lib/cn';
 import styles from './Button.module.css';
 
-type ButtonVariant = 'primary' | 'soft';
+type ButtonVariant = 'primary' | 'soft' | 'danger';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;

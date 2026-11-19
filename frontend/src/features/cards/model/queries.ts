@@ -1,5 +1,11 @@
-import { useQuery } from '@tanstack/react-query';
-import { cardsApi, type Card } from '../api/cardsApi';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  cardsApi,
+  type Card,
+  type CardAction,
+  type ChangePinRequest,
+  type IssueCardRequest,
+} from '../api/cardsApi';
 
 export const cardKeys = {
   all: ['cards'] as const,
@@ -35,4 +41,35 @@ export function primaryCard(cards: Card[]): Card | undefined {
     usable.find((card) => card.status === 'ACTIVE') ??
     usable[0]
   );
+}
+
+/** Every change of a card is answered with the card list refreshed: statuses and the PIN flag come from the bank. */
+function useRefreshCards() {
+  const queryClient = useQueryClient();
+  return () => queryClient.invalidateQueries({ queryKey: cardKeys.all });
+}
+
+export function useIssueCard() {
+  const refreshCards = useRefreshCards();
+  return useMutation({
+    mutationFn: (issue: IssueCardRequest) => cardsApi.issue(issue),
+    onSuccess: refreshCards,
+  });
+}
+
+export function useCardAction(cardId: string) {
+  const refreshCards = useRefreshCards();
+  return useMutation({
+    mutationFn: (action: CardAction) => cardsApi.act(cardId, action),
+    onSuccess: refreshCards,
+  });
+}
+
+export function useChangePin(cardId: string) {
+  const refreshCards = useRefreshCards();
+  return useMutation({
+    mutationFn: (pin: ChangePinRequest) => cardsApi.changePin(cardId, pin),
+    // Also after a failure: a wrong current PIN may have locked the card, and the page must show it at once.
+    onSettled: refreshCards,
+  });
 }

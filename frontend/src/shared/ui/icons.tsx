@@ -84,3 +84,16 @@ export const ChevronIcon = ({ className }: { className?: string }) => (
     <path d="M6 9l6 6 6-6" />
   </svg>
 );
+
+export const CopyIcon = () => (
+  <Icon size={16} strokeWidth={2}>
+    <rect x="9" y="9" width="11" height="11" rx="2.5" />
+    <path d="M5 15V6a2 2 0 0 1 2-2h9" />
+  </Icon>
+);
+
+export const CheckIcon = () => (
+  <Icon size={16} strokeWidth={2.6}>
+    <path d="M5 12.5l4.5 4.5L19 7.5" />
+  </Icon>
+);

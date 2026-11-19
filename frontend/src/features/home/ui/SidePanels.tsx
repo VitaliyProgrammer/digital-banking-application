@@ -42,7 +42,7 @@ export function CurrencyAccountsPanel() {
               (item) => item.type === 'CLIENT' && item.currency === currency,
             );
             return (
-              <Link key={currency} className={styles.currency} to="/accounts">
+              <Link key={currency} className={styles.currency} to={`/accounts?currency=${currency}`}>
                 <span className={styles.currencyName}>{t(`home.currency.names.${currency}`)}</span>
                 <span className={account ? styles.currencyAmount : styles.currencyOpen}>
                   {account ? formatMoney(account.balance, currency, language) : t('home.currency.open')}

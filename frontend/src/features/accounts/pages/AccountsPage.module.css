@@ -1,0 +1,49 @@
+/* The rhythm of the home screen: 28px between the rows, 24px between the panels. */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/*
+ * The same three columns as the account tiles above, so every edge lines up:
+ * the statement takes two of them, top-up and details the third.
+ */
+.bottom {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: 24px;
+}
+
+.statement {
+  grid-column: span 2;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.message {
+  padding: 24px;
+}
+
+/* On a narrower screen the actions come first and the statement, which can be long, goes under them. */
+@media (max-width: 1200px) {
+  .bottom {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .statement {
+    grid-column: auto;
+  }
+
+  .column {
+    order: -1;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+    align-items: start;
+  }
+}

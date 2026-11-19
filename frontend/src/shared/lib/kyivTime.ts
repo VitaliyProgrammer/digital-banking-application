@@ -61,13 +61,18 @@ export interface CalendarDay {
   day: number;
 }
 
-/** Today in Kyiv, wherever the computer is. */
-export function kyivToday(now: Date): CalendarDay {
+/** The Kyiv day of a moment: an operation at 23:30 UTC on the 16th happened on the 17th in Kyiv. */
+export function kyivDayOf(date: Date): CalendarDay {
   const [year, month, day] = new Intl.DateTimeFormat('en-CA', { timeZone: BANK_TIME_ZONE })
-    .format(now)
+    .format(date)
     .split('-')
     .map(Number);
   return { year: year ?? 1970, month: month ?? 1, day: day ?? 1 };
+}
+
+/** Today in Kyiv, wherever the computer is. */
+export function kyivToday(now: Date): CalendarDay {
+  return kyivDayOf(now);
 }
 
 /** "2026-11-01" */

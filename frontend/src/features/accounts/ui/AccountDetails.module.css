@@ -1,0 +1,56 @@
+.panel {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.list {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.row dt {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.row dd {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.ibanLabel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  /* One line of text high: the copy button sticks out instead of pushing the IBAN down. */
+  height: 1lh;
+}
+
+/* Two halves that never break inside: one line in a wide column, two even lines in a narrow one. */
+.row .iban {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.half {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.copyAll {
+  height: 40px;
+  align-self: flex-start;
+}
